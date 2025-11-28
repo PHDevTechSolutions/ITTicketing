@@ -71,6 +71,14 @@ const data = {
           title: "Priority",
           url: "/priority",
         },
+        {
+          title: "Status",
+          url: "/status",
+        },
+        {
+          title: "Technician",
+          url: "/technician",
+        },
       ],
     },
   ],

@@ -1,146 +1,170 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-// I-assume na ito ang tamang path para sa iyong sidebar
-import { AppSidebar } from "../components/sidebar" 
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  User,
-  LogOut,
-  Plus, 
-  Edit, 
-  Trash2, 
-} from "lucide-react"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import {
-  DropdownMenu, 
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+import { useState, useEffect } from "react";
+// Assuming you have these components configured
+import { AppSidebar } from "../components/sidebar";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { User, LogOut, Plus, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-// --- Interface para sa Department ---
+// Interfaces
 interface Department {
-  id: string 
-  name: string // Ang pangalan ng Department
+  _id: string;
+  name: string;
 }
 
-// --- Sample Data ---
-const initialDepartments: Department[] = [
-  { id: "D-001", name: "Human Resources" },
-  { id: "D-002", name: "Finance" },
-  { id: "D-003", name: "Marketing" },
-  { id: "D-004", name: "Information Technology" },
-]
+interface CurrentUser {
+  _id: string;
+  Username: string;
+  Email: string;
+  Role: string;
+  Firstname: string;
+  Lastname: string;
+  ReferenceID: string;
+  createdAt: string;
+}
 
-// --- Main Component ---
-export default function DepartmentsPage() { 
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [profilePic, setProfilePic] = useState<string | null>(null)
-  
-  // State para sa Departments
-  const [departments, setDepartments] = useState<Department[]>(initialDepartments)
-  
-  // State para sa Add/Edit Dialog
-  const [isDeptDialogOpen, setIsDeptDialogOpen] = useState(false)
-  const [currentDept, setCurrentDept] = useState<Department | null>(null)
-  const [newDeptName, setNewDeptName] = useState("") 
+export default function DepartmentsPage() {
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [isDeptDialogOpen, setIsDeptDialogOpen] = useState(false);
+  const [currentDept, setCurrentDept] = useState<Department | null>(null);
+  const [newDeptName, setNewDeptName] = useState("");
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-  const handleLogout = () => {
-    alert("Logged out! Redirect logic not implemented.")
-  }
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setProfilePic(reader.result as string)
-      reader.readAsDataURL(file)
+  // 🧩 FETCH Departments from API
+  const fetchDepartments = async () => {
+    try {
+      const res = await fetch("/api/departments");
+      const data = await res.json();
+      if (data.success) setDepartments(data.data);
+    } catch (error) {
+      console.error("Error fetching departments:", error);
     }
-  }
+  };
 
-  const handleSaveDepartment = () => {
-    if (!newDeptName) {
-      alert("Please enter the Department name.")
-      return
-    }
-
-    if (currentDept) {
-      // Edit Department
-      setDepartments(departments.map(dept => 
-        dept.id === currentDept.id 
-          ? { ...dept, name: newDeptName } 
-          : dept
-      ))
-      alert(`Department ${currentDept.id} updated!`)
-    } else {
-      // Add New Department
-      const newId = `D-${(departments.length + 1).toString().padStart(3, '0')}`
-      const newDepartment: Department = {
-        id: newId,
-        name: newDeptName,
+  // 🧩 FETCH Profile from API
+  const fetchProfile = async () => {
+    try {
+      // NOTE: Ensure 'userId' is saved in localStorage after login.
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        setIsProfileLoading(false);
+        return;
       }
-      setDepartments([...departments, newDepartment])
-      alert(`Department ${newId} added!`)
+
+      // This calls the API route defined in the next section: /api/profile/[id].ts
+      const res = await fetch(`/api/profile/${userId}`);
+      const data = await res.json();
+
+      if (res.ok && data.success) setCurrentUser(data.data);
+      else console.error("Failed to fetch profile:", data.message);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDepartments();
+    fetchProfile();
+  }, []);
+
+  // 🧠 SAVE Department (CREATE or UPDATE)
+  const handleSaveDepartment = async () => {
+    if (!newDeptName.trim()) return alert("Please enter the Department name.");
+
+    try {
+      const method = currentDept ? "PUT" : "POST";
+      const url = currentDept ? `/api/departments/${currentDept._id}` : "/api/departments";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newDeptName }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert(`Department ${currentDept ? "updated" : "created"} successfully!`);
+        fetchDepartments();
+      } else {
+        alert(data.message || `Failed to ${currentDept ? "update" : "create"} department.`);
+      }
+    } catch (error) {
+      console.error("Error saving department:", error);
+      alert("Something went wrong.");
     }
 
-    // Reset and Close
-    setIsDeptDialogOpen(false)
-    setCurrentDept(null)
-    setNewDeptName("")
-  }
+    setIsDeptDialogOpen(false);
+    setNewDeptName("");
+    setCurrentDept(null);
+  };
+
+  // 🧠 DELETE Department
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/departments/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        alert("Department deleted successfully!");
+        fetchDepartments();
+      } else {
+        alert(data.message || "Failed to delete department.");
+      }
+    } catch (error) {
+      console.error("Error deleting department:", error);
+      alert("Something went wrong.");
+    }
+  };
 
   const handleEdit = (dept: Department) => {
-    setCurrentDept(dept)
-    setNewDeptName(dept.name)
-    setIsDeptDialogOpen(true)
-  }
+    setCurrentDept(dept);
+    setNewDeptName(dept.name);
+    setIsDeptDialogOpen(true);
+  };
 
-  const handleDelete = (id: string) => {
-    if (confirm(`Are you sure you want to delete department ${id}?`)) {
-      setDepartments(departments.filter(dept => dept.id !== id))
-      alert(`Department ${id} deleted.`)
-    }
-  }
-  
   const handleOpenAdd = () => {
-    setCurrentDept(null)
-    setNewDeptName("")
-    setIsDeptDialogOpen(true)
-  }
+    setCurrentDept(null);
+    setNewDeptName("");
+    setIsDeptDialogOpen(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("userId");
+    alert("Logged out! Redirect not implemented.");
+    // In a real app, you would redirect to the login page
+    // window.location.href = "/login"; 
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => setProfilePic(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const formatDate = (date: Date) =>
+    new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        {/* HEADER (Profile Dialog) */}
+        {/* HEADER */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
@@ -160,28 +184,23 @@ export default function DepartmentsPage() {
             </Breadcrumb>
           </div>
 
-          {/* PROFILE + LOGOUT - Unchanged */}
           <div className="flex items-center gap-3">
+            {/* Profile Dialog */}
             <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" title="Profile">
                   <User className="h-5 w-5 text-gray-600" />
                 </Button>
               </DialogTrigger>
-              
+
               <DialogContent className="sm:max-w-[400px] bg-white rounded-xl">
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-semibold text-center">
-                    Profile Information
-                  </DialogTitle>
+                  <DialogTitle className="text-lg font-semibold text-center">Profile Information</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center mt-4 mb-2">
                   <div className="relative">
                     <img
-                      src={
-                        profilePic ||
-                        "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                      }
+                      src={profilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
                       alt="Profile"
                       className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 shadow-sm"
                     />
@@ -191,36 +210,25 @@ export default function DepartmentsPage() {
                     >
                       Change
                     </label>
-                    <input
-                      type="file"
-                      id="profile-upload"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
+                    <input type="file" id="profile-upload" accept="image/*" onChange={handleImageChange} className="hidden" />
                   </div>
                 </div>
+
                 <div className="grid gap-4 py-4 text-sm">
-                  <div>
-                    <Label>Full Name:</Label>
-                    <p className="font-medium text-gray-800">Super Admin</p>
-                  </div>
-                  <div>
-                    <Label>Email:</Label>
-                    <p className="font-medium text-gray-800">
-                      admin@example.com
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Role:</Label>
-                    <p className="font-medium text-gray-800">Administrator</p>
-                  </div>
-                  <div>
-                    <Label>Joined:</Label>
-                    <p className="font-medium text-gray-800">
-                      October 15, 2024
-                    </p>
-                  </div>
+                  {isProfileLoading ? (
+                    <p>Loading profile...</p>
+                  ) : currentUser ? (
+                    <>
+                      <div><Label>Full Name:</Label><p className="font-medium">{currentUser.Firstname} {currentUser.Lastname}</p></div>
+                      <div><Label>Username:</Label><p className="font-medium">{currentUser.Username}</p></div>
+                      <div><Label>Email:</Label><p className="font-medium">{currentUser.Email}</p></div>
+                      <div><Label>Role:</Label><p className="font-medium">{currentUser.Role}</p></div>
+                      <div><Label>Reference ID:</Label><p className="font-medium">{currentUser.ReferenceID}</p></div>
+                      <div><Label>Joined:</Label><p className="font-medium">{formatDate(new Date(currentUser.createdAt))}</p></div>
+                    </>
+                  ) : (
+                    <p className="text-gray-500">Profile not found. Make sure userId is set in localStorage.</p>
+                  )}
                 </div>
                 <DialogFooter className="flex justify-center">
                   <DialogClose asChild>
@@ -230,44 +238,26 @@ export default function DepartmentsPage() {
               </DialogContent>
             </Dialog>
 
-            <Button
-              onClick={handleLogout}
-              variant="secondary"
-              size="icon"
-              className="bg-red-50 text-red-600 hover:bg-red-100"
-              title="Logout"
-            >
+            <Button onClick={handleLogout} variant="secondary" size="icon" className="bg-red-50 text-red-600 hover:bg-red-100" title="Logout">
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
         </header>
 
-        {/* MAIN CONTENT */}
+        {/* MAIN */}
         <main className="p-6 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-4 mb-3 md:mb-0">
-              <h1 className="text-3xl font-extrabold text-gray-700">
-                Departments List
-              </h1>
-            </div>
-            
-            {/* ADD DEPARTMENT BUTTON */}
-            <Button 
-                onClick={handleOpenAdd}
-                className="bg-gray-700 hover:bg-gray-800 text-white"
-            >
-                <Plus className="h-5 w-5 mr-2" />
-                Department
+            <h1 className="text-3xl font-extrabold text-gray-700">Departments List</h1>
+            <Button onClick={handleOpenAdd} className="bg-gray-700 hover:bg-gray-800 text-white">
+              <Plus className="h-5 w-5 mr-2" /> Department
             </Button>
-            
           </div>
 
-          {/* DEPARTMENT TABLE */}
+          {/* TABLE */}
           <div className="bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-700 text-white font-semibold sticky top-0">
-                  {/* Pinasimpleng <tr> at <th> para maiwasan ang whitespace error */}
                   <tr>
                     <th className="p-4">Department Name</th>
                     <th className="p-4 text-center w-[100px]">Action</th>
@@ -276,30 +266,22 @@ export default function DepartmentsPage() {
                 <tbody>
                   {departments.length > 0 ? (
                     departments.map((dept) => (
-                      // Pinasimpleng <tr> at <td> para maiwasan ang whitespace error
-                      <tr key={dept.id} className="border-b hover:bg-gray-50 transition-colors">
+                      <tr key={dept._id} className="border-b hover:bg-gray-50 transition-colors">
                         <td className="p-4 font-medium text-gray-800">{dept.name}</td>
                         <td className="p-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="cursor-pointer text-gray-700 hover:bg-gray-100"
-                                onClick={() => handleEdit(dept)}
-                              >
+                              <DropdownMenuItem onClick={() => handleEdit(dept)} className="text-gray-700 hover:bg-gray-100">
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="cursor-pointer text-red-600 hover:bg-red-50"
-                                onClick={() => handleDelete(dept.id)}
-                              >
+                              <DropdownMenuItem onClick={() => handleDelete(dept._id, dept.name)} className="text-red-600 hover:bg-red-50">
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -310,7 +292,7 @@ export default function DepartmentsPage() {
                   ) : (
                     <tr>
                       <td colSpan={2} className="p-6 text-center text-gray-500 italic">
-                        No departments found. Click "+ Department" to add one.
+                        No departments found.
                       </td>
                     </tr>
                   )}
@@ -318,19 +300,18 @@ export default function DepartmentsPage() {
               </table>
             </div>
           </div>
-          
         </main>
-        
-        {/* ADD/EDIT DIALOG - Unchanged */}
-        <Dialog 
-            open={isDeptDialogOpen} 
-            onOpenChange={(open) => {
-              setIsDeptDialogOpen(open)
-              if (!open) {
-                setCurrentDept(null)
-                setNewDeptName("")
-              }
-            }}
+
+        {/* ADD/EDIT DIALOG */}
+        <Dialog
+          open={isDeptDialogOpen}
+          onOpenChange={(open) => {
+            setIsDeptDialogOpen(open);
+            if (!open) {
+              setCurrentDept(null);
+              setNewDeptName("");
+            }
+          }}
         >
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
@@ -362,8 +343,7 @@ export default function DepartmentsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

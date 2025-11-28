@@ -1,6 +1,5 @@
 "use client"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AppSidebar } from "../components/sidebar"
 import {
@@ -19,7 +18,7 @@ import {
 } from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LogOut, User, Users, Ticket, Clock, CheckCircle, LucideIcon, ChevronRight, Hash } from "lucide-react"
+import { LogOut, User, Users, Ticket, Clock, CheckCircle, LucideIcon, ChevronRight, Hash, Loader2 } from "lucide-react"
 import {
   Dialog,
   DialogClose,
@@ -39,7 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
-// --- UPDATED Data Types (Using your detailed structure) ---
+// --- INTERFACES ---
 interface Concern {
   id: string
   employeeName: string
@@ -48,11 +47,20 @@ interface Concern {
   remarks: string
   dateCreated: string // Format: YYYY-MM-DD
   priority: 'Critical' | 'High' | 'Medium' | 'Low'
-  // Added status for proper filtering logic, based on the previous solution
   status: 'New' | 'Pending' | 'Ongoing' | 'Resolved' | 'Finished' 
 }
 
-// --- Component Props (Unchanged) ---
+interface CurrentUser {
+  _id: string;
+  Username: string;
+  Email: string;
+  Role: string;
+  Firstname: string;
+  Lastname: string;
+  ReferenceID: string;
+  createdAt: string;
+}
+
 interface StatCardProps {
   title: string
   value: number | string
@@ -64,6 +72,7 @@ interface StatCardProps {
   isSelected: boolean
 }
 
+// --- STAT CARD COMPONENT (Unchanged) ---
 function StatCard({ title, value, icon: Icon, colorClass, link, bgColor, onClick, isSelected }: StatCardProps) {
   const baseClasses = `relative overflow-hidden transition-all duration-300 hover:shadow-xl border-none ${bgColor || "bg-white"} group cursor-pointer`
   const selectedClasses = isSelected ? "border-2 border-primary ring-2 ring-primary/50" : ""
@@ -92,50 +101,36 @@ function StatCard({ title, value, icon: Icon, colorClass, link, bgColor, onClick
   )
 }
 
-// --- UPDATED Dummy Data (Based on your detailed list) ---
+// --- DUMMY DATA & FILTERING (Unchanged) ---
 const todayDate = "2025-10-29" // Simulate Today's Date
 const allTickets: Concern[] = [
-    // Today's Concerns (New)
     { id: "IT-0001", employeeName: "Juan Dela Cruz", department: "Human Resources", type: "Hardware", remarks: "Desktop computer not turning on after power outage.", dateCreated: "2025-10-29", priority: "Critical", status: 'New' },
     { id: "IT-0002", employeeName: "Maria Santos", department: "Finance", type: "Software", remarks: "Unable to open the payroll system due to version mismatch.", dateCreated: "2025-10-29", priority: "High", status: 'New' },
     { id: "IT-0006", employeeName: "Pedro Santos", department: "Finance", type: "Hardware", remarks: "Printer not responding after connecting via Wi-Fi.", dateCreated: "2025-10-29", priority: "High", status: 'New' },
     { id: "IT-0007", employeeName: "Sofia Garcia", department: "Admin", type: "Network", remarks: "Cannot access shared drive.", dateCreated: "2025-10-29", priority: "Medium", status: 'New' },
-    
-    // Ongoing (Created today)
     { id: "IT-0003", employeeName: "Carlos Mendoza", department: "IT Department", type: "Network", remarks: "Slow internet connection in the main office.", dateCreated: "2025-10-29", priority: "Medium", status: 'Ongoing' },
-
-    // Pending (Not today)
     { id: "IT-0004", employeeName: "Anna Reyes", department: "Customer Support", type: "Account", remarks: "Cannot log into email account after password reset.", dateCreated: "2025-10-28", priority: "Critical", status: 'Pending' },
-    
-    // Resolved/Finished (Old data)
     { id: "IT-0005", employeeName: "Liza Dizon", department: "Marketing", type: "Software", remarks: "Adobe Photoshop license expired.", dateCreated: "2025-10-27", priority: "Low", status: 'Resolved' },
     { id: "IT-0008", employeeName: "Mark Rivera", department: "Sales", type: "Software", remarks: "CRM dashboard not loading data properly.", dateCreated: "2025-10-26", priority: "High", status: 'Finished' },
 ]
 
-// UPDATED Function to filter data based on link (using new data structure)
 const getFilteredData = (link: string): Concern[] => {
   switch (link) {
     case '/concerns/today':
-      // Today's Concerns: Tickets/Concerns created today (New status)
       return allTickets.filter(t => t.dateCreated === todayDate && t.status === 'New')
     case '/tickets/today':
-      // Tickets Created Today: All tickets created today, regardless of status
       return allTickets.filter(t => t.dateCreated === todayDate)
     case '/tickets/pending':
-      // Total Pending Tickets
       return allTickets.filter(t => t.status === 'Pending')
     case '/tickets/ongoing':
-      // Ongoing Tickets
       return allTickets.filter(t => t.status === 'Ongoing')
     case '/tickets/finished':
-      // Finished Tickets
       return allTickets.filter(t => t.status === 'Resolved' || t.status === 'Finished')
     default:
       return []
   }
 }
 
-// Helper function for Status styling
 const getStatusClasses = (status: Concern['status']) => {
   switch (status) {
     case 'New': return 'bg-blue-100 text-blue-700'
@@ -147,8 +142,7 @@ const getStatusClasses = (status: Concern['status']) => {
   }
 }
 
-
-// --- UPDATED DataTable Component (Ipinapakita lang ang mahahalagang fields) ---
+// --- DATA TABLE COMPONENT (Unchanged) ---
 interface DataTableProps {
   data: Concern[]
   title: string
@@ -187,7 +181,6 @@ function DataTable({ data, title }: DataTableProps) {
                         {item.status}
                       </span>
                     </TableCell>
-                    {/* Displaying only the date, not time for cleaner look */}
                     <TableCell className="text-sm text-right text-gray-500">{item.dateCreated}</TableCell> 
                   </TableRow>
                 ))}
@@ -211,10 +204,50 @@ export default function DashboardPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [profilePic, setProfilePic] = useState<string | null>(null)
   const [selectedStat, setSelectedStat] = useState<{ link: string, title: string } | null>(null)
+  
+  // --- STATE FOR PROFILE ---
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
+  // 🧩 FETCH Profile from API (Updated to use Username from localStorage)
+  const fetchProfile = async () => {
+    setIsProfileLoading(true);
+    setProfileError(null);
+    try {
+      // NOTE: We now assume 'userId' in localStorage stores the Username string
+      const username = localStorage.getItem("userId");
+      
+      if (!username) {
+        setProfileError("No login session found. Please log in.");
+        setIsProfileLoading(false);
+        return;
+      }
+
+      // Calls the updated API route: /api/profile/[username]
+      const res = await fetch(`/api/profile/${username}`);
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setCurrentUser(data.data);
+      } else {
+        setProfileError(data.message || "Failed to load user profile.");
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      setProfileError("Network error while fetching profile.");
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
+  
+  // Fetch profile on initial load
+  useEffect(() => {
+    fetchProfile();
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("user")
+    localStorage.removeItem("userId") // IMPORTANT: Use 'userId' key
     router.push("/login")
   }
 
@@ -231,12 +264,18 @@ export default function DashboardPage() {
     setSelectedStat({ link, title })
   }
   
+  // Helper function to format date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  };
+
   // Calculate dynamic values based on the new data
-  const todayConcernsCount = allTickets.filter(t => t.dateCreated === todayDate && t.status === 'New').length // 4 concerns today
-  const todayTicketsCount = allTickets.filter(t => t.dateCreated === todayDate).length // 5 total tickets/concerns today
-  const totalPendingCount = allTickets.filter(t => t.status === 'Pending').length // 1 pending
-  const ongoingCount = allTickets.filter(t => t.status === 'Ongoing').length // 1 ongoing
-  const finishedCount = allTickets.filter(t => t.status === 'Resolved' || t.status === 'Finished').length // 2 finished
+  const todayConcernsCount = allTickets.filter(t => t.dateCreated === todayDate && t.status === 'New').length
+  const todayTicketsCount = allTickets.filter(t => t.dateCreated === todayDate).length
+  const totalPendingCount = allTickets.filter(t => t.status === 'Pending').length
+  const ongoingCount = allTickets.filter(t => t.status === 'Ongoing').length
+  const finishedCount = allTickets.filter(t => t.status === 'Resolved' || t.status === 'Finished').length
 
 
   const allStats = [
@@ -288,12 +327,15 @@ export default function DashboardPage() {
   const primaryStats = allStats.slice(0, 3)
   const secondaryStats = allStats.slice(3)
 
+  // Use the fetched user's name or a default placeholder
+  const displayName = currentUser ? `${currentUser.Firstname} ${currentUser.Lastname}` : 'IT User';
+
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        {/* Header (Unchanged) */}
+        {/* Header */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
@@ -311,7 +353,7 @@ export default function DashboardPage() {
             </Breadcrumb>
           </div>
 
-          {/* PROFILE + LOGOUT BUTTONS (Unchanged) */}
+          {/* PROFILE + LOGOUT BUTTONS */}
           <div className="ml-auto flex items-center gap-3">
             <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
               <DialogTrigger asChild>
@@ -354,24 +396,30 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid gap-4 py-4 text-sm">
-                  <div>
-                    <Label>Full Name:</Label>
-                    <p className="font-medium text-gray-800">Super Admin</p>
-                  </div>
-                  <div>
-                    <Label>Email:</Label>
-                    <p className="font-medium text-gray-800">
-                      admin@example.com
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Role:</Label>
-                    <p className="font-medium text-gray-800">Administrator</p>
-                  </div>
-                  <div>
-                    <Label>Joined:</Label>
-                    <p className="font-medium text-gray-800">October 15, 2024</p>
-                  </div>
+                  {isProfileLoading ? (
+                    <div className="text-center p-4 text-gray-500">
+                        <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                        <p>Loading profile data...</p>
+                    </div>
+                  ) : profileError ? (
+                    <div className="text-center p-4 text-red-500 border border-red-200 bg-red-50 rounded">
+                        <p>{profileError}</p>
+                        <p className="text-xs mt-1">Please check the network or login state.</p>
+                    </div>
+                  ) : currentUser ? (
+                    <>
+                      {/* --- Dynamically loaded content from currentUser state --- */}
+                      <div><Label>Full Name:</Label><p className="font-medium text-gray-800">{currentUser.Firstname} {currentUser.Lastname}</p></div>
+                      <div><Label>Username:</Label><p className="font-medium text-gray-800">{currentUser.Username}</p></div>
+                      <div><Label>Email:</Label><p className="font-medium text-gray-800">{currentUser.Email}</p></div>
+                      <div><Label>Role:</Label><p className="font-medium text-gray-800">{currentUser.Role}</p></div>
+                      <div><Label>Reference ID:</Label><p className="font-medium text-gray-800">{currentUser.ReferenceID}</p></div>
+                      <div><Label>Joined:</Label><p className="font-medium text-gray-800">{formatDate(currentUser.createdAt)}</p></div>
+                      {/* -------------------------------------------------------- */}
+                    </>
+                  ) : (
+                    <p className="text-gray-500">Profile data unavailable.</p>
+                  )}
                 </div>
 
                 <DialogFooter className="flex justify-center">
@@ -394,11 +442,11 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Main dashboard section (Unchanged) */}
+        {/* Main dashboard section */}
         <main className="p-6 bg-gray-50 min-h-[calc(100vh-4rem)]">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900">
-              Welcome, Super Admin
+              Welcome, {displayName.length > 3 ? displayName : 'IT User'}
             </h1>
             <div className="text-sm text-gray-500">
               {new Date().toLocaleDateString('en-US', { dateStyle: 'full' })}

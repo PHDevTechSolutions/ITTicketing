@@ -1,143 +1,229 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState, useEffect } from "react";
 // I-assume na ito ang tamang path para sa iyong sidebar
-import { AppSidebar } from "../components/sidebar" 
+import { AppSidebar } from "../components/sidebar";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+  SidebarInset, SidebarProvider, SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  User,
-  LogOut,
-  Plus, 
-  Edit, 
-  Trash2, 
-} from "lucide-react"
+  User, LogOut, Plus, Edit, Trash2, MoreHorizontal, Loader2 
+} from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogFooter, DialogTrigger, DialogClose,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
-  DropdownMenu, 
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// --- Interface para sa Group ---
+// --- Interface para sa Group (MongoDB Structure) ---
 interface Group {
-  id: string 
-  name: string // Ang pangalan ng Group
+  _id: string; // Pinalitan ang 'id' ng '_id' para tumugma sa MongoDB
+  name: string;
 }
 
-// --- Sample Data (Walang laman) ---
-const initialGroups: Group[] = [
-  // Walang default values
-]
+// 📌 INAYOS: Current User Interface (Tulad ng sa ModePage)
+interface CurrentUser {
+    _id: string;
+    Username: string;
+    Email: string;
+    Role: string;
+    Firstname: string;
+    Lastname: string;
+    ReferenceID: string;
+    createdAt: string;
+}
+
+// 📌 INAYOS: formatDate function (Tulad ng sa ModePage)
+const formatDate = (date: Date) =>
+  new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
 
 // --- Main Component ---
-export default function GroupPage() { 
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [profilePic, setProfilePic] = useState<string | null>(null)
-  
+export default function GroupPage() {
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+
+  // 📌 INAYOS: State para sa User Profile
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
   // State para sa Groups
-  const [groups, setGroups] = useState<Group[]>(initialGroups)
+  const [groups, setGroups] = useState<Group[]>([]);
   
   // State para sa Add/Edit Dialog
-  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false)
-  const [currentGroup, setCurrentGroup] = useState<Group | null>(null)
-  const [newGroupName, setNewGroupName] = useState("") 
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
+  const [currentGroup, setCurrentGroup] = useState<Group | null>(null);
+  const [newGroupName, setNewGroupName] = useState("");
 
+  const [isSaving, setIsSaving] = useState(false); // Para sa loading state ng Save button
+  const [isLoading, setIsLoading] = useState(true); // Para sa loading state ng table
+
+  // 📌 INAYOS: handleLogout (Kasama ang pagtanggal ng userId)
   const handleLogout = () => {
-    alert("Logged out! Redirect logic not implemented.")
-  }
+    localStorage.removeItem("userId");
+    alert("Logged out! Redirect logic not implemented.");
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setProfilePic(reader.result as string)
-      reader.readAsDataURL(file)
+      const reader = new FileReader();
+      reader.onloadend = () => setProfilePic(reader.result as string);
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
-  const handleSaveGroup = () => {
-    if (!newGroupName) {
-      alert("Please enter the group name.")
-      return
-    }
-
-    if (currentGroup) {
-      // Edit Group
-      setGroups(groups.map(group => 
-        group.id === currentGroup.id 
-          ? { ...group, name: newGroupName } 
-          : group
-      ))
-      alert(`Group ${currentGroup.id} updated!`)
-    } else {
-      // Add New Group
-      const newId = `GR-${(groups.length + 1).toString().padStart(3, '0')}`
-      const newGroup: Group = {
-        id: newId,
-        name: newGroupName,
+  // 🧩 FETCH Groups from API (Dynamic Data Loading)
+  const fetchGroups = async () => { 
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/group"); 
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setGroups(data.data); 
+      } else {
+        console.error("Failed to fetch groups:", data.message);
+        alert(`Failed to load groups: ${data.message}`);
       }
-      setGroups([...groups, newGroup])
-      alert(`Group ${newId} added!`)
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+      alert("Network error while fetching groups.");
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  // 📌 INAYOS: FETCH Profile from API function (Tulad ng sa ModePage)
+  const fetchProfile = async () => {
+    setIsProfileLoading(true);
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        // Dummy data kung walang userId. Palitan ng actual logic/redirect.
+        setCurrentUser({
+            _id: "dummy-admin-id",
+            Username: "super.admin",
+            Email: "admin@example.com",
+            Role: "Administrator",
+            Firstname: "Super",
+            Lastname: "Admin",
+            ReferenceID: "REF-0000",
+            createdAt: new Date().toISOString()
+        });
+        setIsProfileLoading(false);
+        return;
+      }
+
+      // Ito ang magco-call sa actual API: /api/profile/[id].ts
+      const res = await fetch(`/api/profile/${userId}`);
+      const data = await res.json();
+
+      if (res.ok && data.success) setCurrentUser(data.data);
+      else console.error("Failed to fetch profile:", data.message);
+
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchGroups(); 
+    // 📌 INAYOS: Pagtawag sa fetchProfile
+    fetchProfile();
+  }, []); // I-fetch ang data kapag nag-load ang component
+
+  // 🧠 SAVE Group (CREATE or UPDATE)
+  const handleSaveGroup = async () => {
+    const trimmedName = newGroupName.trim();
+
+    if (!trimmedName) {
+      alert("Please enter the group name.");
+      return;
     }
 
-    // Reset and Close
-    setIsGroupDialogOpen(false)
-    setCurrentGroup(null)
-    setNewGroupName("")
-  }
+    setIsSaving(true);
+
+    try {
+      const method = currentGroup ? "PUT" : "POST";
+      const url = currentGroup
+        ? `/api/group/${currentGroup._id}`
+        : "/api/group";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert(data.message || `Group ${currentGroup ? "updated" : "created"} successfully!`);
+        fetchGroups(); // I-refresh ang data matapos ang successful operation
+      } else {
+        alert(data.message || `Failed to ${currentGroup ? "update" : "create"} Group.`);
+      }
+    } catch (error) {
+      console.error("Error saving group:", error);
+      alert("Something went wrong with the network/server.");
+    } finally {
+      setIsSaving(false);
+      // Reset and Close
+      setIsGroupDialogOpen(false);
+      setCurrentGroup(null);
+      setNewGroupName("");
+    }
+  };
+
+  // 🧠 DELETE Group
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete Group "${name}"? This action cannot be undone.`)) return; 
+
+    try {
+      const res = await fetch(`/api/group/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        alert("Group deleted successfully!");
+        fetchGroups(); // I-refresh ang data
+      } else {
+        alert(data.message || "Failed to delete Group.");
+      }
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      alert("Something went wrong while deleting the group.");
+    }
+  };
 
   const handleEdit = (group: Group) => {
-    setCurrentGroup(group)
-    setNewGroupName(group.name)
-    setIsGroupDialogOpen(true)
-  }
+    setCurrentGroup(group);
+    setNewGroupName(group.name);
+    setIsGroupDialogOpen(true);
+  };
 
-  const handleDelete = (id: string) => {
-    if (confirm(`Are you sure you want to delete Group ${id}?`)) {
-      setGroups(groups.filter(group => group.id !== id))
-      alert(`Group ${id} deleted.`)
-    }
-  }
-  
   const handleOpenAdd = () => {
-    setCurrentGroup(null)
-    setNewGroupName("")
-    setIsGroupDialogOpen(true)
-  }
+    setCurrentGroup(null);
+    setNewGroupName("");
+    setIsGroupDialogOpen(true);
+  };
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        {/* HEADER (Profile Dialog) */}
+        {/* HEADER */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
@@ -145,9 +231,7 @@ export default function GroupPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/dashboard" className="text-gray-700">
-                    Dashboard
-                  </BreadcrumbLink>
+                  <BreadcrumbLink href="/dashboard" className="text-gray-700">Dashboard</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -157,28 +241,24 @@ export default function GroupPage() {
             </Breadcrumb>
           </div>
 
-          {/* PROFILE + LOGOUT - Unchanged */}
+          {/* PROFILE + LOGOUT */}
           <div className="flex items-center gap-3">
+            {/* Profile Dialog */}
             <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
               <DialogTrigger asChild>
                 <Button variant="ghost" size="icon" title="Profile">
                   <User className="h-5 w-5 text-gray-600" />
                 </Button>
               </DialogTrigger>
-              
+
               <DialogContent className="sm:max-w-[400px] bg-white rounded-xl">
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-semibold text-center">
-                    Profile Information
-                  </DialogTitle>
+                  <DialogTitle className="text-lg font-semibold text-center">Profile Information</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center mt-4 mb-2">
                   <div className="relative">
                     <img
-                      src={
-                        profilePic ||
-                        "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                      }
+                      src={profilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
                       alt="Profile"
                       className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 shadow-sm"
                     />
@@ -188,36 +268,26 @@ export default function GroupPage() {
                     >
                       Change
                     </label>
-                    <input
-                      type="file"
-                      id="profile-upload"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
+                    <input type="file" id="profile-upload" accept="image/*" onChange={handleImageChange} className="hidden" />
                   </div>
                 </div>
+
                 <div className="grid gap-4 py-4 text-sm">
-                  <div>
-                    <Label>Full Name:</Label>
-                    <p className="font-medium text-gray-800">Super Admin</p>
-                  </div>
-                  <div>
-                    <Label>Email:</Label>
-                    <p className="font-medium text-gray-800">
-                      admin@example.com
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Role:</Label>
-                    <p className="font-medium text-gray-800">Administrator</p>
-                  </div>
-                  <div>
-                    <Label>Joined:</Label>
-                    <p className="font-medium text-gray-800">
-                      October 15, 2024
-                    </p>
-                  </div>
+                  {/* INAYOS: Profile loading state at display */}
+                  {isProfileLoading ? (
+                    <p>Loading profile...</p>
+                  ) : currentUser ? (
+                    <>
+                      <div><Label>Full Name:</Label><p className="font-medium">{currentUser.Firstname} {currentUser.Lastname}</p></div>
+                      <div><Label>Username:</Label><p className="font-medium">{currentUser.Username}</p></div>
+                      <div><Label>Email:</Label><p className="font-medium">{currentUser.Email}</p></div>
+                      <div><Label>Role:</Label><p className="font-medium">{currentUser.Role}</p></div>
+                      <div><Label>Reference ID:</Label><p className="font-medium">{currentUser.ReferenceID}</p></div>
+                      <div><Label>Joined:</Label><p className="font-medium">{formatDate(new Date(currentUser.createdAt))}</p></div>
+                    </>
+                  ) : (
+                    <p className="text-gray-500">Profile not found. Make sure userId is set in localStorage.</p>
+                  )}
                 </div>
                 <DialogFooter className="flex justify-center">
                   <DialogClose asChild>
@@ -227,13 +297,7 @@ export default function GroupPage() {
               </DialogContent>
             </Dialog>
 
-            <Button
-              onClick={handleLogout}
-              variant="secondary"
-              size="icon"
-              className="bg-red-50 text-red-600 hover:bg-red-100"
-              title="Logout"
-            >
+            <Button onClick={handleLogout} variant="secondary" size="icon" className="bg-red-50 text-red-600 hover:bg-red-100" title="Logout">
               <LogOut className="h-5 w-5" />
             </Button>
           </div>
@@ -242,21 +306,13 @@ export default function GroupPage() {
         {/* MAIN CONTENT */}
         <main className="p-6 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-4 mb-3 md:mb-0">
-              <h1 className="text-3xl font-extrabold text-gray-700">
-                Group List
-              </h1>
-            </div>
-            
-            {/* ADD GROUP BUTTON */}
+            <h1 className="text-3xl font-extrabold text-gray-700">Group List</h1>
             <Button 
                 onClick={handleOpenAdd}
                 className="bg-gray-700 hover:bg-gray-800 text-white"
             >
-                <Plus className="h-5 w-5 mr-2" />
-                Group
+                <Plus className="h-5 w-5 mr-2" /> Group
             </Button>
-            
           </div>
 
           {/* GROUP TABLE */}
@@ -264,17 +320,17 @@ export default function GroupPage() {
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-700 text-white font-semibold sticky top-0">
-                  {/* Pinasimpleng <tr> at <th> para maiwasan ang whitespace error */}
                   <tr>
                     <th className="p-4">Group Name</th>
                     <th className="p-4 text-center w-[100px]">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {groups.length > 0 ? (
+                  {isLoading ? (
+                    <tr><td colSpan={2} className="p-6 text-center text-gray-500"><Loader2 className="h-5 w-5 animate-spin inline-block mr-2" /> Loading groups...</td></tr>
+                  ) : groups.length > 0 ? (
                     groups.map((group) => (
-                      // Pinasimpleng <tr> at <td> para maiwasan ang whitespace error
-                      <tr key={group.id} className="border-b hover:bg-gray-50 transition-colors">
+                      <tr key={group._id} className="border-b hover:bg-gray-50 transition-colors">
                         <td className="p-4 font-medium text-gray-800">{group.name}</td>
                         <td className="p-4 text-center">
                           <DropdownMenu>
@@ -295,7 +351,7 @@ export default function GroupPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="cursor-pointer text-red-600 hover:bg-red-50"
-                                onClick={() => handleDelete(group.id)}
+                                onClick={() => handleDelete(group._id, group.name)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                               </DropdownMenuItem>
@@ -315,17 +371,16 @@ export default function GroupPage() {
               </table>
             </div>
           </div>
-          
-        </main>
+        </main> 
         
         {/* ADD/EDIT DIALOG */}
         <Dialog 
             open={isGroupDialogOpen} 
             onOpenChange={(open) => {
-              setIsGroupDialogOpen(open)
+              setIsGroupDialogOpen(open);
               if (!open) {
-                setCurrentGroup(null)
-                setNewGroupName("")
+                setCurrentGroup(null);
+                setNewGroupName("");
               }
             }}
         >
@@ -337,24 +392,28 @@ export default function GroupPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="groupName" className="text-right">
-                  Name
-                </Label>
+                <Label htmlFor="groupName" className="text-right">Name</Label>
                 <Input
                   id="groupName"
                   value={newGroupName}
                   onChange={(e) => setNewGroupName(e.target.value)}
                   className="col-span-3"
-                  placeholder="e.g., IT Support Team"
+                  placeholder="e.g., Network Services"
+                  disabled={isSaving}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isSaving) handleSaveGroup();
+                  }}
                 />
               </div>
             </div>
             <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleSaveGroup} className="bg-gray-700 hover:bg-gray-800">
-                {currentGroup ? "Save Changes" : "Create Group"}
+              <DialogClose asChild><Button variant="outline" disabled={isSaving}>Cancel</Button></DialogClose>
+              <Button onClick={handleSaveGroup} className="bg-gray-700 hover:bg-gray-800" disabled={isSaving}>
+                {isSaving ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {currentGroup ? "Saving Changes..." : "Creating Group..."}</>
+                ) : (
+                    currentGroup ? "Save Changes" : "Create Group"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -362,5 +421,5 @@ export default function GroupPage() {
 
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }
