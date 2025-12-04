@@ -34,7 +34,7 @@ export async function connectToDatabase() {
 }
 
 // Register a new user
-export async function registerUser({
+export async function euregisterUser({
     Username,
     Email,
     Password,
@@ -81,7 +81,7 @@ export async function registerUser({
 }
 
 // Validate user credentials
-export async function validateUser({ Email, Password, }: { Email: string; Password: string; }) {
+export async function validateEndUser({ Email, Password, }: { Email: string; Password: string; }) {
     const db = await connectToDatabase();
     const usersCollection = db.collection("users");
 
