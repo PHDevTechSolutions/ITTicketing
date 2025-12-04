@@ -24,6 +24,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ success: false, message: "Invalid credentials." });
     }
 
+    // 🔐 Only IT Department can login
+    if (user.Department !== "IT") {
+      return res.status(403).json({ success: false, message: "Access denied. Only IT accounts allowed." });
+    }
+
     // Validate credentials
     const result = await validateUser({ Email, Password });
 
@@ -44,7 +49,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         path: "/",
       })
     );
-
+    
+    // Revisions
     return res.status(200).json({
       success: true,
       message: "Login successful",
@@ -56,4 +62,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.error("Login error:", err);
     return res.status(500).json({ success: false, message: "Server error" });
   }
+  // End Revisions
 }

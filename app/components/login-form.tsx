@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Field, FieldLabel, FieldGroup, FieldDescription } from "@/components/ui/field"
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
-  const [identifier, setIdentifier] = useState("") // username or email
+  const [email, setEmail] = useState("") 
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -16,29 +16,29 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!identifier || !password) {
+    if (!email || !password) {
       toast.error("All fields are required")
       return
     }
 
     setLoading(true)
     try {
-      const res = await fetch("/api/login", {
+      const res = await fetch("/api/itlogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Username: identifier, Password: password })
+        body: JSON.stringify({ Email: email, Password: password })
       })
 
       const result = await res.json()
+      console.log("Login API result:", result)
 
       if (res.ok && result.success) {
-        
-        // 🔑 CRITICAL CHANGE: Store the Username in localStorage under the key 'userId'
-        if (result.Username) {
-            localStorage.setItem('userId', result.Username); 
+        // Optional: store email in localStorage
+        if (result.Email) {
+          localStorage.setItem('userEmail', result.Email)
         }
 
-        toast.success("Login successful!")
+        toast.success(result.message)
         setTimeout(() => router.push("/dashboard"), 1000)
       } else {
         toast.error(result.message || "Login failed")
@@ -56,12 +56,12 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
       <form onSubmit={handleSubmit}>
         <FieldGroup>
           <Field>
-            <FieldLabel>Username or Email</FieldLabel>
+            <FieldLabel>Email</FieldLabel>
             <Input
-              type="text"
+              type="email"
               required
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </Field>
 

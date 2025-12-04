@@ -223,7 +223,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("userId") // IMPORTANT: Use 'userId' key
-    router.push("/dsi-login")
+    router.push("/login")
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {

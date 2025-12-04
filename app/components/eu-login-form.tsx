@@ -39,7 +39,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
         }
 
         toast.success(result.message)
-        setTimeout(() => router.push("/dashboard"), 1000)
+        setTimeout(() => router.push("/dsi-dashboard"), 1000)
       } else {
         toast.error(result.message || "Login failed")
       }

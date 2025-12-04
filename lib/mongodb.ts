@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 
 // Ensure the MONGODB_URI environment variable is defined
 if (!process.env.MONGODB_URI) {
-    throw new Error("Please define the MONGODB_URI environment variable");
+  throw new Error("Please define the MONGODB_URI environment variable");
 }
 
 const uri = process.env.MONGODB_URI;
@@ -12,16 +12,16 @@ let clientPromise: Promise<MongoClient>;
 
 // MongoDB connection handling
 if (process.env.NODE_ENV === "development") {
-    if (!global._mongoClient) {
-        client = new MongoClient(uri);
-        global._mongoClient = client;
-    } else {
-        client = global._mongoClient;
-    }
-    clientPromise = client.connect();
-} else {
+  if (!global._mongoClient) {
     client = new MongoClient(uri);
-    clientPromise = client.connect();
+    global._mongoClient = client;
+  } else {
+    client = global._mongoClient;
+  }
+  clientPromise = client.connect();
+} else {
+  client = new MongoClient(uri);
+  clientPromise = client.connect();
 }
 
 // Export the promise to be used for database connections
@@ -29,74 +29,67 @@ export default clientPromise;
 
 // Connect to the database
 export async function connectToDatabase() {
-    const client = await clientPromise;
-    return client.db("ITticketing"); // Return the 'ecoshift' database
+  const client = await clientPromise;
+  return client.db("ecoshift"); // Return the 'ecoshift' database
 }
 
+
 // Register a new user
-export async function euregisterUser({
+export async function registerUser({ Username, Email, Password, Role, Firstname, Lastname, Department, ReferenceID}: 
+    { Username: string; 
+        Email: string; 
+        Password: string;
+        Role: string;
+        Firstname: string;
+        Lastname: string;
+        Department: string;
+        ReferenceID: string;
+    }) {
+  const db = await connectToDatabase();
+  const usersCollection = db.collection("users");
+
+  // Check if the email already exists in the database
+  const existingUser = await usersCollection.findOne({ Email });
+  if (existingUser) {
+    return { success: false, message: "Email already in use" };
+  }
+
+  // Hash the password before saving it to the database
+  const hashedPassword = await bcrypt.hash(Password, 10);
+
+  // Insert the new user into the collection
+  await usersCollection.insertOne({
     Username,
     Email,
-    Password,
+    Role,
     Firstname,
     Lastname,
-    Role,
     Department,
-    ReferenceID
-}: {
-    Username: string;
-    Email: string;
-    Password: string;
-    Firstname: string;
-    Lastname: string;
-    Role: string;
-    Department: string;
-    ReferenceID: string;
-}) {
-    const db = await connectToDatabase();
-    const usersCollection = db.collection("users");
+    ReferenceID,
+    Password: hashedPassword,
+    createdAt: new Date(),
+  });
 
-    // Check if the email already exists in the database
-    const existingUser = await usersCollection.findOne({ Email });
-    if (existingUser) {
-        return { success: false, message: "Email already in use" };
-    }
-
-    // Hash the password before saving it to the database
-    const hashedPassword = await bcrypt.hash(Password, 10);
-
-    // Insert the new user into the collection
-    await usersCollection.insertOne({
-        Username,
-        Email,
-        Firstname,
-        Lastname,
-        Role,
-        Department,
-        Password: hashedPassword,
-        createdAt: new Date(),
-    });
-
-    return { success: true };
+  return { success: true };
 }
 
 // Validate user credentials
-export async function validateEndUser({ Email, Password, }: { Email: string; Password: string; }) {
-    const db = await connectToDatabase();
-    const usersCollection = db.collection("users");
+export async function validateUser({ Email, Password,}: { Email: string; Password: string;}) {
+  const db = await connectToDatabase();
+  const usersCollection = db.collection("users");
 
-    // Find the user by email
-    const user = await usersCollection.findOne({ Email });
-    if (!user) {
-        return { success: false, message: "Invalid email or password" };
-    }
+  // Find the user by email
+  const user = await usersCollection.findOne({ Email });
+  if (!user) {
+    return { success: false, message: "Invalid email or password" };
+  }
 
-    // Compare the provided password with the stored hashed password
-    const isValidPassword = await bcrypt.compare(Password, user.Password);
-    if (!isValidPassword) {
-        return { success: false, message: "Invalid email or password" };
-    }
+  // Compare the provided password with the stored hashed password
+  const isValidPassword = await bcrypt.compare(Password, user.Password);
+  if (!isValidPassword) {
+    return { success: false, message: "Invalid email or password" };
+  }
 
-    return { success: true, user }; // Return the user object along with success status
+  return { success: true, user }; // Return the user object along with success status
 }
 
