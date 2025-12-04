@@ -38,6 +38,7 @@ export function SignupForm({
   const [role, setRole] = useState("")
   const [firstname, setFirstname] = useState("")
   const [lastname, setLastname] = useState("")
+  const [department, setDepartment] = useState("");
   const [referenceID, setReferenceID] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -63,7 +64,8 @@ export function SignupForm({
       !confirmPassword ||
       !role ||
       !firstname ||
-      !lastname
+      !lastname ||
+      !department
     ) {
       toast.error("All fields are required")
       return
@@ -92,6 +94,7 @@ export function SignupForm({
           Role: role,
           Firstname: firstname,
           Lastname: lastname,
+          Department: department,
           ReferenceID: referenceID,
         }),
       })
@@ -115,8 +118,9 @@ export function SignupForm({
         setFirstname("")
         setLastname("")
         setRole("")
+        setDepartment("")
         setReferenceID("")
-        setTimeout(() => router.push("/login"), 1500)
+        setTimeout(() => router.push("/dsi-login"), 1500)
       } else {
         toast.error(result.message || "Registration failed")
       }
@@ -183,7 +187,19 @@ export function SignupForm({
                 </Select>
               </Field>
 
-                <Field>
+              <Field>
+                <FieldLabel>Department</FieldLabel>
+                <Select onValueChange={(value) => setDepartment(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="IT">IT Department</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field>
                 <FieldLabel>Username</FieldLabel>
                 <Input
                   type="text"

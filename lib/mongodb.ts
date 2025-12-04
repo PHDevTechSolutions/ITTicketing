@@ -1,202 +1,102 @@
-import { MongoClient, Db } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
 
-// Extend the global object type for TypeScript
-declare global {
-    var _mongoClient: MongoClient | undefined;
+// Ensure the MONGODB_URI environment variable is defined
+if (!process.env.MONGODB_URI) {
+    throw new Error("Please define the MONGODB_URI environment variable");
 }
-
-if (!process.env.MONGODB_URI) throw new Error("MONGODB_URI not defined");
 
 const uri = process.env.MONGODB_URI;
-let client: MongoClient;
+let client: MongoClient | null = null;
 let clientPromise: Promise<MongoClient>;
 
-// --- MongoDB Client Connection Logic (For Next.js API Routes) ---
-
+// MongoDB connection handling
 if (process.env.NODE_ENV === "development") {
-    // Sa Development, ginagamit ang global variable para maiwasan ang multiple client connections
-    if (!global._mongoClient) {
-        client = new MongoClient(uri);
-        global._mongoClient = client;
-    } else {
-        client = global._mongoClient;
-    }
-    clientPromise = client.connect();
+    if (!global._mongoClient) {
+        client = new MongoClient(uri);
+        global._mongoClient = client;
+    } else {
+        client = global._mongoClient;
+    }
+    clientPromise = client.connect();
 } else {
-    // Sa Production, gumawa lang ng bagong client
-    client = new MongoClient(uri);
-    clientPromise = client.connect();
+    client = new MongoClient(uri);
+    clientPromise = client.connect();
 }
 
-// Default export: ang promise na ito ang ginagamit ng NextAuth, etc.
+// Export the promise to be used for database connections
 export default clientPromise;
 
-/**
- * Nagbabalik ng koneksyon sa 'ITticketing' database.
- */
-export async function connectToDatabase(): Promise<Db> {
-    const client = await clientPromise;
-    return client.db("ITticketing");
+// Connect to the database
+export async function connectToDatabase() {
+    const client = await clientPromise;
+    return client.db("ITticketing"); // Return the 'ecoshift' database
 }
 
-// --- Auto-Increment Logic ---
-
-interface Counter {
-    _id: string;
-    sequence_value: number;
-}
-
-/**
- * Fetches and increments the sequence value for auto-numbering.
- * Gagamitin ito para sa pag-generate ng sequential IDs (e.g., Ticket numbers).
- * @param sequenceName Ang _id ng counter document (e.g., "ticketNumber").
- * @returns The pure sequential number as a string.
- */
-export async function getNextSequenceValue(sequenceName: string): Promise<string> {
-    
-    const db = await connectToDatabase(); 
-    
-    const countersCollection = db.collection<Counter>("counters"); 
-
-    // Find the counter and atomically increment its value
-    const updateResult = await countersCollection.findOneAndUpdate(
-        { _id: sequenceName },
-        { $inc: { sequence_value: 1 } },
-        { 
-            returnDocument: 'after', 
-            upsert: true // Mag-i-start sa 1 kung wala pa.
-        } 
-    );
-    
-    // Check if the update was successful and value is present
-    const nextId = updateResult?.sequence_value;
-
-    if (nextId === undefined || nextId === null) {
-        throw new Error(`Failed to retrieve sequence value for ${sequenceName}`);
-    }
-
-    // Ibalik ang numero bilang string (e.g., "1")
-    return nextId.toString(); 
-}
-
-
+// Register a new user
 export async function registerUser({
-    Username,
-    Email,
-    Password,
-    Role,
-    Firstname,
-    Lastname,
-    ReferenceID,
+    Username,
+    Email,
+    Password,
+    Firstname,
+    Lastname,
+    Role,
+    Department,
+    ReferenceID
 }: {
-    Username: string;
-    Email: string;
-    Password: string;
-    Role: string;
-    Firstname: string;
-    Lastname: string;
-    ReferenceID: string;
+    Username: string;
+    Email: string;
+    Password: string;
+    Firstname: string;
+    Lastname: string;
+    Role: string;
+    Department: string;
+    ReferenceID: string;
 }) {
-    const db = await connectToDatabase();
-    const usersCollection = db.collection("users"); // Para sa System Users
+    const db = await connectToDatabase();
+    const usersCollection = db.collection("users");
 
-    // Prevent duplicate username or email
-    const existing = await usersCollection.findOne({ $or: [{ Username }, { Email }] });
-    if (existing) return { success: false, message: "Username or Email already exists" };
+    // Check if the email already exists in the database
+    const existingUser = await usersCollection.findOne({ Email });
+    if (existingUser) {
+        return { success: false, message: "Email already in use" };
+    }
 
-    const hashedPassword = await bcrypt.hash(Password, 10);
+    // Hash the password before saving it to the database
+    const hashedPassword = await bcrypt.hash(Password, 10);
 
-    await usersCollection.insertOne({
-        Username,
-        Email,
-        Password: hashedPassword,
-        Role,
-        Firstname,
-        Lastname,
-        ReferenceID,
-        createdAt: new Date(),
-    });
+    // Insert the new user into the collection
+    await usersCollection.insertOne({
+        Username,
+        Email,
+        Firstname,
+        Lastname,
+        Role,
+        Department,
+        Password: hashedPassword,
+        createdAt: new Date(),
+    });
 
-    return { success: true };
+    return { success: true };
 }
 
-export async function validateUser({
-    Username,
-    Password,
-}: {
-    Username: string;
-    Password: string;
-}) {
-    const db = await connectToDatabase();
-    const usersCollection = db.collection("users");
+// Validate user credentials
+export async function validateUser({ Email, Password, }: { Email: string; Password: string; }) {
+    const db = await connectToDatabase();
+    const usersCollection = db.collection("users");
 
-    const user = await usersCollection.findOne({ Username });
-    if (!user) return { success: false, message: "Invalid username or password" };
+    // Find the user by email
+    const user = await usersCollection.findOne({ Email });
+    if (!user) {
+        return { success: false, message: "Invalid email or password" };
+    }
 
-    const isValid = await bcrypt.compare(Password, user.Password); 
-    if (!isValid) return { success: false, message: "Invalid username or password" };
+    // Compare the provided password with the stored hashed password
+    const isValidPassword = await bcrypt.compare(Password, user.Password);
+    if (!isValidPassword) {
+        return { success: false, message: "Invalid email or password" };
+    }
 
-    return { success: true, user };
+    return { success: true, user }; // Return the user object along with success status
 }
 
-// --- End User Registration and Validation ---
-
-export async function euregisterUser({
-    Username,
-    Email,
-    Password,
-    Department, // Iba't ibang field kumpara sa System User
-    Firstname,
-    Lastname,
-    ReferenceID,
-}: {
-    Username: string;
-    Email: string;
-    Password: string;
-    Department: string;
-    Firstname: string;
-    Lastname: string;
-    ReferenceID: string;
-}) {
-    const db = await connectToDatabase();
-    const endusersCollection = db.collection("endusers"); // Para sa End Users
-
-    // Prevent duplicate username or email
-    const existing = await endusersCollection.findOne({ $or: [{ Username }, { Email }] });
-    if (existing) return { success: false, message: "Username or Email already exists" };
-
-    const hashedPassword = await bcrypt.hash(Password, 10);
-
-    await endusersCollection.insertOne({
-        Username,
-        Email,
-        Password: hashedPassword,
-        Department,
-        Firstname,
-        Lastname,
-        ReferenceID,
-        createdAt: new Date(),
-    });
-
-    return { success: true };
-}
-
-export async function validateEndUser({
-    Username,
-    Password,
-}: {
-    Username: string;
-    Password: string;
-}) {
-    const db = await connectToDatabase();
-    const endusersCollection = db.collection("endusers");
-
-    const user = await endusersCollection.findOne({ Username });
-    if (!user) return { success: false, message: "Invalid username or password" };
-
-    const isValid = await bcrypt.compare(Password, user.Password); 
-    if (!isValid) return { success: false, message: "Invalid username or password" };
-
-    return { success: true, user };
-}

@@ -2,41 +2,15 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AppSidebar } from "../components/sidebar"
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator, } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider, SidebarTrigger, } from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LogOut, User, Users, Ticket, Clock, CheckCircle, LucideIcon, ChevronRight, Hash, Loader2 } from "lucide-react"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table"
 
 // --- INTERFACES ---
 interface Concern {
@@ -47,7 +21,7 @@ interface Concern {
   remarks: string
   dateCreated: string // Format: YYYY-MM-DD
   priority: 'Critical' | 'High' | 'Medium' | 'Low'
-  status: 'New' | 'Pending' | 'Ongoing' | 'Resolved' | 'Finished' 
+  status: 'New' | 'Pending' | 'Ongoing' | 'Resolved' | 'Finished'
 }
 
 interface CurrentUser {
@@ -66,7 +40,7 @@ interface StatCardProps {
   value: number | string
   icon: LucideIcon
   colorClass: string
-  link: string 
+  link: string
   bgColor?: string
   onClick: (link: string, title: string) => void
   isSelected: boolean
@@ -104,14 +78,14 @@ function StatCard({ title, value, icon: Icon, colorClass, link, bgColor, onClick
 // --- DUMMY DATA & FILTERING (Unchanged) ---
 const todayDate = "2025-10-29" // Simulate Today's Date
 const allTickets: Concern[] = [
-    { id: "IT-0001", employeeName: "Juan Dela Cruz", department: "Human Resources", type: "Hardware", remarks: "Desktop computer not turning on after power outage.", dateCreated: "2025-10-29", priority: "Critical", status: 'New' },
-    { id: "IT-0002", employeeName: "Maria Santos", department: "Finance", type: "Software", remarks: "Unable to open the payroll system due to version mismatch.", dateCreated: "2025-10-29", priority: "High", status: 'New' },
-    { id: "IT-0006", employeeName: "Pedro Santos", department: "Finance", type: "Hardware", remarks: "Printer not responding after connecting via Wi-Fi.", dateCreated: "2025-10-29", priority: "High", status: 'New' },
-    { id: "IT-0007", employeeName: "Sofia Garcia", department: "Admin", type: "Network", remarks: "Cannot access shared drive.", dateCreated: "2025-10-29", priority: "Medium", status: 'New' },
-    { id: "IT-0003", employeeName: "Carlos Mendoza", department: "IT Department", type: "Network", remarks: "Slow internet connection in the main office.", dateCreated: "2025-10-29", priority: "Medium", status: 'Ongoing' },
-    { id: "IT-0004", employeeName: "Anna Reyes", department: "Customer Support", type: "Account", remarks: "Cannot log into email account after password reset.", dateCreated: "2025-10-28", priority: "Critical", status: 'Pending' },
-    { id: "IT-0005", employeeName: "Liza Dizon", department: "Marketing", type: "Software", remarks: "Adobe Photoshop license expired.", dateCreated: "2025-10-27", priority: "Low", status: 'Resolved' },
-    { id: "IT-0008", employeeName: "Mark Rivera", department: "Sales", type: "Software", remarks: "CRM dashboard not loading data properly.", dateCreated: "2025-10-26", priority: "High", status: 'Finished' },
+  { id: "IT-0001", employeeName: "Juan Dela Cruz", department: "Human Resources", type: "Hardware", remarks: "Desktop computer not turning on after power outage.", dateCreated: "2025-10-29", priority: "Critical", status: 'New' },
+  { id: "IT-0002", employeeName: "Maria Santos", department: "Finance", type: "Software", remarks: "Unable to open the payroll system due to version mismatch.", dateCreated: "2025-10-29", priority: "High", status: 'New' },
+  { id: "IT-0006", employeeName: "Pedro Santos", department: "Finance", type: "Hardware", remarks: "Printer not responding after connecting via Wi-Fi.", dateCreated: "2025-10-29", priority: "High", status: 'New' },
+  { id: "IT-0007", employeeName: "Sofia Garcia", department: "Admin", type: "Network", remarks: "Cannot access shared drive.", dateCreated: "2025-10-29", priority: "Medium", status: 'New' },
+  { id: "IT-0003", employeeName: "Carlos Mendoza", department: "IT Department", type: "Network", remarks: "Slow internet connection in the main office.", dateCreated: "2025-10-29", priority: "Medium", status: 'Ongoing' },
+  { id: "IT-0004", employeeName: "Anna Reyes", department: "Customer Support", type: "Account", remarks: "Cannot log into email account after password reset.", dateCreated: "2025-10-28", priority: "Critical", status: 'Pending' },
+  { id: "IT-0005", employeeName: "Liza Dizon", department: "Marketing", type: "Software", remarks: "Adobe Photoshop license expired.", dateCreated: "2025-10-27", priority: "Low", status: 'Resolved' },
+  { id: "IT-0008", employeeName: "Mark Rivera", department: "Sales", type: "Software", remarks: "CRM dashboard not loading data properly.", dateCreated: "2025-10-26", priority: "High", status: 'Finished' },
 ]
 
 const getFilteredData = (link: string): Concern[] => {
@@ -181,7 +155,7 @@ function DataTable({ data, title }: DataTableProps) {
                         {item.status}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-right text-gray-500">{item.dateCreated}</TableCell> 
+                    <TableCell className="text-sm text-right text-gray-500">{item.dateCreated}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -204,11 +178,12 @@ export default function DashboardPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [profilePic, setProfilePic] = useState<string | null>(null)
   const [selectedStat, setSelectedStat] = useState<{ link: string, title: string } | null>(null)
-  
+
   // --- STATE FOR PROFILE ---
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false)
 
   // 🧩 FETCH Profile from API (Updated to use Username from localStorage)
   const fetchProfile = async () => {
@@ -217,7 +192,7 @@ export default function DashboardPage() {
     try {
       // NOTE: We now assume 'userId' in localStorage stores the Username string
       const username = localStorage.getItem("userId");
-      
+
       if (!username) {
         setProfileError("No login session found. Please log in.");
         setIsProfileLoading(false);
@@ -240,7 +215,7 @@ export default function DashboardPage() {
       setIsProfileLoading(false);
     }
   };
-  
+
   // Fetch profile on initial load
   useEffect(() => {
     fetchProfile();
@@ -248,7 +223,7 @@ export default function DashboardPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("userId") // IMPORTANT: Use 'userId' key
-    router.push("/login")
+    router.push("/dsi-login")
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -263,7 +238,7 @@ export default function DashboardPage() {
   const handleStatClick = (link: string, title: string) => {
     setSelectedStat({ link, title })
   }
-  
+
   // Helper function to format date
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -398,13 +373,13 @@ export default function DashboardPage() {
                 <div className="grid gap-4 py-4 text-sm">
                   {isProfileLoading ? (
                     <div className="text-center p-4 text-gray-500">
-                        <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
-                        <p>Loading profile data...</p>
+                      <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                      <p>Loading profile data...</p>
                     </div>
                   ) : profileError ? (
                     <div className="text-center p-4 text-red-500 border border-red-200 bg-red-50 rounded">
-                        <p>{profileError}</p>
-                        <p className="text-xs mt-1">Please check the network or login state.</p>
+                      <p>{profileError}</p>
+                      <p className="text-xs mt-1">Please check the network or login state.</p>
                     </div>
                   ) : currentUser ? (
                     <>
@@ -430,17 +405,45 @@ export default function DashboardPage() {
               </DialogContent>
             </Dialog>
 
-            <Button
-              onClick={handleLogout}
-              variant="secondary"
-              size="icon"
-              className="bg-red-50 hover:bg-red-100 text-red-600"
-              title="Logout"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+            <Dialog open={open} onOpenChange={setOpen}>
+              {/* Trigger button */}
+              <DialogTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="bg-red-50 hover:bg-red-100 text-red-600"
+                  title="Logout"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </DialogTrigger>
+
+              {/* Dialog content */}
+              <DialogContent className="sm:max-w-[400px]">
+                <DialogHeader>
+                  <DialogTitle>Are you sure you want to logout?</DialogTitle>
+                  <DialogDescription>
+                    This will end your current session.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <DialogFooter className="flex justify-between">
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancel</Button>
+                  </DialogClose>
+
+                  <Button
+                    variant="destructive"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </header>
+
 
         {/* Main dashboard section */}
         <main className="p-6 bg-gray-50 min-h-[calc(100vh-4rem)]">
