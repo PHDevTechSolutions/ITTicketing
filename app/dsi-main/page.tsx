@@ -648,7 +648,6 @@ export default function Page() {
                     </Select>
                   </div>
 
-
                   {/* Date Sched */}
                   <div className="flex flex-col space-y-1.5">
                     <Label>Date Sched (optional)</Label>
@@ -711,7 +710,6 @@ export default function Page() {
               </form>
             </div>
           )}
-
 
           {currentPage === "inbox" && (
             <div className="max-w-4xl mx-auto w-full">
@@ -1023,10 +1021,6 @@ export default function Page() {
             </div>
           )}
 
-
-
-
-
           {currentPage === "closedTickets" && (
             <div className="max-w-5xl mx-auto w-full">
 
@@ -1121,7 +1115,6 @@ export default function Page() {
               </div>
             </div>
           )}
-
 
         </div>
       </SidebarInset>

@@ -357,7 +357,6 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
             await createTicket(ticketForm);
             console.log("🧾 Ticket submitted:", ticketForm);
             toast.success("Ticket successfully created from concern!")
-
             // Cleanup and Close
             setTicketForm(initialNewTicketState);
             setIsAddDialogOpen(false);
@@ -385,7 +384,6 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
             await createTicket(newTicket);
             console.log("🆕 New Ticket Added:", newTicket)
             toast.success("New Ticket successful!")
-
             // Cleanup and Close
             setNewTicket(initialNewTicketState);
             setIsManualAddDialogOpen(false)
@@ -714,7 +712,6 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                     </SelectContent>
                                 </Select>
                             </div>
-
                             {/* Status Select (Required + Red Border) */}
                             <div className="flex flex-col space-y-1.5">
                                 <Label className={getErrorClass("status")}>Status</Label>
@@ -896,7 +893,6 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                     </SelectContent>
                                 </Select>
                             </div>
-
                             {/* Technician Name (Required + Red Border) */}
                             <div className="flex flex-col space-y-1.5">
                                 <Label className={getErrorClass("technicianname")}>Technician Name</Label>
@@ -945,7 +941,6 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                     onChange={(e) => setNewTicket({ ...newTicket, dateSched: e.target.value })}
                                 />
                             </div>
-
                             {/* Priority Select (Required + Red Border) */}
                             <div className="flex flex-col space-y-1.5">
                                 <Label className={getErrorClass("priority")}>Priority</Label>

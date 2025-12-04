@@ -23,31 +23,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({ success: true, data: department });
       }
 
-case "PUT": {
-  const { name } = req.body;
-  if (!name || !name.trim()) {
-    return res.status(400).json({ success: false, message: "Name is required" });
-  }
+      case "PUT": {
+        const { name } = req.body;
+        if (!name || !name.trim()) {
+          return res.status(400).json({ success: false, message: "Name is required" });
+        }
 
-  const trimmedName = name.trim();
+        const trimmedName = name.trim();
 
-  // ❌ Check if another department already has this name
-  const existing = await departments.findOne({ 
-    name: trimmedName, 
-    _id: { $ne: deptId } // exclude current department
-  });
-  if (existing) {
-    return res.status(409).json({ success: false, message: "Department name already exists." });
-  }
+        // ❌ Check if another department already has this name
+        const existing = await departments.findOne({
+          name: trimmedName,
+          _id: { $ne: deptId } // exclude current department
+        });
+        if (existing) {
+          return res.status(409).json({ success: false, message: "Department name already exists." });
+        }
 
-  const updated = await departments.findOneAndUpdate(
-    { _id: deptId },
-    { $set: { name: trimmedName } },
-    { returnDocument: "after" }
-  );
-
-  return res.status(200).json({ success: true});
-}
+        const updated = await departments.findOneAndUpdate(
+          { _id: deptId },
+          { $set: { name: trimmedName } },
+          { returnDocument: "after" }
+        );
+        return res.status(200).json({ success: true });
+      }
 
 
       case "DELETE": {
