@@ -1,100 +1,246 @@
+"use client"
+import React, { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card"
 import {
-    Field,
-    FieldDescription,
-    FieldGroup,
-    FieldLabel,
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select"
+
 export function SignupForm({
-    className,
-    ...props
+  className,
+  ...props
 }: React.ComponentProps<"div">) {
-    return (
-        <div className={cn("flex flex-col gap-6", className)} {...props}>
-            <Card>
-                <CardHeader className="text-center">
-                    <CardTitle className="text-xl">Create your account</CardTitle>
-                    <CardDescription>
-                        Enter your email below to create your account
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form>
-                        <FieldGroup>
-                            <Field>
-                                <FieldLabel htmlFor="name">First Name</FieldLabel>
-                                <Input id="name" type="text" placeholder="John Doe" required />
-                            </Field>
-                            <Field>
-                                <FieldLabel htmlFor="name">Last Name</FieldLabel>
-                                <Input id="name" type="text" placeholder="John Doe" required />
-                            </Field>
-                            <Field>
-                            <Select>
-                                <FieldLabel htmlFor="name">Role</FieldLabel>
-                                <SelectTrigger className="w-full">
+  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [role, setRole] = useState("")
+  const [firstname, setFirstname] = useState("")
+  const [lastname, setLastname] = useState("")
+  const [referenceID, setReferenceID] = useState("")
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
 
-                                    <SelectValue placeholder="" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="Super Admin">Super Admin</SelectItem>
-                                    <SelectItem value="Admin">Admin</SelectItem>
+  // Auto generate ReferenceID based on First + Last name
+  useEffect(() => {
+    if (firstname && lastname) {
+      const refID = `${firstname.charAt(0).toUpperCase()}${lastname
+        .charAt(0)
+        .toUpperCase()}-${Math.floor(100000 + Math.random() * 900000)}`
+      setReferenceID(refID)
+    }
+  }, [firstname, lastname])
 
-                                </SelectContent>
-                            </Select>
-                            </Field>
-                            <Field>
-                                <FieldLabel htmlFor="name">Username</FieldLabel>
-                                <Input id="name" type="text" placeholder="John Doe" required />
-                            </Field>
-                            <Field>
-                                <Field className="grid grid-cols-2 gap-4">
-                                    <Field>
-                                        <FieldLabel htmlFor="password">Password</FieldLabel>
-                                        <Input id="password" type="password" required />
-                                    </Field>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-                                    <Field>
-                                        <FieldLabel htmlFor="confirm-password">
-                                            Confirm Password
-                                        </FieldLabel>
-                                        <Input id="confirm-password" type="password" required />
-                                    </Field>
-                                </Field>
-                                <FieldDescription>
-                                    Must be at least 8 characters long.
-                                </FieldDescription>
-                            </Field>
-                            <Field>
-                                <Button type="submit">Create Account</Button>
-                                <FieldDescription className="text-center">
-                                    Already have an account? <a href="login">Sign in</a>
-                                </FieldDescription>
-                            </Field>
-                        </FieldGroup>
-                    </form>
-                </CardContent>
-            </Card>
-            <FieldDescription className="px-6 text-center">
-                By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-                and <a href="#">Privacy Policy</a>.
-            </FieldDescription>
-        </div>
-    )
+    // Validation
+    if (
+      !username ||
+      !email ||
+      !password ||
+      !confirmPassword ||
+      !role ||
+      !firstname ||
+      !lastname
+    ) {
+      toast.error("All fields are required")
+      return
+    }
+
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters long")
+      return
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match")
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const res = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          Username: username,
+          Email: email,
+          Password: password,
+          Role: role,
+          Firstname: firstname,
+          Lastname: lastname,
+          ReferenceID: referenceID,
+        }),
+      })
+
+      let result
+      try {
+        result = await res.json()
+      } catch (err) {
+        const text = await res.text()
+        console.error("Failed to parse JSON:", text)
+        toast.error("Server returned invalid response")
+        return
+      }
+
+      if (res.ok) {
+        toast.success("Registration successful!")
+        setUsername("")
+        setEmail("")
+        setPassword("")
+        setConfirmPassword("")
+        setFirstname("")
+        setLastname("")
+        setRole("")
+        setReferenceID("")
+        setTimeout(() => router.push("/login"), 1500)
+      } else {
+        toast.error(result.message || "Registration failed")
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error("Server error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl">Create your account</CardTitle>
+          <CardDescription>Enter your details below to register</CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <FieldGroup>
+              <Input type="hidden" value={referenceID} readOnly />
+              <Field>
+                <FieldLabel>First Name</FieldLabel>
+                <Input
+                  type="text"
+                  required
+                  value={firstname}
+                  onChange={(e) => setFirstname(e.target.value)}
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel>Last Name</FieldLabel>
+                <Input
+                  type="text"
+                  required
+                  value={lastname}
+                  onChange={(e) => setLastname(e.target.value)}
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel>Email</FieldLabel>
+                <Input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel>Role</FieldLabel>
+                <Select onValueChange={(value) => setRole(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Super Admin">Super Admin</SelectItem>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+                <Field>
+                <FieldLabel>Username</FieldLabel>
+                <Input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel>Password</FieldLabel>
+                <Input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel>Confirm Password</FieldLabel>
+                <Input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </Field>
+
+              <FieldDescription>Must be at least 8 characters long.</FieldDescription>
+
+              <Button type="submit" disabled={loading}>
+                {loading ? "Creating Account..." : "Create Account"}
+              </Button>
+
+              <FieldDescription className="text-center mt-2">
+                Already have an account?{" "}
+                <Link href="/login" className="underline">
+                  Sign in
+                </Link>
+              </FieldDescription>
+            </FieldGroup>
+          </form>
+        </CardContent>
+      </Card>
+
+      <FieldDescription className="px-6 text-center text-sm">
+        By continuing, you agree to our{" "}
+        <a href="#" className="underline">
+          Terms of Service
+        </a>{" "}
+        and{" "}
+        <a href="#" className="underline">
+          Privacy Policy
+        </a>
+        .
+      </FieldDescription>
+    </div>
+  )
 }

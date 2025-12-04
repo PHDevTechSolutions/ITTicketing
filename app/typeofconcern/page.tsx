@@ -1,8 +1,7 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-// I-assume na ito ang tamang path para sa iyong sidebar
-import { AppSidebar } from "../components/sidebar" 
+import { useState, useEffect } from "react";
+import { AppSidebar } from "../components/sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -10,22 +9,16 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  User,
-  LogOut,
-  Plus, 
-  Edit, 
-  Trash2, 
-} from "lucide-react"
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { User, LogOut, Plus, Edit, Trash2, MoreHorizontal, Loader2 } from "lucide-react"; 
 import {
   Dialog,
   DialogContent,
@@ -34,110 +27,198 @@ import {
   DialogFooter,
   DialogTrigger,
   DialogClose,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
-  DropdownMenu, 
+  DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+} from "@/components/ui/dropdown-menu";
 
-// --- Interface para sa Type of Concern ---
+// Interfaces
 interface ConcernType {
-  id: string 
-  name: string // Ang pangalan ng Concern Type
+  _id: string;
+  name: string;
 }
 
-// --- Sample Data (Walang laman) ---
-const initialConcernTypes: ConcernType[] = [
-  // Walang default values, magsisimula ang table na blanko.
-]
+interface CurrentUser {
+  _id: string;
+  Username: string;
+  Email: string;
+  Role: string;
+  Firstname: string;
+  Lastname: string;
+  ReferenceID: string;
+  createdAt: string;
+}
 
 // --- Main Component ---
 export default function ConcernTypesPage() { 
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [profilePic, setProfilePic] = useState<string | null>(null)
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+
+  const [concernTypes, setConcernTypes] = useState<ConcernType[]>([]);
+  const [isConcernTypeDialogOpen, setIsConcernTypeDialogOpen] = useState(false);
+  const [currentConcernType, setCurrentConcernType] = useState<ConcernType | null>(null);
+  const [newConcernTypeName, setNewConcernTypeName] = useState("");
   
-  // State para sa Concern Types
-  const [concernTypes, setConcernTypes] = useState<ConcernType[]>(initialConcernTypes)
-  
-  // State para sa Add/Edit Dialog
-  const [isConcernTypeDialogOpen, setIsConcernTypeDialogOpen] = useState(false)
-  const [currentConcernType, setCurrentConcernType] = useState<ConcernType | null>(null)
-  const [newConcernTypeName, setNewConcernTypeName] = useState("") 
+  const [isSaving, setIsSaving] = useState(false); 
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
+  // 🧩 FETCH Concern Types from API
+  const fetchConcernTypes = async () => { 
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/typeofconcern"); 
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setConcernTypes(data.data); 
+      } else {
+        console.error("Failed to fetch concern types:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching concern types:", error);
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  // 🧩 FETCH Profile from API
+  const fetchProfile = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        setIsProfileLoading(false);
+        return;
+      }
+
+      const res = await fetch(`/api/profile/${userId}`);
+      const data = await res.json();
+
+      if (res.ok && data.success) setCurrentUser(data.data);
+      else console.error("Failed to fetch profile:", data.message);
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchConcernTypes(); 
+    fetchProfile();
+  }, []);
+
+  // 🧠 SAVE Concern Type (CREATE or UPDATE)
+  const handleSaveConcernType = async () => { 
+    if (!newConcernTypeName.trim())
+      return alert("Please enter the Type of Concern name.");
+
+    setIsSaving(true);
+
+    try {
+      const method = currentConcernType ? "PUT" : "POST"; 
+      const url = currentConcernType
+        ? `/api/typeofconcern/${currentConcernType._id}`
+        : "/api/typeofconcern";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newConcernTypeName.trim() }), 
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert(
+          `Type of Concern ${
+            currentConcernType ? "updated" : "created"
+          } successfully!`
+        );
+        fetchConcernTypes(); 
+      } else {
+        alert(
+          data.message ||
+            `Failed to ${
+              currentConcernType ? "update" : "create"
+            } Type of Concern.`
+        );
+      }
+    } catch (error) {
+      console.error("Error saving concern type:", error); 
+      alert("Something went wrong.");
+    } finally {
+        setIsSaving(false);
+    }
+
+    setIsConcernTypeDialogOpen(false); 
+    setNewConcernTypeName(""); 
+    setCurrentConcernType(null); 
+  };
+
+  // 🧠 DELETE Concern Type
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete Type of Concern "${name}"? This action cannot be undone.`)) return; 
+
+    try {
+      const res = await fetch(`/api/typeofconcern/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        alert("Type of Concern deleted successfully!"); 
+        fetchConcernTypes(); 
+      } else {
+        alert(data.message || "Failed to delete Type of Concern."); 
+      }
+    } catch (error) {
+      console.error("Error deleting concern type:", error); 
+      alert("Something went wrong.");
+    }
+  };
+
+  const handleEdit = (type: ConcernType) => { 
+    setCurrentConcernType(type);
+    setNewConcernTypeName(type.name);
+    setIsConcernTypeDialogOpen(true);
+  };
+
+  const handleOpenAdd = () => {
+    setCurrentConcernType(null);
+    setNewConcernTypeName("");
+    setIsConcernTypeDialogOpen(true);
+  };
 
   const handleLogout = () => {
-    alert("Logged out! Redirect logic not implemented.")
-  }
+    localStorage.removeItem("userId");
+    alert("Logged out! Redirect not implemented.");
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setProfilePic(reader.result as string)
-      reader.readAsDataURL(file)
+      const reader = new FileReader();
+      reader.onloadend = () => setProfilePic(reader.result as string);
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
-  const handleSaveConcernType = () => {
-    if (!newConcernTypeName) {
-      alert("Please enter the concern type name.")
-      return
-    }
-
-    if (currentConcernType) {
-      // Edit Concern Type
-      setConcernTypes(concernTypes.map(type => 
-        type.id === currentConcernType.id 
-          ? { ...type, name: newConcernTypeName } 
-          : type
-      ))
-      alert(`Concern Type ${currentConcernType.id} updated!`)
-    } else {
-      // Add New Concern Type
-      const newId = `CT-${(concernTypes.length + 1).toString().padStart(3, '0')}`
-      const newType: ConcernType = {
-        id: newId,
-        name: newConcernTypeName,
-      }
-      setConcernTypes([...concernTypes, newType])
-      alert(`Concern Type ${newId} added!`)
-    }
-
-    // Reset and Close
-    setIsConcernTypeDialogOpen(false)
-    setCurrentConcernType(null)
-    setNewConcernTypeName("")
-  }
-
-  const handleEdit = (type: ConcernType) => {
-    setCurrentConcernType(type)
-    setNewConcernTypeName(type.name)
-    setIsConcernTypeDialogOpen(true)
-  }
-
-  const handleDelete = (id: string) => {
-    if (confirm(`Are you sure you want to delete Concern Type ${id}?`)) {
-      setConcernTypes(concernTypes.filter(type => type.id !== id))
-      alert(`Concern Type ${id} deleted.`)
-    }
-  }
-  
-  const handleOpenAdd = () => {
-    setCurrentConcernType(null)
-    setNewConcernTypeName("")
-    setIsConcernTypeDialogOpen(true)
-  }
+  const formatDate = (date: Date) =>
+    new Date(date).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        {/* HEADER (Profile Dialog) */}
+        {/* HEADER */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
@@ -145,9 +226,7 @@ export default function ConcernTypesPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/dashboard" className="text-gray-700">
-                    Dashboard
-                  </BreadcrumbLink>
+                  <BreadcrumbLink href="/dashboard" className="text-gray-700">Dashboard</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
@@ -157,20 +236,16 @@ export default function ConcernTypesPage() {
             </Breadcrumb>
           </div>
 
-          {/* PROFILE + LOGOUT - Unchanged */}
           <div className="flex items-center gap-3">
+            {/* Profile Dialog */}
             <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" title="Profile">
-                  <User className="h-5 w-5 text-gray-600" />
-                </Button>
+                <Button variant="ghost" size="icon" title="Profile"><User className="h-5 w-5 text-gray-600" /></Button>
               </DialogTrigger>
-              
+
               <DialogContent className="sm:max-w-[400px] bg-white rounded-xl">
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-semibold text-center">
-                    Profile Information
-                  </DialogTitle>
+                  <DialogTitle className="text-lg font-semibold text-center">Profile Information</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center mt-4 mb-2">
                   <div className="relative">
@@ -185,9 +260,7 @@ export default function ConcernTypesPage() {
                     <label
                       htmlFor="profile-upload"
                       className="absolute bottom-0 right-0 bg-gray-700 text-white text-xs px-2 py-1 rounded-md cursor-pointer hover:bg-gray-800"
-                    >
-                      Change
-                    </label>
+                    >Change</label>
                     <input
                       type="file"
                       id="profile-upload"
@@ -197,32 +270,33 @@ export default function ConcernTypesPage() {
                     />
                   </div>
                 </div>
+
                 <div className="grid gap-4 py-4 text-sm">
-                  <div>
-                    <Label>Full Name:</Label>
-                    <p className="font-medium text-gray-800">Super Admin</p>
-                  </div>
-                  <div>
-                    <Label>Email:</Label>
-                    <p className="font-medium text-gray-800">
-                      admin@example.com
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Role:</Label>
-                    <p className="font-medium text-gray-800">Administrator</p>
-                  </div>
-                  <div>
-                    <Label>Joined:</Label>
-                    <p className="font-medium text-gray-800">
-                      October 15, 2024
-                    </p>
-                  </div>
+                  {isProfileLoading ? (
+                    <div className="text-center text-gray-500">
+                        <Loader2 className="h-5 w-5 animate-spin inline-block mr-2" /> Loading profile...
+                    </div>
+                  ) : currentUser ? (
+                    <>
+                      <div><Label>Full Name:</Label><p className="font-medium text-gray-800">{currentUser.Firstname} {currentUser.Lastname}</p></div>
+                      <div><Label>Username:</Label><p className="font-medium text-gray-800">{currentUser.Username}</p></div>
+                      <div><Label>Email:</Label><p className="font-medium text-gray-800">{currentUser.Email}</p></div>
+                      <div><Label>Role:</Label><p className="font-medium text-gray-800">{currentUser.Role}</p></div>
+                      <div><Label>Reference ID:</Label><p className="font-medium text-gray-800">{currentUser.ReferenceID}</p></div>
+                      <div><Label>Joined:</Label><p className="font-medium text-gray-800">{formatDate(new Date(currentUser.createdAt))}</p></div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-red-500 text-center col-span-2">Profile not found. Please log in again.</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div><Label>Full Name:</Label><p className="font-medium text-gray-500">-</p></div>
+                        <div><Label>Role:</Label><p className="font-medium text-gray-500">-</p></div>
+                      </div>
+                    </>
+                  )}
                 </div>
                 <DialogFooter className="flex justify-center">
-                  <DialogClose asChild>
-                    <Button variant="outline">Close</Button>
-                  </DialogClose>
+                  <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -233,134 +307,108 @@ export default function ConcernTypesPage() {
               size="icon"
               className="bg-red-50 text-red-600 hover:bg-red-100"
               title="Logout"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+            ><LogOut className="h-5 w-5" /></Button>
           </div>
         </header>
 
-        {/* MAIN CONTENT */}
+        {/* MAIN */}
         <main className="p-6 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-4 mb-3 md:mb-0">
-              <h1 className="text-3xl font-extrabold text-gray-700">
-                Type of Concerns List
-              </h1>
-            </div>
-            
-            {/* ADD CONCERN TYPE BUTTON */}
-            <Button 
-                onClick={handleOpenAdd}
-                className="bg-gray-700 hover:bg-gray-800 text-white"
-            >
-                <Plus className="h-5 w-5 mr-2" />
-                Concern Type
-            </Button>
-            
+            <h1 className="text-3xl font-extrabold text-gray-700">Type of Concerns List</h1>
+            <Button
+              onClick={handleOpenAdd}
+              className="bg-gray-700 hover:bg-gray-800 text-white"
+            ><Plus className="h-5 w-5 mr-2" /> Type of Concern</Button>
           </div>
 
-          {/* CONCERN TYPE TABLE */}
+          {/* TABLE */}
           <div className="bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
+              {/* WALANG WHITESPACE DITO */}
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-700 text-white font-semibold sticky top-0">
-                  {/* Pinasimpleng <tr> at <th> para maiwasan ang whitespace error */}
-                  <tr>
-                    <th className="p-4">Concern Type Name</th>
-                    <th className="p-4 text-center w-[100px]">Action</th>
-                  </tr>
+                  <tr><th className="p-4">Type of Concern Name</th><th className="p-4 text-center w-[100px]">Action</th></tr>
                 </thead>
                 <tbody>
-                  {concernTypes.length > 0 ? (
+                  {isLoading ? (
+                    <tr><td colSpan={2} className="p-6 text-center text-gray-500"><Loader2 className="h-5 w-5 animate-spin inline-block mr-2" /> Loading concern types...</td></tr>
+                  ) : concernTypes.length > 0 ? (
                     concernTypes.map((type) => (
-                      // Pinasimpleng <tr> at <td> para maiwasan ang whitespace error
-                      <tr key={type.id} className="border-b hover:bg-gray-50 transition-colors">
+                      <tr key={type._id} className="border-b hover:bg-gray-50 transition-colors">
                         <td className="p-4 font-medium text-gray-800">{type.name}</td>
                         <td className="p-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                className="cursor-pointer text-gray-700 hover:bg-gray-100"
+                              <DropdownMenuItem
                                 onClick={() => handleEdit(type)}
-                              >
-                                <Edit className="mr-2 h-4 w-4" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                className="cursor-pointer text-red-600 hover:bg-red-50"
-                                onClick={() => handleDelete(type.id)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
+                                className="text-gray-700 hover:bg-gray-100 cursor-pointer"
+                              ><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(type._id, type.name)}
+                                className="text-red-600 hover:bg-red-50 cursor-pointer"
+                              ><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </td>
                       </tr>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={2} className="p-6 text-center text-gray-500 italic">
-                        No concern types found. Click "+ Concern Type" to add one.
-                      </td>
-                    </tr>
+                    <tr><td colSpan={2} className="p-6 text-center text-gray-500 italic">No concern types found. Click "+ Type of Concern" to add one.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
           </div>
-          
         </main>
-        
+
         {/* ADD/EDIT DIALOG */}
-        <Dialog 
-            open={isConcernTypeDialogOpen} 
-            onOpenChange={(open) => {
-              setIsConcernTypeDialogOpen(open)
-              if (!open) {
-                setCurrentConcernType(null)
-                setNewConcernTypeName("")
-              }
-            }}
+        <Dialog
+          open={isConcernTypeDialogOpen} 
+          onOpenChange={(open) => {
+            setIsConcernTypeDialogOpen(open);
+            if (!open) {
+              setCurrentConcernType(null);
+              setNewConcernTypeName("");
+            }
+          }}
         >
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold text-gray-900">
-                {currentConcernType ? "Edit Concern Type" : "Add New Concern Type"}
+                {currentConcernType ? "Edit Type of Concern" : "Add New Type of Concern"}
               </DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="concernTypeName" className="text-right">
-                  Name
-                </Label>
+                <Label htmlFor="concernTypeName" className="text-right">Name</Label>
                 <Input
                   id="concernTypeName"
-                  value={newConcernTypeName}
+                  value={newConcernTypeName} 
                   onChange={(e) => setNewConcernTypeName(e.target.value)}
                   className="col-span-3"
-                  placeholder="e.g., Hardware Malfunction"
+                  placeholder="e.g., Network"
+                  disabled={isSaving}
                 />
               </div>
             </div>
             <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleSaveConcernType} className="bg-gray-700 hover:bg-gray-800">
-                {currentConcernType ? "Save Changes" : "Create Concern Type"}
+              <DialogClose asChild><Button variant="outline" disabled={isSaving}>Cancel</Button></DialogClose>
+              <Button onClick={handleSaveConcernType} className="bg-gray-700 hover:bg-gray-800" disabled={isSaving}>
+                {isSaving ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {currentConcernType ? "Saving Changes..." : "Creating Concern Type..."}</>
+                ) : (
+                    currentConcernType ? "Save Changes" : "Create Type of Concern"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

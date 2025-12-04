@@ -1,143 +1,230 @@
-"use client"
+"use client";
 
-import { useState } from "react"
+import { useState, useEffect } from "react";
 // I-assume na ito ang tamang path para sa iyong sidebar
-import { AppSidebar } from "../components/sidebar" 
+import { AppSidebar } from "../components/sidebar";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { Separator } from "@/components/ui/separator"
+  Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
+  BreadcrumbPage, BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
 import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+  SidebarInset, SidebarProvider, SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  User,
-  LogOut,
-  Plus, 
-  Edit, 
-  Trash2, 
-} from "lucide-react"
+  User, LogOut, Plus, Edit, Trash2, MoreHorizontal, Loader2 // Idinagdag ang Loader2
+} from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+  DialogFooter, DialogTrigger, DialogClose,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
-  DropdownMenu, 
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { MoreHorizontal } from "lucide-react"
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// --- Interface para sa Priority ---
+// --- Interface para sa Priority (MongoDB Structure) ---
 interface Priority {
-  id: string 
-  name: string // Ang pangalan ng Priority Level (e.g., High, Low)
+  _id: string; // Pinalitan ang 'id' ng '_id' para tumugma sa MongoDB
+  name: string; // Ang pangalan ng Priority (e.g., High, Medium, Low)
 }
 
-// --- Sample Data (Walang laman) ---
-const initialPriorities: Priority[] = [
-  // Walang default values
-]
+// 📌 INAYOS: Current User Interface (Mas Kumpleto)
+interface CurrentUser {
+    _id: string;
+    Username: string;
+    Email: string;
+    Role: string;
+    Firstname: string;
+    Lastname: string;
+    ReferenceID: string;
+    createdAt: string;
+}
+
+// 📌 INAYOS: formatDate function
+const formatDate = (date: Date) =>
+  new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
 
 // --- Main Component ---
-export default function PriorityPage() { 
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [profilePic, setProfilePic] = useState<string | null>(null)
-  
+export default function PriorityPage() { // Pinalitan ang function name sa PriorityPage
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profilePic, setProfilePic] = useState<string | null>(null);
+
+  // 📌 INAYOS: States para sa User Profile
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+
   // State para sa Priorities
-  const [priorities, setPriorities] = useState<Priority[]>(initialPriorities)
+  const [priorities, setPriorities] = useState<Priority[]>([]);
   
   // State para sa Add/Edit Dialog
-  const [isPriorityDialogOpen, setIsPriorityDialogOpen] = useState(false)
-  const [currentPriority, setCurrentPriority] = useState<Priority | null>(null)
-  const [newPriorityName, setNewPriorityName] = useState("") 
+  const [isPriorityDialogOpen, setIsPriorityDialogOpen] = useState(false);
+  const [currentPriority, setCurrentPriority] = useState<Priority | null>(null);
+  const [newPriorityName, setNewPriorityName] = useState("");
 
+  const [isSaving, setIsSaving] = useState(false); // Para sa loading state ng Save button
+  const [isLoading, setIsLoading] = useState(true); // Para sa loading state ng table
+
+  // 📌 INAYOS: handleLogout (Kasama ang pagtanggal ng userId)
   const handleLogout = () => {
-    alert("Logged out! Redirect logic not implemented.")
-  }
+    localStorage.removeItem("userId"); // Tiyakin na tinatanggal ang userId
+    alert("Logged out! Redirect logic not implemented.");
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setProfilePic(reader.result as string)
-      reader.readAsDataURL(file)
+      const reader = new FileReader();
+      reader.onloadend = () => setProfilePic(reader.result as string);
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
-  const handleSavePriority = () => {
-    if (!newPriorityName) {
-      alert("Please enter the priority name.")
-      return
-    }
-
-    if (currentPriority) {
-      // Edit Priority
-      setPriorities(priorities.map(priority => 
-        priority.id === currentPriority.id 
-          ? { ...priority, name: newPriorityName } 
-          : priority
-      ))
-      alert(`Priority ${currentPriority.id} updated!`)
-    } else {
-      // Add New Priority
-      const newId = `PR-${(priorities.length + 1).toString().padStart(3, '0')}`
-      const newPriority: Priority = {
-        id: newId,
-        name: newPriorityName,
+  // 🧩 FETCH Priorities from API (Dynamic Data Loading)
+  const fetchPriorities = async () => { 
+    setIsLoading(true);
+    try {
+      // I-assume na ang iyong API route ay `/api/priority` (o `/api/priorities`)
+      const res = await fetch("/api/priority"); 
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPriorities(data.data); 
+      } else {
+        console.error("Failed to fetch priorities:", data.message);
+        // Wala munang alert para mas smooth ang initial load, pero ini-log pa rin sa console
       }
-      setPriorities([...priorities, newPriority])
-      alert(`Priority ${newId} added!`)
+    } catch (error) {
+      console.error("Error fetching priorities:", error);
+      // Wala munang alert
+    } finally {
+        setIsLoading(false);
+    }
+  };
+
+  // 📌 BAGONG FUNCTION: FETCH Profile from API
+  const fetchProfile = async () => {
+    setIsProfileLoading(true);
+    try {
+        const userId = localStorage.getItem("userId");
+        if (!userId) {
+            // Gumamit ng dummy data kung walang userId, para hindi mag-crash
+            setCurrentUser({
+                _id: "dummy-admin-id",
+                Username: "super.admin",
+                Email: "admin@example.com",
+                Role: "Administrator",
+                Firstname: "Super",
+                Lastname: "Admin",
+                ReferenceID: "REF-0000",
+                createdAt: new Date().toISOString()
+            });
+            setIsProfileLoading(false);
+            return;
+        }
+
+        // Ito ang magco-call sa actual API: /api/profile/[id].ts
+        const res = await fetch(`/api/profile/${userId}`);
+        const data = await res.json();
+
+        if (res.ok && data.success) setCurrentUser(data.data);
+        else console.error("Failed to fetch profile:", data.message);
+
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+    } finally {
+      setIsProfileLoading(false);
+    }
+  };
+
+  // I-fetch ang data kapag nag-load ang component
+  useEffect(() => {
+    fetchPriorities(); 
+    fetchProfile(); // 📌 Idinagdag ang pag-fetch ng profile
+  }, []); 
+
+  // 🧠 SAVE Priority (CREATE or UPDATE)
+  const handleSavePriority = async () => {
+    const trimmedName = newPriorityName.trim();
+
+    if (!trimmedName) {
+      alert("Please enter the priority name.");
+      return;
     }
 
-    // Reset and Close
-    setIsPriorityDialogOpen(false)
-    setCurrentPriority(null)
-    setNewPriorityName("")
-  }
+    setIsSaving(true);
+
+    try {
+      const method = currentPriority ? "PUT" : "POST";
+      const url = currentPriority
+        ? `/api/priority/${currentPriority._id}` // I-assume na mayroong API route na gumagamit ng ID
+        : "/api/priority";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert(data.message || `Priority ${currentPriority ? "updated" : "created"} successfully!`);
+        fetchPriorities(); // I-refresh ang data matapos ang successful operation
+      } else {
+        alert(data.message || `Failed to ${currentPriority ? "update" : "create"} Priority.`);
+      }
+    } catch (error) {
+      console.error("Error saving priority:", error);
+      alert("Something went wrong with the network/server.");
+    } finally {
+      setIsSaving(false);
+      // Reset and Close
+      setIsPriorityDialogOpen(false);
+      setCurrentPriority(null);
+      setNewPriorityName("");
+    }
+  };
+
+  // 🧠 DELETE Priority
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete Priority "${name}"? This action cannot be undone.`)) return; 
+
+    try {
+      // I-assume na ang iyong API route ay `/api/priority/[id].ts`
+      const res = await fetch(`/api/priority/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        alert("Priority deleted successfully!");
+        fetchPriorities(); // I-refresh ang data
+      } else {
+        alert(data.message || "Failed to delete Priority.");
+      }
+    } catch (error) {
+      console.error("Error deleting priority:", error);
+      alert("Something went wrong while deleting the priority.");
+    }
+  };
 
   const handleEdit = (priority: Priority) => {
-    setCurrentPriority(priority)
-    setNewPriorityName(priority.name)
-    setIsPriorityDialogOpen(true)
-  }
+    setCurrentPriority(priority);
+    setNewPriorityName(priority.name);
+    setIsPriorityDialogOpen(true);
+  };
 
-  const handleDelete = (id: string) => {
-    if (confirm(`Are you sure you want to delete Priority ${id}?`)) {
-      setPriorities(priorities.filter(priority => priority.id !== id))
-      alert(`Priority ${id} deleted.`)
-    }
-  }
-  
   const handleOpenAdd = () => {
-    setCurrentPriority(null)
-    setNewPriorityName("")
-    setIsPriorityDialogOpen(true)
-  }
+    setCurrentPriority(null);
+    setNewPriorityName("");
+    setIsPriorityDialogOpen(true);
+  };
 
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        {/* HEADER (Profile Dialog) */}
+        {/* HEADER */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
           <div className="flex items-center gap-4">
             <SidebarTrigger />
@@ -145,13 +232,11 @@ export default function PriorityPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/dashboard" className="text-gray-700">
-                    Dashboard
-                  </BreadcrumbLink>
+                  <BreadcrumbLink href="/dashboard" className="text-gray-700">Dashboard</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Priority</BreadcrumbPage>
+                  <BreadcrumbPage>Priorities</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -161,16 +246,11 @@ export default function PriorityPage() {
           <div className="flex items-center gap-3">
             <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
               <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" title="Profile">
-                  <User className="h-5 w-5 text-gray-600" />
-                </Button>
+                <Button variant="ghost" size="icon" title="Profile"><User className="h-5 w-5 text-gray-600" /></Button>
               </DialogTrigger>
-              
               <DialogContent className="sm:max-w-[400px] bg-white rounded-xl">
                 <DialogHeader>
-                  <DialogTitle className="text-lg font-semibold text-center">
-                    Profile Information
-                  </DialogTitle>
+                  <DialogTitle className="text-lg font-semibold text-center">Profile Information</DialogTitle>
                 </DialogHeader>
                 <div className="flex flex-col items-center mt-4 mb-2">
                   <div className="relative">
@@ -198,31 +278,24 @@ export default function PriorityPage() {
                   </div>
                 </div>
                 <div className="grid gap-4 py-4 text-sm">
-                  <div>
-                    <Label>Full Name:</Label>
-                    <p className="font-medium text-gray-800">Super Admin</p>
-                  </div>
-                  <div>
-                    <Label>Email:</Label>
-                    <p className="font-medium text-gray-800">
-                      admin@example.com
-                    </p>
-                  </div>
-                  <div>
-                    <Label>Role:</Label>
-                    <p className="font-medium text-gray-800">Administrator</p>
-                  </div>
-                  <div>
-                    <Label>Joined:</Label>
-                    <p className="font-medium text-gray-800">
-                      October 15, 2024
-                    </p>
-                  </div>
+                  {/* 📌 INAYOS: Profile loading state at display */}
+                  {isProfileLoading ? (
+                    <p className="text-center text-gray-500"><Loader2 className="h-4 w-4 animate-spin inline-block mr-2" /> Loading profile...</p>
+                  ) : currentUser ? (
+                    <>
+                      <div><Label>Full Name:</Label><p className="font-medium text-gray-800">{currentUser.Firstname} {currentUser.Lastname}</p></div>
+                      <div><Label>Username:</Label><p className="font-medium text-gray-800">{currentUser.Username}</p></div>
+                      <div><Label>Email:</Label><p className="font-medium text-gray-800">{currentUser.Email}</p></div>
+                      <div><Label>Role:</Label><p className="font-medium text-gray-800">{currentUser.Role}</p></div>
+                      <div><Label>Reference ID:</Label><p className="font-medium text-gray-800">{currentUser.ReferenceID}</p></div>
+                      <div><Label>Joined:</Label><p className="font-medium text-gray-800">{formatDate(new Date(currentUser.createdAt))}</p></div>
+                    </>
+                  ) : (
+                    <p className="text-gray-500">Profile not found. Make sure userId is set in localStorage.</p>
+                  )}
                 </div>
                 <DialogFooter className="flex justify-center">
-                  <DialogClose asChild>
-                    <Button variant="outline">Close</Button>
-                  </DialogClose>
+                  <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
@@ -233,28 +306,21 @@ export default function PriorityPage() {
               size="icon"
               className="bg-red-50 text-red-600 hover:bg-red-100"
               title="Logout"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+            ><LogOut className="h-5 w-5" /></Button>
           </div>
         </header>
 
         {/* MAIN CONTENT */}
         <main className="p-6 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
-            <div className="flex items-center gap-4 mb-3 md:mb-0">
-              <h1 className="text-3xl font-extrabold text-gray-700">
-                Priority List
-              </h1>
-            </div>
+            <h1 className="text-3xl font-extrabold text-gray-700">Priority List</h1>
             
             {/* ADD PRIORITY BUTTON */}
             <Button 
                 onClick={handleOpenAdd}
                 className="bg-gray-700 hover:bg-gray-800 text-white"
             >
-                <Plus className="h-5 w-5 mr-2" />
-                Priority
+                <Plus className="h-5 w-5 mr-2" /> Priority
             </Button>
             
           </div>
@@ -264,17 +330,17 @@ export default function PriorityPage() {
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-gray-700 text-white font-semibold sticky top-0">
-                  {/* Pinasimpleng <tr> at <th> para maiwasan ang whitespace error */}
                   <tr>
                     <th className="p-4">Priority Name</th>
                     <th className="p-4 text-center w-[100px]">Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {priorities.length > 0 ? (
+                  {isLoading ? (
+                    <tr><td colSpan={2} className="p-6 text-center text-gray-500"><Loader2 className="h-5 w-5 animate-spin inline-block mr-2" /> Loading priorities...</td></tr>
+                  ) : priorities.length > 0 ? (
                     priorities.map((priority) => (
-                      // Pinasimpleng <tr> at <td> para maiwasan ang whitespace error
-                      <tr key={priority.id} className="border-b hover:bg-gray-50 transition-colors">
+                      <tr key={priority._id} className="border-b hover:bg-gray-50 transition-colors">
                         <td className="p-4 font-medium text-gray-800">{priority.name}</td>
                         <td className="p-4 text-center">
                           <DropdownMenu>
@@ -295,7 +361,7 @@ export default function PriorityPage() {
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 className="cursor-pointer text-red-600 hover:bg-red-50"
-                                onClick={() => handleDelete(priority.id)}
+                                onClick={() => handleDelete(priority._id, priority.name)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                               </DropdownMenuItem>
@@ -315,17 +381,16 @@ export default function PriorityPage() {
               </table>
             </div>
           </div>
-          
-        </main>
+        </main> 
         
         {/* ADD/EDIT DIALOG */}
         <Dialog 
             open={isPriorityDialogOpen} 
             onOpenChange={(open) => {
-              setIsPriorityDialogOpen(open)
+              setIsPriorityDialogOpen(open);
               if (!open) {
-                setCurrentPriority(null)
-                setNewPriorityName("")
+                setCurrentPriority(null);
+                setNewPriorityName("");
               }
             }}
         >
@@ -337,24 +402,28 @@ export default function PriorityPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="priorityName" className="text-right">
-                  Name
-                </Label>
+                <Label htmlFor="priorityName" className="text-right">Name</Label>
                 <Input
                   id="priorityName"
                   value={newPriorityName}
                   onChange={(e) => setNewPriorityName(e.target.value)}
                   className="col-span-3"
-                  placeholder="e.g., High, Urgent"
+                  placeholder="e.g., High, Medium, Low"
+                  disabled={isSaving}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isSaving) handleSavePriority();
+                  }}
                 />
               </div>
             </div>
             <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-              </DialogClose>
-              <Button onClick={handleSavePriority} className="bg-gray-700 hover:bg-gray-800">
-                {currentPriority ? "Save Changes" : "Create Priority"}
+              <DialogClose asChild><Button variant="outline" disabled={isSaving}>Cancel</Button></DialogClose>
+              <Button onClick={handleSavePriority} className="bg-gray-700 hover:bg-gray-800" disabled={isSaving}>
+                {isSaving ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {currentPriority ? "Saving Changes..." : "Creating Priority..."}</>
+                ) : (
+                    currentPriority ? "Save Changes" : "Create Priority"
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -362,5 +431,5 @@ export default function PriorityPage() {
 
       </SidebarInset>
     </SidebarProvider>
-  )
+  );
 }

@@ -39,6 +39,7 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  
 }
 
 /* Base Styles */
@@ -139,4 +140,20 @@ a {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@keyframes criticalPulseBg {
+  0% {
+    background-color: rgb(254, 226, 226); /* red-100 */
+  }
+  50% {
+    background-color: rgb(252, 165, 165); /* red-300 */
+  }
+  100% {
+    background-color: rgb(254, 226, 226); /* red-100 */
+  }
+}
+
+.critical-bg-pulse {
+  animation: criticalPulseBg 1.2s infinite ease-in-out;
 }
