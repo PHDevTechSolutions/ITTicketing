@@ -30,9 +30,8 @@ export default clientPromise;
 // Connect to the database
 export async function connectToDatabase() {
   const client = await clientPromise;
-  return client.db("ecoshift"); // Return the 'ecoshift' database
+  return client.db("ITticketing"); // Default "ITticketing"
 }
-
 
 // Register a new user
 export async function registerUser({ Username, Email, Password, Role, Firstname, Lastname, Department, ReferenceID}: 

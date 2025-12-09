@@ -45,11 +45,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     );
 
+    // Return full user info + ReferenceID
     return res.status(200).json({
       success: true,
       message: "Login successful",
+      ReferenceID: user.ReferenceID, // new
+      Firstname: user.Firstname,
+      Department: user.Department,
+      Lastname: user.Lastname,
+      Username: user.Username,
       Email: user.Email,
-      userId,
+      Role: user.Role,
+      createdAt: user.createdAt,
     });
 
   } catch (err) {

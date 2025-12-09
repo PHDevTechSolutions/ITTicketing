@@ -84,6 +84,7 @@ interface ITConcern {
   technicianname: string; // Used in Dialog
   processedBy: string; // Used in Dialog
   // --------------------
+   createdAt: string;
 }
 
 // --------------------------
@@ -114,16 +115,7 @@ const handleLogout = () => {
 const isProfileLoading = false;
 const profileError = "";
 
-// Added dummy currentUser state to prevent error in JSX
-const DUMMY_CURRENT_USER: CurrentUser = {
-  Firstname: "Admin",
-  Lastname: "User",
-  Username: "admin.user",
-  Email: "admin@company.com",
-  Role: "IT Administrator",
-  ReferenceID: "A001",
-  createdAt: "2024-01-15T10:00:00Z",
-};
+
 
 // Line 202 (Modified): Helper function to format date
 const formatDate = (date: string | Date | undefined): string => {
@@ -204,7 +196,7 @@ function ConcernCard({
       </CardHeader>
       <CardContent className="space-y-2">
         <p className="text-sm">
-          <strong>Employee:</strong> {concern.employeeName}
+          <strong>Employee:</strong> {concern.Fullname}
         </p>
         <p className="text-sm">
           <strong>Department:</strong> {concern.department}
@@ -213,8 +205,20 @@ function ConcernCard({
           {concern.remarks}
         </p>
 
-        <div className="flex justify-between items-center pt-2">
-          <span className="text-xs text-gray-500">ID: {concern.id}</span>
+        <div className="flex justify-between items-center pt-2 border-t"> {/* Added border-t for separation */}
+          {/* Ipinakita ang Petsa (Month, Day, Year) at Oras */}
+          <span className="text-xs text-gray-500">
+            {new Date(concern.createdAt).toLocaleString("en-US", {
+              month: "short", // Halimbawa: Dec
+              day: "2-digit",   // Halimbawa: 09
+              year: "numeric",  // Halimbawa: 2025
+              hour: "2-digit",  // Halimbawa: 09
+              minute: "2-digit",// Halimbawa: 13
+              hour12: true,     // Halimbawa: AM
+            })}
+          </span>
+          
+          {/* Status Badge */}
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusBadgeColors(
               concern.status
@@ -246,7 +250,6 @@ export default function ITConcernsPage() {
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   // ADDED: Dummy state for current user to satisfy the Profile Dialog's JSX
-  const [currentUser, setCurrentUser] = useState<CurrentUser>(DUMMY_CURRENT_USER); 
 
   // --- Pagination State ---
   const [currentPage, setCurrentPage] = useState(1);
@@ -511,73 +514,6 @@ export default function ITConcernsPage() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-
-{/* PROFILE + LOGOUT */}
-          <div className="flex items-center gap-3">
-            <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" title="Profile"><User className="h-5 w-5 text-gray-600" /></Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[400px] bg-white rounded-xl">
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-semibold text-center">Profile Information</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center mt-4 mb-2">
-                  <div className="relative">
-                    <img
-                      src={
-                        profilePic ||
-                        "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                      }
-                      alt="Profile"
-                      className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 shadow-sm"
-                    />
-                    <label
-                      htmlFor="profile-upload"
-                      className="absolute bottom-0 right-0 bg-gray-700 text-white text-xs px-2 py-1 rounded-md cursor-pointer hover:bg-gray-800"
-                    >
-                      Change
-                    </label>
-                    <input
-                      type="file"
-                      id="profile-upload"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-4 py-4 text-sm">
-                  {/* 📌 INAYOS: Profile loading state at display */}
-                  {isProfileLoading ? (
-                    <p>Loading profile...</p>
-                  ) : currentUser ? (
-                    <>
-                      <div><Label>Full Name:</Label><p className="font-medium text-gray-800">{currentUser.Firstname} {currentUser.Lastname}</p></div>
-                      <div><Label>Username:</Label><p className="font-medium text-gray-800">{currentUser.Username}</p></div>
-                      <div><Label>Email:</Label><p className="font-medium text-gray-800">{currentUser.Email}</p></div>
-                      <div><Label>Role:</Label><p className="font-medium text-gray-800">{currentUser.Role}</p></div>
-                      <div><Label>Reference ID:</Label><p className="font-medium text-gray-800">{currentUser.ReferenceID}</p></div>
-                      <div><Label>Joined:</Label><p className="font-medium text-gray-800">{formatDate(new Date(currentUser.createdAt))}</p></div>
-                    </>
-                  ) : (
-                    <p className="text-gray-500">Profile not found. Make sure userId is set in localStorage.</p>
-                  )}
-                </div>
-                <DialogFooter className="flex justify-center">
-                  <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <Button
-              onClick={handleLogout}
-              variant="secondary"
-              size="icon"
-              className="bg-red-50 text-red-600 hover:bg-red-100"
-              title="Logout"
-            ><LogOut className="h-5 w-5" /></Button>
-          </div>
         </header>
 
         {/* MAIN CONTENT */}
@@ -688,7 +624,6 @@ export default function ITConcernsPage() {
                     <th className="p-3 text-left">Department</th>
                     <th className="p-3 text-left">Date Scheduled</th>
                     <th className="p-3 text-left">Site</th>
-                    <th className="p-3 text-left">Status</th>
                     <th className="p-3 text-left">Remarks</th>
                     <th className="p-3 text-left">Priority</th>
                     <th className="p-3 text-left">Update Status</th>
@@ -703,11 +638,12 @@ export default function ITConcernsPage() {
                         c.priority
                       )} cursor-pointer transition-colors border-b last:border-b-0`}
                     >
-                      <td className="p-3">{c.employeeName}</td>
+                      <td className="p-3">{c.Fullname}</td>
                       <td className="p-3">{c.department}</td>
-                      <td className="p-3">{c.dateSched}</td>
+                       <td className="p-3">
+            {c.dateSched}
+          </td>
                       <td className="p-3">{c.site}</td>
-                      <td className="p-3">{c.status}</td>
                       <td className="p-3 truncate max-w-xs">{c.remarks}</td>
                       <td className="p-3 text-center">{c.priority}</td>
                       <td className="p-3 text-center">
@@ -807,7 +743,7 @@ export default function ITConcernsPage() {
               {selectedConcern && (
                 <div className="space-y-3 py-2 text-sm">
                   <p>
-                    <strong>Employee:</strong> {selectedConcern.employeeName}
+                    <strong>Employee:</strong> {selectedConcern.Fullname}
                   </p>{" "}
                   {/* Changed from Fullname to employeeName as that's used in the card/table, but Fullname is still available from the interface */}
                   <p>
@@ -827,6 +763,7 @@ export default function ITConcernsPage() {
                   <p>
                     <strong>Mode:</strong> {selectedConcern.mode}
                   </p>{" "}
+                  
                   {/* ADDED: mode (from interface) */}
                   <p>
                     <strong>Site:</strong> {selectedConcern.site}
@@ -847,9 +784,7 @@ export default function ITConcernsPage() {
                   <p>
                     <strong>Priority:</strong> {selectedConcern.priority}
                   </p>
-                  <p>
-                    <strong>Status:</strong> {selectedConcern.status}
-                  </p>
+
 
                   <div>
                     <strong className="block mb-1">Remarks:</strong>

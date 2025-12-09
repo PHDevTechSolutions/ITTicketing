@@ -1,20 +1,13 @@
-// File: components/sidebar-left.tsx (Ito na ang dapat mong gamitin)
-
 "use client"
 
 import * as React from "react"
+import { useEffect, useState } from "react"
 import { NavMain } from "../components/nav-main"
 import { Sidebar, SidebarContent, SidebarHeader, SidebarRail } from "@/components/ui/sidebar"
 import { PageType } from "../dsi-main/page"
-import { Home, Inbox, PlusCircle, CheckCircle, Trash2, type LucideIcon, Clock } from "lucide-react" 
+import { Home, Inbox, PlusCircle, CheckCircle, Clock, type LucideIcon } from "lucide-react" 
 import { NavUser } from "../components/nav-user"
-const data1 = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-}
+
 // Navigation items
 const data: {
   title: string
@@ -33,37 +26,63 @@ export function SidebarLeft({
   setCurrentPage,
   ...props
 }: {
-  // Ang setCurrentPage ay ang handlePageChange galing Page.tsx, na may auto-close.
   setCurrentPage: React.Dispatch<React.SetStateAction<PageType>>
 } & React.ComponentProps<typeof Sidebar>) {
-  
+
+  const [user, setUser] = useState<{ name: string; email: string; avatar: string; department:string }>({
+  name: "",
+  email: "",
+  avatar: "/default-avatar.png", // default avatar
+  department: "",
+})
+
+
+useEffect(() => {
+  const storedUser = localStorage.getItem("currentUser")
+  if (storedUser) {
+    const parsedUser = JSON.parse(storedUser)
+    setUser({
+      name: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
+      email: parsedUser.Email,
+      avatar: parsedUser.avatar || "/default-avatar.png", // fallback
+      department: parsedUser.Department || "",
+    })
+  }
+}, [])
+
+
+
+
   return (
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader className="flex flex-col items-center py-4">
-  <img
-    src="https://disruptivesolutionsinc.com/wp-content/uploads/2025/08/DISRUPTIVE-LOGO-red-scaled.png"
-    alt="Company Logo"
-    className="block dark:hidden"
-  />
+        <img
+          src="https://disruptivesolutionsinc.com/wp-content/uploads/2025/08/DISRUPTIVE-LOGO-red-scaled.png"
+          alt="Company Logo"
+          className="block dark:hidden"
+        />
 
-  {/* Dark mode logo (white) */}
-  <img
-    src="https://disruptivesolutionsinc.com/wp-content/uploads/2025/08/DISRUPTIVE-LOGO-white-scaled.png"
-    alt="Company Logo"
-    className="hidden dark:block"
-  />
-   <br />
+        {/* Dark mode logo (white) */}
+        <img
+          src="https://disruptivesolutionsinc.com/wp-content/uploads/2025/08/DISRUPTIVE-LOGO-white-scaled.png"
+          alt="Company Logo"
+          className="hidden dark:block"
+        />
+        <br />
+
         <NavMain
           items={data.map((item) => ({
             ...item,
-            // Diretso nang tawagin ang setCurrentPage (handlePageChange)
             onClick: () => setCurrentPage(item.key),
           }))}
         />
-
       </SidebarHeader>
+
       <SidebarContent />
-      <NavUser user={data1.user} />
+
+      {/* Display dynamic user */}
+      <NavUser user={user} />
+
       <SidebarRail />
     </Sidebar>
   )

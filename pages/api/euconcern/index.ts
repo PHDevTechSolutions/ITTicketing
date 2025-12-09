@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { connectToDatabase } from "@/lib/mongodb";
-import { InsertOneResult, Db, ObjectId } from "mongodb";
+import { InsertOneResult, Db } from "mongodb";
 
-// Define expected structure for incoming concern
 interface IncomingConcernData {
   Fullname: string;
   department: string;
@@ -16,11 +15,10 @@ interface IncomingConcernData {
   reqt: string;
   ConcernNumber?: string;
   id?: string;
-  createdAt?: Date;
+  createdAt?: string; // stored as ISO string
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // 1️⃣ Database connection
   let db: Db;
   try {
     db = await connectToDatabase();
@@ -34,12 +32,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const ConcernsCollection = db.collection<IncomingConcernData>("concerns");
 
-  // ---------------- GET: fetch all concerns ----------------
   if (req.method === "GET") {
     try {
-      const concerns = await ConcernsCollection.find({})
-        .sort({ createdAt: -1 })
-        .toArray();
+      const concerns = await ConcernsCollection.find({}).sort({ createdAt: -1 }).toArray();
 
       const formattedConcerns = concerns.map((c) => ({
         id: c.ConcernNumber || c._id.toHexString(),
@@ -48,10 +43,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         type: c.type,
         reqt: c.requesttype,
         remarks: c.remarks,
-        dateCreated: c.createdAt ? c.createdAt.toISOString() : "N/A",
+        createdAt: c.createdAt ?? new Date().toISOString(),
         priority: c.priority,
         ConcernNumber: c.ConcernNumber,
-        status: "Pending",
+        status: "Pending", // default
       }));
 
       return res.status(200).json({
@@ -63,34 +58,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error("Concern fetching failed:", error);
       return res.status(500).json({
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "An unknown error occurred during concern fetching.",
+        message: error instanceof Error ? error.message : "Unknown error during fetching.",
       });
     }
-  }
-
-  // ---------------- POST: create a new concern ----------------
-  else if (req.method === "POST") {
+  } else if (req.method === "POST") {
     try {
       const ConcernData: IncomingConcernData = req.body;
 
-      // Validate required fields
-      if (
-        !ConcernData.Fullname ||
-        !ConcernData.department ||
-        !ConcernData.requesttype ||
-        !ConcernData.remarks
-      ) {
+      if (!ConcernData.Fullname || !ConcernData.department || !ConcernData.requesttype || !ConcernData.remarks) {
         return res.status(400).json({
           success: false,
-          message:
-            "Missing required fields: Fullname, department, request type, and remarks are mandatory.",
+          message: "Missing required fields: Fullname, department, request type, and remarks.",
         });
       }
 
-      // Generate concern number: TKC-YYYY-MM-DD-COUNT
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -98,10 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const today = `${year}-${month}-${day}`;
 
       const todaysCount = await ConcernsCollection.countDocuments({
-        createdAt: {
-          $gte: new Date(`${today}T00:00:00.000Z`),
-          $lte: new Date(`${today}T23:59:59.999Z`),
-        },
+        createdAt: { $regex: `^${today}` }, // match today's date
       });
 
       const formattedConcernNumber = `TKC-${today}-${todaysCount + 1}`;
@@ -109,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const newConcern: IncomingConcernData = {
         ...ConcernData,
         ConcernNumber: formattedConcernNumber,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       };
 
       const result: InsertOneResult = await ConcernsCollection.insertOne(newConcern);
@@ -128,16 +106,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error("Concern creation failed:", error);
       return res.status(500).json({
         success: false,
-        message:
-          error instanceof Error
-            ? error.message
-            : "An unknown error occurred during concern creation.",
+        message: error instanceof Error ? error.message : "Unknown error during creation.",
       });
     }
-  }
-
-  // ---------------- Unsupported method ----------------
-  else {
+  } else {
     res.setHeader("Allow", ["GET", "POST"]);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }

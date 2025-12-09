@@ -1,4 +1,6 @@
+// LoginForm.tsx
 "use client"
+
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -8,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Field, FieldLabel, FieldGroup, FieldDescription } from "@/components/ui/field"
 
 export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
-  const [email, setEmail] = useState("") 
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -26,23 +28,25 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
       const res = await fetch("/api/itlogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Email: email, Password: password })
+        body: JSON.stringify({ Email: email, Password: password }),
       })
 
       const result = await res.json()
       console.log("Login API result:", result)
 
-      if (res.ok && result.success) {
-        // Optional: store email in localStorage
-        if (result.Email) {
-          localStorage.setItem('userEmail', result.Email)
-        }
+     if (res.ok && result.success) {
+  if (result.ReferenceID) {
+    // Store ReferenceID instead of email
+    localStorage.setItem("refID", result.ReferenceID)
+    localStorage.setItem("currentUser", JSON.stringify(result));
+  }
 
-        toast.success(result.message)
-        setTimeout(() => router.push("/dashboard"), 1000)
-      } else {
-        toast.error(result.message || "Login failed")
-      }
+  toast.success(result.message)
+  setTimeout(() => router.push("/dashboard"), 1000)
+} else {
+  toast.error(result.message || "Login failed")
+}
+
     } catch (err) {
       console.error(err)
       toast.error("Server error")

@@ -48,7 +48,7 @@ interface MailItem {
     status: string
     ConcernNumber?: string; // add this
     requesttype1: string
-    type1:string
+    type1: string
     createdAt: string;
 }
 
@@ -67,6 +67,7 @@ interface TicketForm {
     site: string
     group: string
     technicianname: string
+    createdAt:string
 }
 
 // 📌 Generic Interface for fetched items (Mode, Group, Department, etc.)
@@ -115,8 +116,8 @@ const getPriorityColor = (priority: string) => {
 // 🔹 Background color per priority
 const getBgColor = (priority: string) => {
     switch (priority) {
-case "Critical":
-  return "critical-bg-pulse";
+        case "Critical":
+            return "critical-bg-pulse";
         case "High":
             return "bg-orange-50 hover:bg-orange-100"
         case "Normal":
@@ -143,6 +144,7 @@ const initialNewTicketState: TicketForm = {
     site: "",
     group: "",
     technicianname: "",
+    createdAt:"",
 }
 
 // Define REQUIRED_FIELDS here (excluding ticketNumber and dateSched)
@@ -150,67 +152,73 @@ const REQUIRED_FIELDS: (keyof TicketForm)[] = [
     "Fullname", "department", "type", "priority", "requesttype", "mode", "site", "group", "remarks", "processedBy", "technicianname", "status"
 ];
 
-// 🔄 Helper function for fetching lists
+
+// 🔄 Helper function for fetching lists and pre-filling FullName
 const useFetchList = (apiPath: string, fallbackData: string[]) => {
-    const [list, setList] = React.useState<Item[]>([])
+  const [list, setList] = React.useState<Item[]>([])
 
-    React.useEffect(() => {
-        async function fetchData() {
-            try {
-                const res = await fetch(apiPath)
-                const data = await res.json()
-                if (data.success) {
-                    setList(data.data)
-                } else {
-                    // Use fallback data if API returns success=false
-                    const staticList: Item[] = fallbackData.map(item => ({ name: item }));
-                    setList(staticList);
-                }
-            } catch (err) {
-                // Fallback if API call fails entirely
-                const staticList: Item[] = fallbackData.map(item => ({ name: item }));
-                setList(staticList);
-            }
+  React.useEffect(() => {
+    async function fetchData() {
+      try {
+        // 🔹 Fetch list from API
+        const res = await fetch(apiPath)
+        const data = await res.json()
+
+        if (data.success && Array.isArray(data.data)) {
+          setList(data.data)
+        } else {
+          // Use fallback data if API returns success=false
+          const staticList: Item[] = fallbackData.map(item => ({ name: item }))
+          setList(staticList)
         }
-        fetchData()
-    }, [apiPath, fallbackData])
+      } catch (err) {
+        // Fallback if API call fails entirely
+        const staticList: Item[] = fallbackData.map(item => ({ name: item }))
+        setList(staticList)
+      }
+    }
 
-    return list;
+    fetchData()
+  }, [apiPath, fallbackData])
+
+  return list
 }
+
 // --- Main Component ---
 export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const [mails, setMails] = useState<MailItem[]>([]);
+    
+   useEffect(() => {
+  const fetchConcerns = async () => {
+    try {
+      const res = await fetch("/api/euconcern/"); // include trailing slash
+      if (!res.ok) {
+        console.error(`HTTP error! status: ${res.status}`);
+        return;
+      }
+      const json = await res.json();
+      if (!json.success) return;
 
-    useEffect(() => {
-        const fetchConcerns = async () => {
-            try {
-                const res = await fetch("/api/euconcern/"); // include trailing slash
-                if (!res.ok) {
-                    console.error(`HTTP error! status: ${res.status}`);
-                    return;
-                }
-                const json = await res.json();
-                if (!json.success) return;
+      const formatted = json.data.map((c: any) => ({
+  name: c.employeeName,
+  depts: c.department,
+  subject: `${c.type} (${c.department})`,
+  createdAt: c.createdAt ?? "N/A", // <-- use the DB value directly
+  requesttype1: c.reqt,
+  teaser: `${c.remarks}.`,
+  priority: c.priority || "Normal",
+  status: c.status || "Pending",
+}));
 
-                const formatted = json.data.map((c: any) => ({
-                    name: c.employeeName,
-                    depts: c.department,
-                    subject: `${c.type} (${c.department})`,
-                    date: c.dateCreated?.split("T")[0] ?? "N/A",
-                    requesttype1: c.reqt,
-                    teaser: `${c.remarks}.`,
-                    priority: c.priority || "Normal",
-                    status: c.status || "Pending",
-                }));
+      setMails(formatted);
+    } catch (err) {
+      console.error("Failed to fetch concerns:", err);
+    }
+  };
 
-                setMails(formatted);
-            } catch (err) {
-                console.error("Failed to fetch concerns:", err);
-            }
-        };
+  fetchConcerns();
+}, []);
 
-        fetchConcerns();
-    }, []);
 
 
     // ⚙️ States for dynamic lists 
@@ -310,7 +318,8 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                 requesttype: selectedMail.requesttype1,
                 remarks: selectedMail.teaser,
                 priority: selectedMail.priority,
-                 // Use the priority from the mail
+                createdAt: selectedMail.createdAt,
+                // Use the priority from the mail
             })
         }
         setIsDialogOpen(false)
@@ -448,17 +457,18 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                     {/* Header: Name + Department + Date */}
                                     <div className="flex w-full items-center gap-2">
                                         <span className="font-semibold text-gray-900">{mail.name}</span>
-                                        
-<span className="ml-auto text-xs text-gray-500">
+
+<span className="px-4 py-2">
   {new Date(mail.createdAt).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
     year: "numeric",
-    hour: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   })}
 </span>
+
 
 
                                     </div>
@@ -509,9 +519,9 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                     <strong>Request Type:</strong> {selectedMail.requesttype1}
                                 </div>
 
-                                <div>
+                               <div>
   <strong>Date:</strong>{" "}
-  {new Date(selectedMail.date).toLocaleString("en-US", {
+  {new Date(selectedMail.createdAt).toLocaleString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -520,6 +530,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
     hour12: true,
   })}
 </div>
+
 
                                 <div>
                                     <strong>Priority:</strong>{" "}
@@ -743,17 +754,18 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                         </div>
 
                         {/* Processed By (Full Width, Required + Red Border) */}
-                        <div className="flex flex-col space-y-1.5">
-                            <Label className={getErrorClass("processedBy")}>Processed By</Label>
-                            <Input
-                                placeholder="Name of processor"
-                                value={ticketForm.processedBy}
-                                className={getErrorClass("processedBy")}
-                                onChange={(e) =>
-                                    setTicketForm({ ...ticketForm, processedBy: e.target.value })
-                                }
-                            />
-                        </div>
+<div className="flex flex-col space-y-1.5">
+  <Label className={getErrorClass("processedBy")}>Processed By</Label>
+  <Input
+    placeholder="Name of processor"
+    value={ticketForm.processedBy} // Pre-filled with FullName
+    className={getErrorClass("processedBy")}
+    onChange={(e) =>
+      setTicketForm({ ...ticketForm, processedBy: e.target.value })
+    }
+  />
+</div>
+
 
                         <DialogFooter className="pt-4">
                             <DialogClose asChild>

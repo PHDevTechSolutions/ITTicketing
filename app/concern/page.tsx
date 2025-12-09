@@ -35,6 +35,8 @@ interface ITConcern {
   dateCreated: string // Keep as string for simple fetching/sorting
   priority: string
   status: "Pending" | "Ongoing" | "Finished"
+  createdAt: string;
+  Fullname:string
 }
 
 interface CurrentUser {
@@ -46,6 +48,7 @@ interface CurrentUser {
   Lastname: string;
   ReferenceID: string;
   createdAt: string;
+  Fullname:string
 }
 
 // Removed NewTicket interface and related dummy states/handlers as they are not needed for ticket display.
@@ -141,7 +144,8 @@ export default function Page() {
   // Fetch data on initial load
   useEffect(() => {
     fetchProfile();
-    fetchConcerns(); // Call the new ticket fetching function
+    fetchConcerns();
+     // Call the new ticket fetching function
   }, []);
 
   // Helper function to format date
@@ -356,15 +360,22 @@ const formatDate = (date: string | Date | undefined): string => {
                     )}`}
                     onClick={() => openDialog(c)}
                   >
-                    <td className="p-3 font-medium">{c.employeeName}</td>
+                    <td className="p-3 font-medium">{c.Fullname}</td>
                     <td className="p-3 text-gray-600">{c.department}</td>
                     <td className="p-3">{c.type}</td>
                     <td className="p-3 italic text-gray-500 truncate max-w-[250px]">
                       {c.remarks}
                     </td>
-                    <td className="p-3 text-xs text-gray-500">
-                      {formatDate(c.dateCreated)}
-                    </td>
+                       <td className="p-3">
+            {new Date(c.createdAt).toLocaleString("en-US", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })}
+          </td>
                     <td className="p-3 font-semibold">{c.priority}</td>
                     <td className="p-3 text-center">
                       <span
@@ -412,14 +423,23 @@ const formatDate = (date: string | Date | undefined): string => {
             </div>
             
             <h3 className="text-lg font-semibold mb-1">
-              {c.employeeName}
+              {c.Fullname}
             </h3>
             <p className="text-sm opacity-80 mb-2">{c.department}</p>
             <p className="text-sm italic line-clamp-2 mb-3 opacity-90">
               {c.remarks}
             </p>
             <div className="flex justify-between items-center text-xs pt-3 border-t">
-              <span className="opacity-70">{formatDate(c.dateCreated)}</span>
+<span className="p-3">
+  {new Date(c.createdAt).toLocaleString("en-US", {
+    year: "numeric",
+    month: "long", // Ginawang 'long' para sa buong pangalan ng buwan
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  })}
+</span>
               <span
                 className={`px-2 py-1 rounded-full font-bold uppercase ${getStatusBadgeColors(
                   c.status
@@ -458,66 +478,7 @@ const formatDate = (date: string | Date | undefined): string => {
             </Breadcrumb>
           </div>
 
-         {/* PROFILE + LOGOUT */}
-          <div className="flex items-center gap-3">
-            {/* Profile Dialog */}
-            <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" title="Profile">
-                  <User className="h-5 w-5 text-gray-600" />
-                </Button>
-              </DialogTrigger>
-
-              <DialogContent className="sm:max-w-[400px] bg-white rounded-xl">
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-semibold text-center">Profile Information</DialogTitle>
-                </DialogHeader>
-                <div className="flex flex-col items-center mt-4 mb-2">
-                  <div className="relative">
-                    <img
-                      src={profilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
-                      alt="Profile"
-                      className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 shadow-sm"
-                    />
-                    <label
-                      htmlFor="profile-upload"
-                      className="absolute bottom-0 right-0 bg-gray-700 text-white text-xs px-2 py-1 rounded-md cursor-pointer hover:bg-gray-800"
-                    >
-                      Change
-                    </label>
-                    <input type="file" id="profile-upload" accept="image/*" onChange={handleImageChange} className="hidden" />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 py-4 text-sm">
-                  {/* INAYOS: Profile loading state at display */}
-                  {isProfileLoading ? (
-                    <p>Loading profile...</p>
-                  ) : currentUser ? (
-                    <>
-                      <div><Label>Full Name:</Label><p className="font-medium">{currentUser.Firstname} {currentUser.Lastname}</p></div>
-                      <div><Label>Username:</Label><p className="font-medium">{currentUser.Username}</p></div>
-                      <div><Label>Email:</Label><p className="font-medium">{currentUser.Email}</p></div>
-                      <div><Label>Role:</Label><p className="font-medium">{currentUser.Role}</p></div>
-                      <div><Label>Reference ID:</Label><p className="font-medium">{currentUser.ReferenceID}</p></div>
-                      <div><Label>Joined:</Label><p className="font-medium">{formatDate(new Date(currentUser.createdAt))}</p></div>
-                    </>
-                  ) : (
-                    <p className="text-gray-500">Profile not found. Make sure userId is set in localStorage.</p>
-                  )}
-                </div>
-                <DialogFooter className="flex justify-center">
-                  <DialogClose asChild>
-                    <Button variant="outline">Close</Button>
-                  </DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <Button onClick={handleLogout} variant="secondary" size="icon" className="bg-red-50 text-red-600 hover:bg-red-100" title="Logout">
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
+        
         </header>
 
         {/* MAIN CONTENT */}
@@ -595,7 +556,7 @@ const formatDate = (date: string | Date | undefined): string => {
                         Employee:
                       </Label>
                       <p className="font-medium text-gray-900">
-                        {selectedConcern.employeeName}
+                        {selectedConcern.Fullname}
                       </p>
                     </div>
                     <div>

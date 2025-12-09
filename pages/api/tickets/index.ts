@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const ticketsCollection = db.collection<IncomingTicketData>("tickets");
 
   // ----------------------------------------------------------------------
-  // --- 🚀 Handle GET Request (Fetch All Tickets) ---
+  // --- 🚀 GET: FETCH ALL TICKETS ---
   // ----------------------------------------------------------------------
   if (req.method === 'GET') {
     try {
@@ -44,16 +44,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .sort({ createdAt: -1 })
         .toArray();
 
+      // 🔥 MAP ALL DATA (Kompleto, walang tinatago)
       const formattedTickets = tickets.map(ticket => ({
         id: ticket.ticketNumber || ticket._id.toHexString(),
-        employeeName: ticket.Fullname,
+        ticketNumber: ticket.ticketNumber || "N/A",
+        Fullname: ticket.Fullname,
         department: ticket.department,
+        dateSched: ticket.dateSched,
         type: ticket.type,
+        status: ticket.status,
         remarks: ticket.remarks,
-        dateCreated: ticket.createdAt ? ticket.createdAt.toISOString() : 'N/A',
+        processedBy: ticket.processedBy,
         priority: ticket.priority,
-        status: ticket.status as ("Pending" | "Ongoing" | "Finished"),
-        ticketNumber: ticket.ticketNumber
+        requesttype: ticket.requesttype,
+        mode: ticket.mode,
+        site: ticket.site,
+        group: ticket.group,
+        technicianname: ticket.technicianname,
+        createdAt: ticket.createdAt ? ticket.createdAt.toISOString() : "N/A",
       }));
 
       return res.status(200).json({
@@ -70,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ----------------------------------------------------------------------
-  // --- 📝 Handle POST Request (Create New Ticket) --- (UPDATED LOGIC)
+  // --- 📝 POST: CREATE TICKET ---
   // ----------------------------------------------------------------------
   else if (req.method === 'POST') {
     try {
@@ -84,9 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      // ------------------------------
-      // 1️⃣ CREATE NEW TICKET NUMBER FORMAT: DSI-YYYY-MM-DD-COUNT
-      // ------------------------------
+      // Generate today's ticket count
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, "0");
@@ -94,7 +100,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const today = `${year}-${month}-${day}`;
 
-      // Count how many tickets exist today
       const todaysCount = await ticketsCollection.countDocuments({
         createdAt: {
           $gte: new Date(`${today}T00:00:00.000Z`),
@@ -102,12 +107,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      // Build final ticket number
       const formattedTicketNumber = `DSI-${today}-${todaysCount + 1}`;
 
-      // ------------------------------
-      // 2️⃣ PREPARE NEW TICKET DATA
-      // ------------------------------
       const newTicket: IncomingTicketData = {
         ...ticketData,
         status: ticketData.status || "Pending",
@@ -115,9 +116,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         createdAt: new Date(),
       };
 
-      // ------------------------------
-      // 3️⃣ INSERT INTO DATABASE
-      // ------------------------------
       const result: InsertOneResult = await ticketsCollection.insertOne(newTicket);
 
       if (result.acknowledged) {
@@ -139,7 +137,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ----------------------------------------------------------------------
-  // --- 🚫 Handle Unsupported Methods ---
+  // --- 🚫 Unsupported Methods ---
   // ----------------------------------------------------------------------
   else {
     res.setHeader('Allow', ['GET', 'POST']);

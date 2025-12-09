@@ -21,11 +21,6 @@ import {
 import { Switch } from "@/components/ui/switch"
 
 export const data = {
-    user: {
-        name: "shadcn",
-        email: "m@example.com",
-        avatar: "/avatars/shadcn.jpg",
-    },
 
     navMain: [
         { title: "Inbox", url: "#", icon: Inbox },
@@ -161,10 +156,6 @@ export function AppSidebar({
                         </SidebarGroupContent>
                     </SidebarGroup>
                 </SidebarContent>
-
-                <SidebarFooter>
-                    <NavUser user={data.user} />
-                </SidebarFooter>
             </Sidebar>
 
             {/* Second Sidebar: ONLY shows for Inbox */}

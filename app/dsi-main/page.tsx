@@ -88,7 +88,28 @@ interface ConcernItem {
 
 }
 
+interface Ticket {
+  id: string;
+  employeeName: string;
+  department: string;
+  type: string;
+  remarks: string;
+  dateSched: string;
+  priority: string;
+  status: "Pending" | "Ongoing" | "Finished" | string;
+  ticketNumber: string;
+  Fullname: string;
+  createdAt: string;
+  processedBy: string;
+  group: string;
+  technicianname: string;
+  requesttype: string;
+}
+
+
+
 export default function Page() {
+
   const [currentPage, setCurrentPage] = React.useState<PageType>("home");
   const [concerns, setConcerns] = React.useState<ConcernItem[]>([]);
   const [submitMessage, setSubmitMessage] = React.useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -102,7 +123,7 @@ export default function Page() {
     type: "",
     mode: "",
     site: "",
-    dateSched: "",
+    dateSched: new Date().toISOString().split("T")[0], // YYYY-MM-DD
     priority: "",
     remarks: "",
   };
@@ -143,29 +164,41 @@ export default function Page() {
     };
   };
 
-  // Load all concerns once
-  React.useEffect(() => {
-    async function loadConcerns() {
-      try {
-        const res = await fetch("/api/euconcern");
-        const data = await res.json();
-
-        if (data.success && Array.isArray(data.data)) {
-          // Map each backend object to our ConcernItem shape
-          const mapped = data.data.map((it: any) => mapBackendToConcernItem(it));
-          setConcerns(mapped);
-        } else {
-          console.error("euconcern: unexpected payload", data);
-        }
-      } catch (error) {
-        console.error("Failed to load concerns:", error);
-      } finally {
-        setLoading(false);
+React.useEffect(() => {
+  async function loadConcerns() {
+    try {
+      // Load current user info for pre-fill
+      const storedUser = localStorage.getItem("currentUser");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setNewConcern((prev) => ({
+          ...prev,
+          FullName: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
+          department: parsedUser.department || "",
+        }));
       }
-    }
 
-    loadConcerns();
-  }, []);
+      // Load all concerns
+      const res = await fetch("/api/euconcern");
+      const data = await res.json();
+
+      if (data.success && Array.isArray(data.data)) {
+        // Map each backend object to our ConcernItem shape
+        const mapped = data.data.map((it: any) => mapBackendToConcernItem(it));
+        setConcerns(mapped);
+      } else {
+        console.error("euconcern: unexpected payload", data);
+      }
+    } catch (error) {
+      console.error("Failed to load concerns:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  loadConcerns();
+}, []);
+
 
   // Pagination Setup
   const itemsPerPage = 10;
@@ -286,52 +319,47 @@ export default function Page() {
     }
   };
 
-  const concernsForPage = concerns ?? [];
-  const [isRowView, setIsRowView] = useState(true);
-  const [concernss, setConcernss] = useState<ITConcern[]>([]);
-
-
   // ----------------------------
-  // DUMMY DATA FOR TESTING FILTERS
+  // TICKETS STATE
   // ----------------------------
-  const DUMMY_CONCERNS_DATA: ITConcern[] = [];
+  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(true);
+  const [closedTickets, setClosedTickets] = useState<Ticket[]>([]);
   // ----------------------------
   // FETCH API /api/tickets (GET)
   // ----------------------------
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        const res = await fetch("/api/tickets");
-        let fetchedData;
+  const fetchTickets = async () => {
+    try {
+      const res = await fetch("/api/tickets");
+      const data = await res.json();
 
-        if (res.ok) {
-          const json = await res.json();
-          // Assuming the API returns the new fields for each ticket
-          fetchedData = json.success ? json.data : [];
-        } else {
-          // Fallback to dummy data if API fails
-          console.warn("API fetch failed. Using dummy data for display.");
-          fetchedData = DUMMY_CONCERNS_DATA;
-        }
+      if (data.success) {
+        const allTickets: Ticket[] = data.data;
 
-        // Sort by date created (newest first) for better UX
-        const sortedData = fetchedData.sort(
-          (a: ITConcern, b: ITConcern) =>
-            new Date(b.dateCreated).getTime() -
-            new Date(a.dateCreated).getTime()
+        // Active tickets: Pending or Ongoing
+        const activeTickets = allTickets.filter(
+          (t) => t.status === "Pending" || t.status === "Ongoing"
         );
-        setConcernss(sortedData);
-      } catch (error) {
-        console.error("Fetch error:", error);
-        // Ensure some data is available for testing filters/UI
-        setConcernss(DUMMY_CONCERNS_DATA);
-      } finally {
-        setLoading(false);
-      }
-    };
+        setTickets(activeTickets);
 
+        // Closed tickets: Finished
+        const finishedTickets = allTickets.filter((t) => t.status === "Finished");
+        setClosedTickets(finishedTickets);
+      }
+    } catch (error) {
+      console.error("Failed to load tickets:", error);
+    } finally {
+      setLoadingTickets(false);
+    }
+  };
+
+
+  // Load tickets once
+  useEffect(() => {
     fetchTickets();
   }, []);
+
+
 
 
 
@@ -515,7 +543,12 @@ export default function Page() {
               <div className="flex items-center space-x-3 pb-4 border-b border-border">
                 <Send className="size-6 text-primary" />
                 <h2 className="text-2xl font-bold text-foreground">New Concern / Concern Entry</h2>
+                
               </div>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+  Here you can create your concern. You can also edit it later in Open Tickets.
+</p>
+<br></br>
 
               {submitMessage && (
                 <div
@@ -580,7 +613,7 @@ export default function Page() {
                         <SelectValue placeholder="Select request type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Incedent">Incedent</SelectItem>
+                        <SelectItem value="Incident">Incident</SelectItem>
                         <SelectItem value="Request">Request</SelectItem>
 
                       </SelectContent>
@@ -628,7 +661,6 @@ export default function Page() {
                     </Select>
                   </div>
 
-
                   {/* Site (Hardcoded) */}
                   <div className="flex flex-col space-y-1.5">
                     <Label className={getErrorClass("site")}>Site *</Label>
@@ -651,11 +683,11 @@ export default function Page() {
                   {/* Date Sched */}
                   <div className="flex flex-col space-y-1.5">
                     <Label>Date Sched (optional)</Label>
-                    <Input
-                      type="date"
-                      value={newConcern.dateSched}
-                      onChange={(e) => setNewConcern({ ...newConcern, dateSched: e.target.value })}
-                    />
+<Input
+  type="date"
+  value={newConcern.dateSched}
+  onChange={(e) => setNewConcern({ ...newConcern, dateSched: e.target.value })}
+/>
                   </div>
 
                   {/* Priority (Hardcoded) */}
@@ -676,7 +708,6 @@ export default function Page() {
                       </SelectContent>
                     </Select>
                   </div>
-
                 </div>
 
                 {/* Remarks */}
@@ -700,6 +731,7 @@ export default function Page() {
                       setValidationErrors({})
                       setSubmitMessage(null)
                     }}
+
                   >
                     <X className="size-4 mr-2" /> Clear Form
                   </Button>
@@ -714,7 +746,11 @@ export default function Page() {
           {currentPage === "inbox" && (
             <div className="max-w-4xl mx-auto w-full">
               <h2 className="text-2xl font-bold text-foreground mb-2">Inbox</h2>
+               <p className="text-sm text-gray-600 dark:text-gray-300">
+  Here you can see updates on your concerns. Please check regularly for any new updates.
+</p>
 
+      <br></br>
               {/* READ / UNREAD COUNTERS */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="flex items-center gap-2 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 px-3 py-1 rounded-full">
@@ -770,352 +806,377 @@ export default function Page() {
 
 
 
-          {/* OPEN TICKETS */}
-          {currentPage === "openTickets" && (
-            <div className="max-w-6xl mx-auto w-full">
-              <h2 className="text-2xl font-bold text-foreground mb-4">Open Tickets</h2>
+         {/* OPEN TICKETS */}
+{currentPage === "openTickets" && (
+  <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
+    <h2 className="text-2xl font-bold text-foreground mb-4">Open Tickets</h2>
+<p className="text-sm text-gray-600 dark:text-gray-300">
+  Here you can see the concerns you have submitted. You can edit or delete them, 
+  and also check if the IT admin has read your concern.
+</p>
 
-              <div className="rounded-xl border border-border shadow-sm overflow-hidden bg-card">
-                {/* Table Header */}
-                <div className="grid grid-cols-3 bg-muted/60 px-4 py-3 text-sm font-semibold text-muted-foreground border-b border-border">
-                  <div>Concern</div>
-                  <div>Remarks</div>
-                  <div className="text-right">Read Status</div>
-                </div>
+      <br></br>
+    <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+      {/* Gumamit ng w-full at table-fixed para maiwasan ang horizontal scrollbar at masigurado ang column widths */}
+      <table className="w-full text-sm text-foreground text-center table-fixed"> 
+        <thead className="bg-gray-100 dark:bg-gray-800">
+          <tr className="h-12">
+            {/* Binigyan ng sapat na width, hindi mag-ttrucante */}
+            <th className="px-4 py-3 font-semibold w-[30%]">Concern</th>
+            {/* Itong column lang ang may fixed width at mag-ttrucante */}
+            <th className="px-4 py-3 font-semibold w-[45%]">Remarks</th> 
+            {/* Maliit na width lang para sa status */}
+            <th className="px-4 py-3 font-semibold w-[25%]">Read Status</th>
+          </tr>
+        </thead>
 
-                {/* Table Rows */}
-                <div className="divide-y divide-border">
-                  {paginatedConcerns.map((item) => {
-                    const key = item.ConcernNumber;
-                    return (
-                      <div
-                        key={key}
-                        onClick={() => item.ConcernNumber && handleOpenConcern(item.ConcernNumber)}
-                        className="grid grid-cols-3 px-4 py-3 text-sm cursor-pointer transition 
-                         hover:bg-accent/60 hover:text-accent-foreground"
-                      >
-                        {/* Concern */}
-                        <div className="font-medium text-foreground">
-                          {item.type || "No type"}
-                        </div>
+        <tbody className="text-center">
+          {paginatedConcerns.map((item) => (
+            <tr
+              key={item.ConcernNumber}
+              className="border-t border-border h-12 hover:bg-accent/60 hover:text-accent-foreground cursor-pointer transition"
+              onClick={() => item.ConcernNumber && handleOpenConcern(item.ConcernNumber)}
+            >
+              {/* WALANG TRUNCATION DITO (Concern) */}
+              <td className="px-4 py-2 font-medium text-foreground">
+                {item.type || "No type"}
+              </td>
+              {/* TRUNCATION APPLIED DITO (Remarks) */}
+              <td className="px-4 py-2 font-medium text-foreground truncate whitespace-nowrap overflow-hidden">
+                {item.remarks || "No remarks"}
+              </td>
+              {/* READ STATUS - Walang truncation */}
+              <td className="px-4 py-2">
+                <span className="px-2 py-1 text-xs rounded-full 
+                      bg-red-100 text-red-700 
+                      dark:bg-red-900/50 dark:text-red-300 font-semibold">
+                  Unread
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
 
-                        <div className="font-medium text-foreground">
-                          {item.remarks || "no remarks"}
-                        </div>
+    {/* Pagination (unchanged) */}
+    <div className="flex justify-center items-center gap-3 p-4">
+      <button
+        onClick={goToPrevPage}
+        disabled={currentPageNumber === 1}
+        className="px-4 py-2 text-sm rounded-full border border-border
+           bg-background hover:bg-accent hover:text-accent-foreground 
+           disabled:opacity-40 disabled:hover:bg-background transition"
+      >
+        ← Previous
+      </button>
 
-                        {/* Read Status */}
-                        <div className="text-right">
-                          <span className="px-2 py-1 text-xs rounded-full 
-                                 bg-red-100 text-red-700 
-                                 dark:bg-red-900/50 dark:text-red-300 font-semibold">
-                            Unread
-                          </span>
-                        </div>
-                      </div>
-                    );
+      <span className="text-sm font-semibold px-4 py-2 rounded-full 
+             bg-muted text-muted-foreground border border-border">
+        Page {currentPageNumber} of {totalPages}
+      </span>
+
+      <button
+        onClick={goToNextPage}
+        disabled={currentPageNumber === totalPages}
+        className="px-4 py-2 text-sm rounded-full border border-border 
+           bg-background hover:bg-accent hover:text-accent-foreground
+           disabled:opacity-40 disabled:hover:bg-background transition"
+      >
+        Next →
+      </button>
+    </div>
+
+    {/* MODAL (FIXED DROPDOWNS) */}
+    {isModalOpen && selectedConcern && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition">
+        <div className="bg-card p-6 rounded-xl max-w-lg w-full shadow-xl border border-border">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-foreground">Concern Details</h2>
+            <button
+              onClick={() => {
+                setIsModalOpen(false);
+                setSelectedConcern(null);
+              }}
+              className="text-muted-foreground hover:text-foreground transition"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Editable Form */}
+          <div className="grid grid-cols-1 gap-3 text-sm max-h-[70vh] overflow-y-auto pr-2">
+            {/* Employee Name (Correct) */}
+            <div>
+              <label className="font-semibold text-foreground">Employee Name:</label>
+              <input
+                type="text"
+                value={selectedConcern.FullName1 || ""}
+                onChange={(e) =>
+                  setSelectedConcern({ ...selectedConcern, FullName1: e.target.value })
+                }
+                className="w-full border border-border bg-background text-foreground
+                  px-2 py-1 rounded focus:ring-2 focus:ring-primary outline-none"
+              />
+            </div>
+
+            {/* Department (FIXED: onValueChange uses setSelectedConcern) */}
+            <div className="flex flex-col space-y-1.5">
+              <Label className={getErrorClass("department")}>Department *</Label>
+              <Select
+                value={selectedConcern.department || ""}
+                onValueChange={(val) => setSelectedConcern({ ...selectedConcern, department: val })} // <-- FIXED
+              >
+                <SelectTrigger className={`w-full ${getErrorClass("department")}`}>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Sales Department">Sales Department</SelectItem>
+                  <SelectItem value="IT Department">IT Department</SelectItem>
+                  <SelectItem value="HR Department">HR Department</SelectItem>
+                  <SelectItem value="Accounting Department">Accounting Department</SelectItem>
+                  <SelectItem value="Procurement Department">Procurement Department</SelectItem>
+                  <SelectItem value="Marketing Department">Marketing Department</SelectItem>
+                  <SelectItem value="Ecommerce Department">Ecommerce Department</SelectItem>
+                  <SelectItem value="CSR Department">CSR Department</SelectItem>
+                  <SelectItem value="Admin Department">Admin Department</SelectItem>
+                  <SelectItem value="Warehouse Department">Warehouse Department</SelectItem>
+                  <SelectItem value="Logistic Department">Logistic Department</SelectItem>
+                  <SelectItem value="Engineering Department">Engineering Department</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Type of Concern (FIXED: onValueChange uses setSelectedConcern) */}
+            <div className="flex flex-col space-y-1.5">
+              <Label className={getErrorClass("type")}>Type of Concern *</Label>
+              <Select
+                value={selectedConcern.type || ""}
+                onValueChange={(val) => setSelectedConcern({ ...selectedConcern, type: val })} // <-- FIXED
+              >
+                <SelectTrigger className={`w-full ${getErrorClass("type")}`}>
+                  <SelectValue placeholder="Select concern type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="365 Services">365 Services</SelectItem>
+                  <SelectItem value="Advisory (CRITICAL)">Advisory (CRITICAL)</SelectItem>
+                  <SelectItem value="Advisory (NON-CRITICAL)">Advisory (NON-CRITICAL)</SelectItem>
+                  <SelectItem value="Foriclient">Foriclient</SelectItem>
+                  <SelectItem value="General Inquiry">General Inquiry</SelectItem>
+                  <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  <SelectItem value="Network">Network</SelectItem>
+                  <SelectItem value="PC/Software">PC/Software</SelectItem>
+                  <SelectItem value="SNOC">SNOC</SelectItem>
+                  <SelectItem value="System">System</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Remarks (Correct) */}
+            <div>
+              <label className="font-semibold text-foreground">Remarks:</label>
+              <textarea
+                value={selectedConcern.remarks || ""}
+                onChange={(e) =>
+                  setSelectedConcern({ ...selectedConcern, remarks: e.target.value })
+                }
+                className="w-full border border-border bg-background text-foreground
+                  px-2 py-1 rounded focus:ring-2 focus:ring-primary outline-none"
+              />
+            </div>
+
+            {/* Date Scheduled (Correct) */}
+            <div>
+              <label className="font-semibold text-foreground">Date Scheduled:</label>
+              <input
+                type="date"
+                value={selectedConcern.dateSchedd ? selectedConcern.dateSchedd.substring(0, 10) : ""}
+                onChange={(e) =>
+                  setSelectedConcern({ ...selectedConcern, dateSchedd: e.target.value })
+                }
+                className="w-full border border-border bg-background text-foreground
+                  px-2 py-1 rounded focus:ring-2 focus:ring-primary outline-none"
+              />
+            </div>
+
+            {/* Priority (FIXED: onValueChange uses setSelectedConcern) */}
+            <div className="flex flex-col space-y-1.5">
+              <Label className={getErrorClass("priority")}>Priority *</Label>
+              <Select
+                value={selectedConcern.priority || ""}
+                onValueChange={(val) => setSelectedConcern({ ...selectedConcern, priority: val })} // <-- FIXED
+              >
+                <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
+                  <SelectValue placeholder="Select priority" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Concern Number (Correct) */}
+            <div>
+              <label className="font-semibold text-foreground">Concern Number:</label>
+              <input
+                type="text"
+                value={selectedConcern.ConcernNumber || ""}
+                readOnly
+                className="w-full border border-border bg-muted text-foreground/70 px-2 py-1 rounded"
+              />
+            </div>
+          </div>
+
+          {/* Buttons (unchanged) */}
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              onClick={handleUpdateConcern}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+            >
+              Update
+            </button>
+
+            <button
+              onClick={handleDeleteConcern}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+            >
+              Delete
+            </button>
+
+            <button
+              onClick={() => {
+                setIsModalOpen(false);
+                setSelectedConcern(null);
+              }}
+              className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)}
+{currentPage === "closedTickets" && (
+  <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
+    <h2 className="text-2xl font-bold mb-4 text-foreground">Closed Tickets</h2>
+    <p className="text-sm text-gray-600 dark:text-gray-300">
+  Here you can see your concerns that have been completed. You can also check the status of each concern here.
+</p>
+<br></br>
+    {loadingTickets ? (
+      <p className="text-center mt-4 text-foreground">Loading tickets...</p>
+    ) : closedTickets.length === 0 ? (
+      <p className="text-center mt-4 text-foreground">No closed tickets found.</p>
+    ) : (
+      <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+        {/* Removed table-fixed and min-w-full to allow columns to size naturally */}
+        <table className="w-full text-sm text-foreground text-center">
+          <thead className="bg-gray-100 dark:bg-gray-800">
+            <tr className="h-12">
+              <th className="px-4 font-semibold">Request Type</th>
+              {/* ADDED max-w-xs to constrain the Group column */}
+              <th className="px-4 font-semibold max-w-xs">Group</th> 
+              <th className="px-4 font-semibold">Technician</th>
+              <th className="px-4 font-semibold">Type of Concern</th>
+              <th className="px-4 font-semibold">Status</th>
+              <th className="px-4 font-semibold">Date Created</th>
+              <th className="px-4 font-semibold">Processed by</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {closedTickets.map((ticket) => (
+              <tr
+                key={ticket.id}
+                className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12"
+              >
+                <td className="px-4 py-3">{ticket.requesttype}</td>
+                {/* TRUNCATION APPLIED ONLY TO THE GROUP COLUMN */}
+                <td className="px-4 py-3 max-w-xs truncate whitespace-nowrap overflow-hidden">{ticket.group}</td>
+                
+                <td className="px-4 py-3">{ticket.technicianname}</td>
+                <td className="px-4 py-3">{ticket.type}</td>
+                <td className="px-4 py-3">{ticket.status}</td>
+                <td className="px-4 py-3">
+                  {new Date(ticket.createdAt).toLocaleString("en-US", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
                   })}
-                </div>
+                </td>
+                <td className="px-4 py-3">{ticket.processedBy}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+)}
+{currentPage === "pendingConcerns" && (
+  <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
+    <h2 className="text-2xl font-bold text-foreground mb-4">Pending Concerns</h2>
+    <p className="text-sm text-gray-600 dark:text-gray-300">
+  Here you can see your pending or ongoing concerns. You can check which technician is assigned and who is processing your concern.
+</p>
+<br></br>
 
-                {/* Pagination */}
-                <div className="flex justify-center items-center gap-3 p-4 bg-card">
-                  <button
-                    onClick={goToPrevPage}
-                    disabled={currentPageNumber === 1}
-                    className="px-4 py-2 text-sm rounded-full border border-border
-                     bg-background hover:bg-accent hover:text-accent-foreground 
-                     disabled:opacity-40 disabled:hover:bg-background transition"
-                  >
-                    ← Previous
-                  </button>
+    <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+      {/* Removed table-fixed and min-w-full to allow columns to size naturally */}
+      <table className="w-full text-sm text-foreground text-center"> 
+        <thead className="bg-gray-100 dark:bg-gray-800">
+          <tr className="h-12">
+            {/* Removed width classes from most headers */}
+            <th className="px-4 font-semibold">Request Type</th>
+            {/* ADDED max-w-xs to constrain the Group column */}
+            <th className="px-4 font-semibold max-w-xs">Group</th> 
+            <th className="px-4 font-semibold">Technician</th>
+            <th className="px-4 font-semibold">Type of Concern</th>
+            <th className="px-4 font-semibold">Status</th>
+            <th className="px-4 font-semibold">Date Created</th>
+            <th className="px-4 font-semibold">Processed by</th>
+          </tr>
+        </thead>
 
-                  <span className="text-sm font-semibold px-4 py-2 rounded-full 
-                         bg-muted text-muted-foreground border border-border">
-                    Page {currentPageNumber} of {totalPages}
-                  </span>
-
-                  <button
-                    onClick={goToNextPage}
-                    disabled={currentPageNumber === totalPages}
-                    className="px-4 py-2 text-sm rounded-full border border-border 
-                     bg-background hover:bg-accent hover:text-accent-foreground
-                     disabled:opacity-40 disabled:hover:bg-background transition"
-                  >
-                    Next →
-                  </button>
-                </div>
-              </div>
-
-              {/* MODAL */}
-              {isModalOpen && selectedConcern && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition">
-                  <div className="bg-card p-6 rounded-xl max-w-lg w-full shadow-xl border border-border">
-                    <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-xl font-bold text-foreground">Concern Details</h2>
-                      <button
-                        onClick={() => {
-                          setIsModalOpen(false);
-                          setSelectedConcern(null);
-                        }}
-                        className="text-muted-foreground hover:text-foreground transition"
-                      >
-                        ✕
-                      </button>
-                    </div>
-
-                    {/* Editable Form */}
-                    <div className="grid grid-cols-1 gap-3 text-sm max-h-[70vh] overflow-y-auto pr-2">
-
-                      {/* Name */}
-                      <div>
-                        <label className="font-semibold text-foreground">Employee Name:</label>
-                        <input
-                          type="text"
-                          value={selectedConcern.FullName1 || ""}
-                          onChange={(e) => setSelectedConcern({ ...selectedConcern, FullName1: e.target.value })}
-                          className="w-full border border-border bg-background text-foreground
-                           px-2 py-1 rounded focus:ring-2 focus:ring-primary outline-none"
-                        />
-                      </div>
-
-
-                      {/* Department Select (Hardcoded) */}
-                      <div className="flex flex-col space-y-1.5">
-                        <Label className={getErrorClass("department")}>Department *</Label>
-                        <Select
-                          value={selectedConcern.department || ""}
-                          onValueChange={(val) => setNewConcern({ ...newConcern, department: val })}
-                        >
-                          <SelectTrigger className={`w-full ${getErrorClass("department")}`}>
-                            <SelectValue placeholder="Select department" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Sales Department">Sales Department</SelectItem>
-                            <SelectItem value="IT Department">IT Department</SelectItem>
-                            <SelectItem value="HR Department">HR Department</SelectItem>
-                            <SelectItem value="Accounting Department">Accounting Department</SelectItem>
-                            <SelectItem value="Procurement Department">Procurement Department</SelectItem>
-                            <SelectItem value="Marketing Department">Marketing Department</SelectItem>
-                            <SelectItem value="Ecommerce Department">Ecommerce Department</SelectItem>
-                            <SelectItem value="CSR Department">CSR Department</SelectItem>
-                            <SelectItem value="Admin Department">Admin Department</SelectItem>
-                            <SelectItem value="Warehouse Department">Warehouse Department</SelectItem>
-                            <SelectItem value="Logistic Department">Logistic Department</SelectItem>
-                            <SelectItem value="Engineering Department">Engineering Department</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Type of Concern (Hardcoded) */}
-                      <div className="flex flex-col space-y-1.5">
-                        <Label className={getErrorClass("type")}>Type of Concern *</Label>
-                        <Select
-                          value={selectedConcern.type || ""}
-                          onValueChange={(val) => setNewConcern({ ...newConcern, type: val })}
-                        >
-                          <SelectTrigger className={`w-full ${getErrorClass("type")}`}>
-                            <SelectValue placeholder="Select concern type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="365 Services">365 Services</SelectItem>
-                            <SelectItem value="Advisory (CRITICAL)">Advisory (CRITICAL)</SelectItem>
-                            <SelectItem value="Advisory (NON-CRITICAL)">Advisory (NON-CRITICAL)</SelectItem>
-                            <SelectItem value="Foriclient">Foriclient</SelectItem>
-                            <SelectItem value="General Inquiry">General Inquiry</SelectItem>
-                            <SelectItem value="Maintenance">Maintenance</SelectItem>
-                            <SelectItem value="Network">Network</SelectItem>
-                            <SelectItem value="PC/Software">PC/Software</SelectItem>
-                            <SelectItem value="SNOC">SNOC</SelectItem>
-                            <SelectItem value="System">System</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Remarks */}
-                      <div>
-                        <label className="font-semibold text-foreground">Remarks:</label>
-                        <textarea
-                          value={selectedConcern.remarks || ""}
-                          onChange={(e) => setSelectedConcern({ ...selectedConcern, remarks: e.target.value })}
-                          className="w-full border border-border bg-background text-foreground
-                           px-2 py-1 rounded focus:ring-2 focus:ring-primary outline-none"
-                        />
-                      </div>
-
-                      {/* Date */}
-                      <div>
-                        <label className="font-semibold text-foreground">Date Scheduled:</label>
-                        <input
-                          type="date"
-                          value={selectedConcern.dateSchedd ? selectedConcern.dateSchedd.substring(0, 10) : ""}
-                          onChange={(e) =>
-                            setSelectedConcern({
-                              ...selectedConcern,
-                              dateSchedd: e.target.value,
-                            })
-                          }
-                          className="w-full border border-border bg-background text-foreground
-                          px-2 py-1 rounded focus:ring-2 focus:ring-primary outline-none"
-                        />
-                      </div>
-
-                      {/* Priority (Hardcoded) */}
-                      <div className="flex flex-col space-y-1.5">
-                        <Label className={getErrorClass("priority")}>Priority *</Label>
-                        <Select
-                          value={selectedConcern.priority || ""}
-                          onValueChange={(val) => setNewConcern({ ...newConcern, priority: val })}
-                        >
-                          <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Low">Low</SelectItem>
-                            <SelectItem value="Medium">Medium</SelectItem>
-                            <SelectItem value="High">High</SelectItem>
-                            <SelectItem value="Critical">Critical</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Concern Number */}
-                      <div>
-                        <label className="font-semibold text-foreground">Concern Number:</label>
-                        <input
-                          type="text"
-                          value={selectedConcern.ConcernNumber || ""}
-                          readOnly
-                          className="w-full border border-border bg-muted text-foreground/70 px-2 py-1 rounded"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Buttons */}
-                    <div className="mt-4 flex justify-end gap-2">
-                      <button
-                        onClick={handleUpdateConcern}
-                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-                      >
-                        Update
-                      </button>
-
-                      <button
-                        onClick={handleDeleteConcern}
-                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
-                      >
-                        Delete
-                      </button>
-
-                      <button
-                        onClick={() => {
-                          setIsModalOpen(false);
-                          setSelectedConcern(null);
-                        }}
-                        className="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90 transition"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {currentPage === "closedTickets" && (
-            <div className="max-w-5xl mx-auto w-full">
-
-              <h2 className="text-2xl font-bold text-foreground mb-4">Closed Tickets</h2>
-
-              <div className="rounded-xl border border-border shadow-sm overflow-hidden">
-
-                {/* Table Header */}
-                <div className="grid grid-cols-3 bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground border-b border-border">
-                  <div>Ticket #</div>
-                  <div>Subject / Concern</div>
-                  <div className="text-right">Date Closed</div>
-                </div>
-
-                {/* Sample Rows */}
-                <div className="divide-y divide-border">
-                  {/* Row 1 */}
-                  <div className="grid grid-cols-3 px-4 py-3 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer">
-                    <div className="font-medium text-foreground">TCK-000121</div>
-                    <div className="text-muted-foreground">Email account reset completed</div>
-                    <div className="text-right text-muted-foreground">2025-01-22</div>
-                  </div>
-
-                  {/* Row 2 */}
-                  <div className="grid grid-cols-3 px-4 py-3 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer">
-                    <div className="font-medium text-foreground">TCK-000118</div>
-                    <div className="text-muted-foreground">Printer installation done</div>
-                    <div className="text-right text-muted-foreground">2025-01-20</div>
-                  </div>
-
-                  {/* Row 3 */}
-                  <div className="grid grid-cols-3 px-4 py-3 text-sm hover:bg-accent hover:text-accent-foreground cursor-pointer">
-                    <div className="font-medium text-foreground">TCK-000115</div>
-                    <div className="text-muted-foreground">Laptop setup completed</div>
-                    <div className="text-right text-muted-foreground">2025-01-18</div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {currentPage === "trash" && <div>Trash Page Content</div>}
-
-          {currentPage === "pendingConcerns" && (
-            <div className="max-w-6xl mx-auto w-full">
-
-              <h2 className="text-2xl font-bold text-foreground mb-4">
-                Pending Concerns
-              </h2>
-
-              <div className="rounded-xl border border-border shadow-sm overflow-hidden">
-
-                <div className="bg-white border rounded-lg overflow-x-auto">
-                  <table className="min-w-full text-sm">
-
-                    {/* TABLE HEADER */}
-                    <thead className="bg-gray-700 text-white sticky top-0">
-                      <tr>
-                        <th className="p-3 text-left">Employee</th>
-                        <th className="p-3 text-left">Department</th>
-                        <th className="p-3 text-left">Date Scheduled</th>
-                        <th className="p-3 text-left">Site</th>
-                        <th className="p-3 text-left">Status</th>
-                        <th className="p-3 text-left">Remarks</th>
-                        <th className="p-3 text-left">Priority</th>
-                        <th className="p-3 text-left">Update Status</th>
-                      </tr>
-                    </thead>
-
-                    {/* TABLE BODY */}
-                    <tbody>
-                      {(concernsForPage ?? []).map((c: any) => (
-                        <tr key={c.ticketNumber} className="border-b last:border-b-0">
-                          <td className="p-3">{c.employeeName}</td>
-                          <td className="p-3">{c.department}</td>
-                          <td className="p-3">{c.dateSched}</td>
-                          <td className="p-3">{c.site}</td>
-                          <td className="p-3">{c.status}</td>
-                          <td className="p-3 truncate max-w-xs">{c.remarks}</td>
-                          <td className="p-3 text-center">{c.priority}</td>
-                          <td className="p-3 text-center">
-                            <span className="px-3 py-1 rounded text-xs font-bold">
-                              {c.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
+        <tbody>
+          {tickets.map((t) => (
+            <tr
+              key={t.id}
+              className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12"
+            >
+              <td className="px-4 py-3">{t.requesttype}</td>
+              {/* TRUNCATION APPLIED ONLY TO THE GROUP COLUMN */}
+              <td className="px-4 py-3 max-w-xs truncate whitespace-nowrap overflow-hidden">{t.group}</td>
+              
+              <td className="px-4 py-3">{t.technicianname}</td>
+              <td className="px-4 py-3">{t.type}</td>
+              <td className="px-4 py-3">{t.status}</td>
+              <td className="px-4 py-3">
+                {new Date(t.createdAt).toLocaleString("en-US", {
+                  year: "numeric",
+                  month: "2-digit",
+                  day: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </td>
+              <td className="px-4 py-3">{t.processedBy}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
         </div>
       </SidebarInset>
       <SidebarRight />

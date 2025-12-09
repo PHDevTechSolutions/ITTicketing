@@ -2,160 +2,184 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AppSidebar } from "../components/sidebar"
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator, } from "@/components/ui/breadcrumb"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
-import { SidebarInset, SidebarProvider, SidebarTrigger, } from "@/components/ui/sidebar"
+import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { LogOut, User, Users, Ticket, Clock, CheckCircle, LucideIcon, ChevronRight, Hash, Loader2 } from "lucide-react"
-import { Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog"
+import {
+  LogOut,
+  User,
+  Users,
+  Ticket as TicketIcon,
+  Clock,
+  CheckCircle,
+  LucideIcon,
+  Hash,
+  Loader2,
+} from "lucide-react"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-// --- INTERFACES ---
-interface Concern {
-  id: string
-  employeeName: string
-  department: string
-  type: string // e.g., "Hardware", "Software"
-  remarks: string
-  dateCreated: string // Format: YYYY-MM-DD
-  priority: 'Critical' | 'High' | 'Medium' | 'Low'
-  status: 'New' | 'Pending' | 'Ongoing' | 'Resolved' | 'Finished'
+// ----------------------
+// Interfaces / Types
+// ----------------------
+interface CurrentUser {
+  _id: string
+  Username: string
+  Email: string
+  Role: string
+  Firstname: string
+  Lastname: string
+  ReferenceID: string
+  createdAt: string
 }
 
-interface CurrentUser {
-  _id: string;
-  Username: string;
-  Email: string;
-  Role: string;
-  Firstname: string;
-  Lastname: string;
-  ReferenceID: string;
-  createdAt: string;
+interface Ticket {
+  id: string
+  ticketNumber?: string
+  Fullname?: string
+  employeeName?: string
+  department?: string
+  type?: string
+  remarks?: string
+  dateSched?: string
+  priority?: string
+  status?: "Pending" | "Ongoing" | "Finished" | "Resolved" | "New" | string
+  createdAt?: string // ISO string
+  processedBy?: string
+  group?: string
+  technicianname?: string
+  requesttype?: string
 }
 
 interface StatCardProps {
   title: string
   value: number | string
   icon: LucideIcon
-  colorClass: string
+  colorClass?: string
   link: string
   bgColor?: string
   onClick: (link: string, title: string) => void
   isSelected: boolean
 }
 
-// --- STAT CARD COMPONENT (Unchanged) ---
-function StatCard({ title, value, icon: Icon, colorClass, link, bgColor, onClick, isSelected }: StatCardProps) {
-  const baseClasses = `relative overflow-hidden transition-all duration-300 hover:shadow-xl border-none ${bgColor || "bg-white"} group cursor-pointer`
+// ----------------------
+// Small reusable helpers
+// ----------------------
+const formatDateTime = (iso?: string) => {
+  if (!iso) return "N/A"
+  try {
+    return new Date(iso).toLocaleString("en-US", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    })
+  } catch {
+    return iso
+  }
+}
+
+const todayISODate = new Date().toISOString().slice(0, 10) // "YYYY-MM-DD"
+
+// ----------------------
+// StatCard component
+// ----------------------
+function StatCard({ title, value, icon: Icon, colorClass = "text-gray-700", link, bgColor = "bg-white", onClick, isSelected }: StatCardProps) {
+  const baseClasses = `relative overflow-hidden transition-all duration-300 hover:shadow-xl border-none ${bgColor} group cursor-pointer rounded-lg`
   const selectedClasses = isSelected ? "border-2 border-primary ring-2 ring-primary/50" : ""
 
   return (
-    <Card
-      className={`${baseClasses} ${selectedClasses}`}
-      onClick={() => onClick(link, title)}
-    >
+    <Card className={`${baseClasses} ${selectedClasses}`} onClick={() => onClick(link, title)}>
       <div className="absolute right-0 top-0 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
         <Icon className="h-24 w-24" />
       </div>
-      <CardHeader className="flex flex-row items-center justify-between pb-2 z-10">
-        <CardTitle className="text-sm font-medium text-gray-700">{title}</CardTitle>
-        <div className={`p-2 rounded-full bg-white/70 shadow-inner ${colorClass}`}>
-          <Icon className={`h-5 w-5`} />
+
+      <CardHeader className="pb-2 z-10">
+        <div className="flex flex-col gap-1">
+          <CardTitle className="text-sm font-medium text-gray-700">{title}</CardTitle>
+          <div className="text-xl font-bold">{value}</div>
         </div>
       </CardHeader>
-      <CardContent className="z-10">
-        <div className="text-4xl font-extrabold text-gray-900 mb-3">{value}</div>
-        <span className="flex items-center gap-1 text-sm font-semibold text-primary/80 hover:text-primary transition-colors">
-          Show Details <ChevronRight className="h-4 w-4" />
-        </span>
-      </CardContent>
     </Card>
   )
 }
 
-// --- DUMMY DATA & FILTERING (Unchanged) ---
-const todayDate = "2025-10-29" // Simulate Today's Date
-const allTickets: Concern[] = [
-  { id: "IT-0001", employeeName: "Juan Dela Cruz", department: "Human Resources", type: "Hardware", remarks: "Desktop computer not turning on after power outage.", dateCreated: "2025-10-29", priority: "Critical", status: 'New' },
-  { id: "IT-0002", employeeName: "Maria Santos", department: "Finance", type: "Software", remarks: "Unable to open the payroll system due to version mismatch.", dateCreated: "2025-10-29", priority: "High", status: 'New' },
-  { id: "IT-0006", employeeName: "Pedro Santos", department: "Finance", type: "Hardware", remarks: "Printer not responding after connecting via Wi-Fi.", dateCreated: "2025-10-29", priority: "High", status: 'New' },
-  { id: "IT-0007", employeeName: "Sofia Garcia", department: "Admin", type: "Network", remarks: "Cannot access shared drive.", dateCreated: "2025-10-29", priority: "Medium", status: 'New' },
-  { id: "IT-0003", employeeName: "Carlos Mendoza", department: "IT Department", type: "Network", remarks: "Slow internet connection in the main office.", dateCreated: "2025-10-29", priority: "Medium", status: 'Ongoing' },
-  { id: "IT-0004", employeeName: "Anna Reyes", department: "Customer Support", type: "Account", remarks: "Cannot log into email account after password reset.", dateCreated: "2025-10-28", priority: "Critical", status: 'Pending' },
-  { id: "IT-0005", employeeName: "Liza Dizon", department: "Marketing", type: "Software", remarks: "Adobe Photoshop license expired.", dateCreated: "2025-10-27", priority: "Low", status: 'Resolved' },
-  { id: "IT-0008", employeeName: "Mark Rivera", department: "Sales", type: "Software", remarks: "CRM dashboard not loading data properly.", dateCreated: "2025-10-26", priority: "High", status: 'Finished' },
-]
-
-const getFilteredData = (link: string): Concern[] => {
-  switch (link) {
-    case '/concerns/today':
-      return allTickets.filter(t => t.dateCreated === todayDate && t.status === 'New')
-    case '/tickets/today':
-      return allTickets.filter(t => t.dateCreated === todayDate)
-    case '/tickets/pending':
-      return allTickets.filter(t => t.status === 'Pending')
-    case '/tickets/ongoing':
-      return allTickets.filter(t => t.status === 'Ongoing')
-    case '/tickets/finished':
-      return allTickets.filter(t => t.status === 'Resolved' || t.status === 'Finished')
-    default:
-      return []
-  }
-}
-
-const getStatusClasses = (status: Concern['status']) => {
-  switch (status) {
-    case 'New': return 'bg-blue-100 text-blue-700'
-    case 'Pending': return 'bg-yellow-100 text-yellow-700'
-    case 'Ongoing': return 'bg-indigo-100 text-indigo-700'
-    case 'Resolved':
-    case 'Finished': return 'bg-green-100 text-green-700'
-    default: return ''
-  }
-}
-
-// --- DATA TABLE COMPONENT (Unchanged) ---
+// ----------------------
+// DataTable component (Ticket[])
+// ----------------------
 interface DataTableProps {
-  data: Concern[]
+  data: Ticket[]
   title: string
 }
 
 function DataTable({ data, title }: DataTableProps) {
   return (
     <>
-      <CardHeader className="bg-gray-50 border-b">
-        <CardTitle className="text-2xl font-semibold text-gray-800">{title}</CardTitle>
-        <p className="text-sm text-gray-500">{data.length} item(s) found</p>
+      <CardHeader className="bg-gray-50 border-b flex items-center justify-between">
+        <div>
+          <CardTitle className="text-2xl font-semibold text-gray-800">{title}</CardTitle>
+          <p className="text-sm text-gray-500">{data.length} item(s) found</p>
+        </div>
       </CardHeader>
+
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           {data.length > 0 ? (
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-100 hover:bg-gray-100">
-                  <TableHead className="w-[100px] text-xs font-bold">ID</TableHead>
+                <TableRow className="bg-gray-100">
+                  <TableHead className="w-[120px] text-xs font-bold">Ticket #</TableHead>
                   <TableHead className="text-xs font-bold">Employee</TableHead>
                   <TableHead className="text-xs font-bold">Department</TableHead>
                   <TableHead className="text-xs font-bold">Type</TableHead>
                   <TableHead className="text-xs font-bold">Status</TableHead>
-                  <TableHead className="text-xs font-bold text-right">Date Created</TableHead>
+                  <TableHead className="text-xs font-bold text-right">Created</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {data.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-gray-50 cursor-pointer">
-                    <TableCell className="font-medium text-sm text-primary">{item.id}</TableCell>
-                    <TableCell className="text-sm">{item.employeeName}</TableCell>
-                    <TableCell className="text-sm">{item.department}</TableCell>
-                    <TableCell className="text-sm">{item.type}</TableCell>
+                  <TableRow key={item.id || item.ticketNumber || Math.random()} className="hover:bg-gray-50 cursor-pointer">
+                    <TableCell className="font-medium text-sm text-primary">{item.ticketNumber ?? item.id}</TableCell>
+                    <TableCell className="text-sm">{item.Fullname ?? item.employeeName ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{item.department ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{item.type ?? item.requesttype ?? "—"}</TableCell>
                     <TableCell className="text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusClasses(item.status)}`}>
-                        {item.status}
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${item.status === "Pending"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : item.status === "Ongoing"
+                              ? "bg-indigo-100 text-indigo-700"
+                              : item.status === "Finished" || item.status === "Resolved"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-700"
+                          }`}
+                      >
+                        {item.status ?? "—"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-right text-gray-500">{item.dateCreated}</TableCell>
+                    <TableCell className="text-sm text-right text-gray-500">{formatDateTime(item.createdAt)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -172,57 +196,198 @@ function DataTable({ data, title }: DataTableProps) {
   )
 }
 
-
+// ----------------------
+// DashboardPage (main)
+// ----------------------
 export default function DashboardPage() {
   const router = useRouter()
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+  // profile related
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
+  const [isProfileLoading, setIsProfileLoading] = useState(true)
+  const [profileError, setProfileError] = useState<string | null>(null)
   const [profilePic, setProfilePic] = useState<string | null>(null)
-  const [selectedStat, setSelectedStat] = useState<{ link: string, title: string } | null>(null)
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [openLogout, setOpenLogout] = useState(false)
 
-  // --- STATE FOR PROFILE ---
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [open, setOpen] = useState(false)
+  // tickets and UI
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [loadingTickets, setLoadingTickets] = useState(true)
+  const [closedTickets, setClosedTickets] = useState<Ticket[]>([])
+  const [selectedStat, setSelectedStat] = useState<{ link: string; title: string } | null>(null)
 
-  // 🧩 FETCH Profile from API (Updated to use Username from localStorage)
+   // concern and UI
+  const [concerns, setConcerns] = useState<Ticket[]>([])
+  
+const fetchConcerns = async () => {
+  try { 
+    const res = await fetch("/api/euconcern")
+    const json = await res.json()
+
+    if (!res.ok || !json.success) {
+      console.error("Concerns API Error:", json)
+      setConcerns([])
+      return
+    }
+
+const formatted = json.data.map((c: any) => ({
+  id: c.ConcernNumber || c._id || String(Math.random()),
+  ticketNumber: c.ConcernNumber,
+  Fullname: c.employeeName,
+  department: c.department,
+  type: c.type,
+  remarks: c.remarks,
+  createdAt: c.createdAt,
+  priority: c.priority,
+  status: "New",
+  requesttype: c.requesttype,
+}));
+
+
+    setConcerns(formatted)
+
+  } catch (err) {
+    console.error("Failed to load concerns:", err)
+    setConcerns([])
+  }
+}
+
+  // --- Fetch profile (keeps same behavior) ---
   const fetchProfile = async () => {
-    setIsProfileLoading(true);
-    setProfileError(null);
+    setIsProfileLoading(true)
+    setProfileError(null)
     try {
-      // NOTE: We now assume 'userId' in localStorage stores the Username string
-      const username = localStorage.getItem("userId");
-
+      const username = typeof window !== "undefined" ? localStorage.getItem("userId") : null
       if (!username) {
-        setProfileError("No login session found. Please log in.");
-        setIsProfileLoading(false);
-        return;
+        setProfileError("No login session found. Please log in.")
+        setIsProfileLoading(false)
+        return
       }
-
-      // Calls the updated API route: /api/profile/[username]
-      const res = await fetch(`/api/profile/${username}`);
-      const data = await res.json();
-
+      const res = await fetch(`/api/profile/${username}`)
+      const data = await res.json()
       if (res.ok && data.success) {
-        setCurrentUser(data.data);
+        setCurrentUser(data.data)
       } else {
-        setProfileError(data.message || "Failed to load user profile.");
+        setProfileError(data.message || "Failed to load user profile.")
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
-      setProfileError("Network error while fetching profile.");
+      console.error("Error fetching profile:", error)
+      setProfileError("Network error while fetching profile.")
     } finally {
-      setIsProfileLoading(false);
+      setIsProfileLoading(false)
     }
-  };
+  }
 
-  // Fetch profile on initial load
+  // --- Fetch tickets from API and populate state ---
+  const fetchTickets = async () => {
+    setLoadingTickets(true)
+    try {
+      const res = await fetch("/api/tickets")
+      const json = await res.json()
+      if (!res.ok || !json.success) {
+        console.error("Tickets API error:", json)
+        setTickets([])
+        setClosedTickets([])
+        return
+      }
+
+      // Expect json.data to be array of ticket objects
+      const fetched: Ticket[] = (json.data ?? []).map((t: any) => ({
+        id: t.id ?? t._id ?? t.ticketNumber ?? String(Math.random()),
+        ticketNumber: t.ticketNumber ?? t.TicketNumber ?? undefined,
+        Fullname: t.Fullname ?? t.employeeName ?? t.name ?? undefined,
+        employeeName: t.employeeName ?? t.Fullname ?? undefined,
+        department: t.department ?? t.dept ?? undefined,
+        type: t.type ?? t.requesttype ?? undefined,
+        remarks: t.remarks ?? undefined,
+        dateSched: t.dateSched ?? undefined,
+        priority: t.priority ?? undefined,
+        status: t.status ?? (t.State ?? undefined),
+        createdAt: t.createdAt ?? t.dateCreated ?? t.createdAtString ?? undefined,
+        processedBy: t.processedBy ?? undefined,
+        group: t.group ?? undefined,
+        technicianname: t.technicianname ?? t.technician ?? undefined,
+        requesttype: t.requesttype ?? undefined,
+      }))
+
+      setTickets(fetched)
+
+      // closed tickets derived
+      const closed = fetched.filter((x) => x.status === "Finished" || x.status === "Resolved")
+      setClosedTickets(closed)
+    } catch (error) {
+      console.error("Failed to load tickets:", error)
+      setTickets([])
+      setClosedTickets([])
+    } finally {
+      setLoadingTickets(false)
+    }
+  }
+
+  // --- Hooks: load profile and tickets on mount ---
   useEffect(() => {
-    fetchProfile();
-  }, []);
+    fetchProfile()
+    fetchTickets()
+    fetchConcerns()
+  }, [])
+
+  // --- Derived stats (computed from tickets state) ---
+  const todayConcernsCount = concerns.filter((c) => (c.createdAt ?? "").slice(0, 10) === todayISODate).length
+  const todayTicketsCount = tickets.filter((t) => (t.createdAt ?? "").slice(0, 10) === todayISODate).length
+  const totalPendingCount = tickets.filter((t) => (t.status ?? "").toLowerCase() === "pending").length
+  const ongoingCount = tickets.filter((t) => (t.status ?? "").toLowerCase() === "ongoing").length
+  const finishedCount = tickets.filter((t) => {
+    const s = (t.status ?? "").toLowerCase()
+    return s === "finished" || s === "resolved"
+  }).length
+
+  // Stats config
+  const allStats = [
+    { title: "Today's Concerns", value: todayConcernsCount, icon: Users, colorClass: "text-blue-700", bgColor: "bg-blue-100", link: "/concerns/today" },
+    { title: "Tickets Created Today", value: todayTicketsCount, icon: TicketIcon, colorClass: "text-green-700", bgColor: "bg-green-100", link: "/tickets/today" },
+    { title: "Total Pending Tickets", value: totalPendingCount, icon: Clock, colorClass: "text-yellow-700", bgColor: "bg-yellow-100", link: "/tickets/pending" },
+    { title: "Ongoing Tickets", value: ongoingCount, icon: Clock, colorClass: "text-indigo-700", bgColor: "bg-indigo-100", link: "/tickets/ongoing" },
+    { title: "Finished Tickets", value: finishedCount, icon: CheckCircle, colorClass: "text-teal-700", bgColor: "bg-teal-100", link: "/tickets/finished" },
+  ]
+
+  // --- getFilteredData now uses tickets state ---
+  const getFilteredData = (link: string): Ticket[] => {
+    switch (link) {
+ case "/concerns/today":
+  return concerns.filter(
+    (c) => (c.createdAt ?? "").slice(0, 10) === todayISODate
+  )
+      case "/tickets/today":
+        return tickets.filter((t) => (t.createdAt ?? "").slice(0, 10) === todayISODate)
+      case "/tickets/pending":
+        return tickets.filter((t) => (t.status ?? "").toLowerCase() === "pending")
+      case "/tickets/ongoing":
+        return tickets.filter((t) => (t.status ?? "").toLowerCase() === "ongoing")
+      case "/tickets/finished":
+        return tickets.filter((t) => {
+          const s = (t.status ?? "").toLowerCase()
+          return s === "finished" || s === "resolved"
+        })
+      default:
+        return []
+    }
+  }
+
+  const tableData = selectedStat ? getFilteredData(selectedStat.link) : []
+  const tableTitle = selectedStat ? selectedStat.title : "Select a Card for Details"
+
+  const primaryStats = allStats.slice(0, 3)
+  const secondaryStats = allStats.slice(3)
+
+  const displayName = currentUser ? `${currentUser.Firstname} ${currentUser.Lastname}` : "IT User"
+
+  // handlers
+  const handleStatClick = (link: string, title: string) => {
+    setSelectedStat({ link, title })
+  }
 
   const handleLogout = () => {
-    localStorage.removeItem("userId") // IMPORTANT: Use 'userId' key
+    localStorage.removeItem("userId")
     router.push("/login")
   }
 
@@ -234,77 +399,6 @@ export default function DashboardPage() {
       reader.readAsDataURL(file)
     }
   }
-
-  const handleStatClick = (link: string, title: string) => {
-    setSelectedStat({ link, title })
-  }
-
-  // Helper function to format date
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-  };
-
-  // Calculate dynamic values based on the new data
-  const todayConcernsCount = allTickets.filter(t => t.dateCreated === todayDate && t.status === 'New').length
-  const todayTicketsCount = allTickets.filter(t => t.dateCreated === todayDate).length
-  const totalPendingCount = allTickets.filter(t => t.status === 'Pending').length
-  const ongoingCount = allTickets.filter(t => t.status === 'Ongoing').length
-  const finishedCount = allTickets.filter(t => t.status === 'Resolved' || t.status === 'Finished').length
-
-
-  const allStats = [
-    {
-      title: "Today's Concerns",
-      value: todayConcernsCount,
-      icon: Users,
-      colorClass: "text-blue-600",
-      bgColor: "bg-blue-50",
-      link: "/concerns/today",
-    },
-    {
-      title: "Tickets Created Today",
-      value: todayTicketsCount,
-      icon: Ticket,
-      colorClass: "text-green-600",
-      bgColor: "bg-green-50",
-      link: "/tickets/today",
-    },
-    {
-      title: "Total Pending Tickets",
-      value: totalPendingCount,
-      icon: Clock,
-      colorClass: "text-yellow-600",
-      bgColor: "bg-yellow-50",
-      link: "/tickets/pending",
-    },
-    {
-      title: "Ongoing Tickets",
-      value: ongoingCount,
-      icon: Clock,
-      colorClass: "text-indigo-600",
-      bgColor: "bg-indigo-50",
-      link: "/tickets/ongoing",
-    },
-    {
-      title: "Finished Tickets",
-      value: finishedCount,
-      icon: CheckCircle,
-      colorClass: "text-teal-600",
-      bgColor: "bg-teal-50",
-      link: "/tickets/finished",
-    },
-  ]
-
-  const tableData = selectedStat ? getFilteredData(selectedStat.link) : []
-  const tableTitle = selectedStat ? selectedStat.title : "Select a Card for Details"
-
-  const primaryStats = allStats.slice(0, 3)
-  const secondaryStats = allStats.slice(3)
-
-  // Use the fetched user's name or a default placeholder
-  const displayName = currentUser ? `${currentUser.Firstname} ${currentUser.Lastname}` : 'IT User';
-
 
   return (
     <SidebarProvider>
@@ -327,170 +421,93 @@ export default function DashboardPage() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-
-          {/* PROFILE + LOGOUT BUTTONS */}
-          <div className="ml-auto flex items-center gap-3">
-            <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-              <DialogTrigger asChild>
-                <Button variant="ghost" size="icon" title="Profile">
-                  <User className="h-5 w-5 text-gray-600" />
-                </Button>
-              </DialogTrigger>
-
-              <DialogContent className="sm:max-w-[400px] bg-white rounded-xl">
-                <DialogHeader>
-                  <DialogTitle className="text-lg font-semibold text-center">
-                    Profile Information
-                  </DialogTitle>
-                </DialogHeader>
-
-                <div className="flex flex-col items-center mt-4 mb-2">
-                  <div className="relative">
-                    <img
-                      src={
-                        profilePic ||
-                        "https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                      }
-                      alt="Profile"
-                      className="w-24 h-24 rounded-full object-cover border-2 border-gray-300 shadow-sm"
-                    />
-                    <label
-                      htmlFor="profile-upload"
-                      className="absolute bottom-0 right-0 bg-primary text-white text-xs px-2 py-1 rounded-md cursor-pointer hover:bg-primary/80"
-                    >
-                      Change
-                    </label>
-                    <input
-                      type="file"
-                      id="profile-upload"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-4 py-4 text-sm">
-                  {isProfileLoading ? (
-                    <div className="text-center p-4 text-gray-500">
-                      <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
-                      <p>Loading profile data...</p>
-                    </div>
-                  ) : profileError ? (
-                    <div className="text-center p-4 text-red-500 border border-red-200 bg-red-50 rounded">
-                      <p>{profileError}</p>
-                      <p className="text-xs mt-1">Please check the network or login state.</p>
-                    </div>
-                  ) : currentUser ? (
-                    <>
-                      {/* --- Dynamically loaded content from currentUser state --- */}
-                      <div><Label>Full Name:</Label><p className="font-medium text-gray-800">{currentUser.Firstname} {currentUser.Lastname}</p></div>
-                      <div><Label>Username:</Label><p className="font-medium text-gray-800">{currentUser.Username}</p></div>
-                      <div><Label>Email:</Label><p className="font-medium text-gray-800">{currentUser.Email}</p></div>
-                      <div><Label>Role:</Label><p className="font-medium text-gray-800">{currentUser.Role}</p></div>
-                      <div><Label>Reference ID:</Label><p className="font-medium text-gray-800">{currentUser.ReferenceID}</p></div>
-                      <div><Label>Joined:</Label><p className="font-medium text-gray-800">{formatDate(currentUser.createdAt)}</p></div>
-                      {/* -------------------------------------------------------- */}
-                    </>
-                  ) : (
-                    <p className="text-gray-500">Profile data unavailable.</p>
-                  )}
-                </div>
-
-                <DialogFooter className="flex justify-center">
-                  <DialogClose asChild>
-                    <Button variant="outline">Close</Button>
-                  </DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            <Dialog open={open} onOpenChange={setOpen}>
-              {/* Trigger button */}
-              <DialogTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="icon"
-                  className="bg-red-50 hover:bg-red-100 text-red-600"
-                  title="Logout"
-                >
-                  <LogOut className="h-5 w-5" />
-                </Button>
-              </DialogTrigger>
-
-              {/* Dialog content */}
-              <DialogContent className="sm:max-w-[400px]">
-                <DialogHeader>
-                  <DialogTitle>Are you sure you want to logout?</DialogTitle>
-                  <DialogDescription>
-                    This will end your current session.
-                  </DialogDescription>
-                </DialogHeader>
-
-                <DialogFooter className="flex justify-between">
-                  <DialogClose asChild>
-                    <Button variant="outline">Cancel</Button>
-                  </DialogClose>
-
-                  <Button
-                    variant="destructive"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
         </header>
 
-
-        {/* Main dashboard section */}
         <main className="p-6 bg-gray-50 min-h-[calc(100vh-4rem)]">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Welcome, {displayName.length > 3 ? displayName : 'IT User'}
-            </h1>
-            <div className="text-sm text-gray-500">
-              {new Date().toLocaleDateString('en-US', { dateStyle: 'full' })}
-            </div>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Welcome, {displayName.length > 3 ? displayName : "IT User"}</h1>
+            {/* Ipinapakita ang buong petsa at araw */}
+            <div className="text-sm text-gray-500">{new Date().toLocaleDateString("en-US", { dateStyle: "full" })}</div>
           </div>
 
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="flex flex-col gap-6">
-              {primaryStats.map((stat) => (
-                <StatCard
-                  key={stat.link}
-                  {...stat}
-                  onClick={handleStatClick}
-                  isSelected={selectedStat?.link === stat.link}
-                />
-              ))}
+          {/* SECTION GRID: 3 columns sa medium screens para lumaki ang table */}
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+
+            {/* Stats Column (1/3 width sa medium screens) */}
+            {/* Inalis ang fixed h-[600px] para hayaang mag-stack ang StatCards */}
+            <div className="flex flex-col gap-4 md:col-span-1">
+
+              {/* Primary Stats - Nakasalansan (stack) */}
+              <div className="flex flex-col gap-4">
+                {primaryStats.map((stat) => (
+                  <StatCard key={stat.link} {...stat} onClick={handleStatClick} isSelected={selectedStat?.link === stat.link} />
+                ))}
+              </div>
+
+              {/* Secondary Stats - Magkatabi (grid) sa small screens pataas */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {secondaryStats.map((stat) => (
+                  <StatCard key={stat.link} {...stat} onClick={handleStatClick} isSelected={selectedStat?.link === stat.link} />
+                ))}
+              </div>
             </div>
 
-            {/* Central Card: Ito ang magpapakita ng filtered table data */}
-            <Card className="col-span-1 md:col-span-1 shadow-lg overflow-hidden h-[400px] flex flex-col">
+            {/* Center: Table or default (2/3 width sa medium screens) */}
+            <Card className="shadow-lg overflow-hidden h-[510px] flex flex-col md:col-span-2">
               {selectedStat ? (
-                <DataTable data={tableData} title={tableTitle} />
+                loadingTickets ? (
+                  <div className="p-8 text-center">
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-500" />
+                    <p className="mt-2 text-gray-600">Loading tickets...</p>
+                  </div>
+                ) : (
+                  <DataTable data={tableData} title={tableTitle} />
+                )
               ) : (
-                <div className="h-full flex flex-col items-center justify-center p-6 text-center text-gray-500">
-                  <Ticket className="h-12 w-12 mb-4 text-gray-400" />
-                  <p className="text-lg font-semibold">Dashboard Overview</p>
-                  <p>Click on any **Stat Card** on the left or bottom to view the detailed list in this table.</p>
+                <div className="max-w-6xl mx-auto w-full p-6">
+                  <h2 className="text-2xl font-bold mb-4">Closed Tickets</h2>
+
+                  {loadingTickets ? (
+                    <p className="text-center mt-4">Loading tickets...</p>
+                  ) : closedTickets.length === 0 ? (
+                    <p className="text-center mt-4">No closed tickets found.</p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+                      <table className="w-full table-auto text-center">
+                        <thead className="bg-gray-100">
+                          <tr>
+                            <th className="px-4 py-2 font-semibold">Request Type</th>
+                            <th className="px-4 py-2 font-semibold">Group</th>
+                            <th className="px-4 py-2 font-semibold">Technician</th>
+                            <th className="px-4 py-2 font-semibold">Type of Concern</th>
+                            <th className="px-4 py-2 font-semibold">Status</th>
+                            <th className="px-4 py-2 font-semibold">Date Created</th>
+                            <th className="px-4 py-2 font-semibold">Processed by</th>
+                          </tr>
+                        </thead>
+                        {/* FIX PARA SA HYDRATION ERROR: 
+                  Tiyaking walang whitespace sa pagitan ng <tbody> at ng <tr>
+                */}
+                        <tbody>
+                          {closedTickets.map((ticket) => (
+                            <tr key={ticket.id} className="border-t border-border">
+                              <td className="px-4 py-2">{ticket.requesttype ?? ticket.type}</td>
+                              <td className="px-4 py-2">{ticket.group}</td>
+                              <td className="px-4 py-2">{ticket.technicianname}</td>
+                              <td className="px-4 py-2">{ticket.type}</td>
+                              <td className="px-4 py-2">{ticket.status}</td>
+                              {/* Ginamit ang formatDateTime() function */}
+                              <td className="px-4 py-2">{formatDateTime(ticket.createdAt)}</td>
+                              <td className="px-4 py-2">{ticket.processedBy}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>
-          </section>
-
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {secondaryStats.map((stat) => (
-              <StatCard
-                key={stat.link}
-                {...stat}
-                onClick={handleStatClick}
-                isSelected={selectedStat?.link === stat.link}
-              />
-            ))}
           </section>
         </main>
       </SidebarInset>
