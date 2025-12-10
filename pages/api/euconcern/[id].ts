@@ -14,6 +14,8 @@ interface ConcernData {
   site: string;
   ConcernNumber: string;
   createdAt?: Date;
+  
+  
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -64,32 +66,50 @@ const concernNumber = id; // rename locally
   // =========================
   // PUT - Update concern
   // =========================
-  if (req.method === "PUT") {
-    try {
-      const updatedData = req.body;
+ // =========================
+// PUT - Update concern
+// =========================
+if (req.method === "PUT") {
+  try {
+    const updatedData = req.body;
 
-      // Validate required fields
-      const REQUIRED = ["Fullname", "department", "requesttype", "remarks"];
-      for (const field of REQUIRED) {
-        if (!updatedData[field]) {
-          return res.status(400).json({ success: false, message: `Missing required field: ${field}` });
-        }
-      }
-
-      const updatePayload = { $set: updatedData };
-
-      const result = await collection.updateOne({ ConcernNumber: concernNumber }, updatePayload);
+    // Check if only updating readstatus
+    if ("readstatus" in updatedData) {
+      const result = await collection.updateOne(
+        { ConcernNumber: concernNumber },
+        { $set: { readstatus: updatedData.readstatus } }
+      );
 
       if (result.matchedCount === 0) {
         return res.status(404).json({ success: false, message: "Concern not found." });
       }
 
-      return res.status(200).json({ success: true, message: "Concern updated successfully." });
-    } catch (error) {
-      console.error("PUT error:", error);
-      return res.status(500).json({ success: false, message: "Update failed." });
+      return res.status(200).json({ success: true, message: "Read status updated successfully." });
     }
+
+    // Validate required fields for full update
+    const REQUIRED = ["Fullname", "department", "requesttype", "remarks"];
+    for (const field of REQUIRED) {
+      if (!updatedData[field]) {
+        return res.status(400).json({ success: false, message: `Missing required field: ${field}` });
+      }
+    }
+
+    const updatePayload = { $set: updatedData };
+
+    const result = await collection.updateOne({ ConcernNumber: concernNumber }, updatePayload);
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ success: false, message: "Concern not found." });
+    }
+
+    return res.status(200).json({ success: true, message: "Concern updated successfully." });
+  } catch (error) {
+    console.error("PUT error:", error);
+    return res.status(500).json({ success: false, message: "Update failed." });
   }
+}
+
 
   // =========================
   // DELETE - Remove concern

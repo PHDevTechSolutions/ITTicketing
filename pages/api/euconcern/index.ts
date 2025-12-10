@@ -5,6 +5,7 @@ import { InsertOneResult, Db } from "mongodb";
 interface IncomingConcernData {
   Fullname: string;
   department: string;
+  Email:string;
   dateSched: string;
   type: string;
   remarks: string;
@@ -15,6 +16,7 @@ interface IncomingConcernData {
   reqt: string;
   ConcernNumber?: string;
   id?: string;
+  readstatus: string;
   createdAt?: string; // stored as ISO string
 }
 
@@ -43,8 +45,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         type: c.type,
         reqt: c.requesttype,
         remarks: c.remarks,
+        Email: c.Email,
+        site: c.site,
         createdAt: c.createdAt ?? new Date().toISOString(),
         priority: c.priority,
+        readstatus: c.readstatus,
         ConcernNumber: c.ConcernNumber,
         status: "Pending", // default
       }));

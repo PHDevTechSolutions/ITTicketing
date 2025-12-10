@@ -39,7 +39,7 @@ import { SetStateAction } from "react"
 // --- Interfaces ---
 interface MailItem {
     name: string
-    email: string
+    Email: string
     subject: string
     depts: string
     date: string
@@ -50,6 +50,8 @@ interface MailItem {
     requesttype1: string
     type1: string
     createdAt: string;
+    site: string;
+    readstatus: string;
 }
 
 interface TicketForm {
@@ -67,7 +69,10 @@ interface TicketForm {
     site: string
     group: string
     technicianname: string
-    createdAt:string
+    createdAt: string
+    Email: string
+    readstatus: string
+    ConcernNumber: string
 }
 
 // 📌 Generic Interface for fetched items (Mode, Group, Department, etc.)
@@ -144,7 +149,10 @@ const initialNewTicketState: TicketForm = {
     site: "",
     group: "",
     technicianname: "",
-    createdAt:"",
+    createdAt: "",
+    Email: "",
+    readstatus: "",
+    ConcernNumber: "",
 }
 
 // Define REQUIRED_FIELDS here (excluding ticketNumber and dateSched)
@@ -155,70 +163,74 @@ const REQUIRED_FIELDS: (keyof TicketForm)[] = [
 
 // 🔄 Helper function for fetching lists and pre-filling FullName
 const useFetchList = (apiPath: string, fallbackData: string[]) => {
-  const [list, setList] = React.useState<Item[]>([])
+    const [list, setList] = React.useState<Item[]>([])
 
-  React.useEffect(() => {
-    async function fetchData() {
-      try {
-        // 🔹 Fetch list from API
-        const res = await fetch(apiPath)
-        const data = await res.json()
+    React.useEffect(() => {
+        async function fetchData() {
+            try {
+                // 🔹 Fetch list from API
+                const res = await fetch(apiPath)
+                const data = await res.json()
 
-        if (data.success && Array.isArray(data.data)) {
-          setList(data.data)
-        } else {
-          // Use fallback data if API returns success=false
-          const staticList: Item[] = fallbackData.map(item => ({ name: item }))
-          setList(staticList)
+                if (data.success && Array.isArray(data.data)) {
+                    setList(data.data)
+                } else {
+                    // Use fallback data if API returns success=false
+                    const staticList: Item[] = fallbackData.map(item => ({ name: item }))
+                    setList(staticList)
+                }
+            } catch (err) {
+                // Fallback if API call fails entirely
+                const staticList: Item[] = fallbackData.map(item => ({ name: item }))
+                setList(staticList)
+            }
         }
-      } catch (err) {
-        // Fallback if API call fails entirely
-        const staticList: Item[] = fallbackData.map(item => ({ name: item }))
-        setList(staticList)
-      }
-    }
 
-    fetchData()
-  }, [apiPath, fallbackData])
+        fetchData()
+    }, [apiPath, fallbackData])
 
-  return list
+    return list
 }
+
 
 // --- Main Component ---
 export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const [mails, setMails] = useState<MailItem[]>([]);
     
-   useEffect(() => {
-  const fetchConcerns = async () => {
-    try {
-      const res = await fetch("/api/euconcern/"); // include trailing slash
-      if (!res.ok) {
-        console.error(`HTTP error! status: ${res.status}`);
-        return;
-      }
-      const json = await res.json();
-      if (!json.success) return;
+    useEffect(() => {
+        const fetchConcerns = async () => {
+            try {
+                const res = await fetch("/api/euconcern/"); // include trailing slash
+                if (!res.ok) {
+                    console.error(`HTTP error! status: ${res.status}`);
+                    return;
+                }
+                const json = await res.json();
+                if (!json.success) return;
 
-      const formatted = json.data.map((c: any) => ({
-  name: c.employeeName,
-  depts: c.department,
-  subject: `${c.type} (${c.department})`,
-  createdAt: c.createdAt ?? "N/A", // <-- use the DB value directly
-  requesttype1: c.reqt,
-  teaser: `${c.remarks}.`,
-  priority: c.priority || "Normal",
-  status: c.status || "Pending",
-}));
+                const formatted = json.data.map((c: any) => ({
+                    name: c.employeeName,
+                    depts: c.department,
+                    Email: c.Email,
+                    subject: `${c.type} (${c.department})`,
+                    createdAt: c.createdAt ?? "N/A", // <-- use the DB value directly
+                    requesttype1: c.reqt,
+                    site: c.site,
+                    teaser: `${c.remarks}.`,
+                    priority: c.priority || "Normal",
+                    status: c.status || "Pending",
+                    readstatus: c.readstatus,
+                    ConcernNumber: c.ConcernNumber,
+                }));
 
-      setMails(formatted);
-    } catch (err) {
-      console.error("Failed to fetch concerns:", err);
-    }
-  };
+                setMails(formatted);
+            } catch (err) {
+                console.error("Failed to fetch concerns:", err);
+            }
+        };
 
-  fetchConcerns();
-}, []);
-
+        fetchConcerns();
+    }, []);
 
 
     // ⚙️ States for dynamic lists 
@@ -260,6 +272,10 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
         read: mail.status === "Resolved" || mail.status === "In Progress", // example
     }));
 
+    const [originalReadStatus, setOriginalReadStatus] = useState<string>(
+  selectedMail?.readstatus || ""
+    );
+
     // Filter mails based on toggle
     const displayedMails = showUnreadOnly
         ? mailsWithReadStatus.filter(mail => !mail.read)
@@ -286,12 +302,14 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
     const getErrorClass = (fieldName: keyof TicketForm) => {
         return validationErrors[fieldName] ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "";
     };
+    
 
 
     // 🔹 Handlers
     const openDialog = (mail: MailItem) => {
         setSelectedMail(mail)
         setIsDialogOpen(true)
+        handleUpdate(); 
     }
 
     const openAddDialog = () => {
@@ -313,12 +331,16 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
             setTicketForm({
                 ...initialNewTicketState,
                 ticketNumber: ticketNumber,
-                Fullname: selectedMail.name, // Set Fullname from selectedMail
+                Fullname: selectedMail.name,
                 department: selectedMail.depts,
                 requesttype: selectedMail.requesttype1,
                 remarks: selectedMail.teaser,
                 priority: selectedMail.priority,
                 createdAt: selectedMail.createdAt,
+                site: selectedMail.site,
+                Email: selectedMail.Email,
+                readstatus: selectedMail.readstatus,
+                ConcernNumber: selectedMail.ConcernNumber || "",
                 // Use the priority from the mail
             })
         }
@@ -350,6 +372,41 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
             throw new Error("Failed to submit ticket to the server.");
         }
     };
+
+const handleUpdate = async () => {
+  if (!selectedMail) return;
+
+  // Determine the new read status
+  let newReadStatus = selectedMail.readstatus;
+  if (selectedMail.readstatus.toLowerCase() === "unread") {
+    newReadStatus = "read";
+  }
+
+  // Check if readstatus actually changed
+  if (newReadStatus === originalReadStatus) {
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/euconcern/${selectedMail.ConcernNumber}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        readstatus: newReadStatus, // send the updated value to DB
+      }),
+    });
+
+    const data = await res.json();
+
+    // Update frontend state after successful DB update
+    setSelectedMail({ ...selectedMail, readstatus: newReadStatus });
+    setOriginalReadStatus(newReadStatus);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+
 
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -435,6 +492,8 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                 onClick={() => {
                                     setValidationErrors({}); // Clear errors before opening
                                     setIsManualAddDialogOpen(true);
+
+
                                 }}
                             >
                                 + Ticket
@@ -458,16 +517,16 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                     <div className="flex w-full items-center gap-2">
                                         <span className="font-semibold text-gray-900">{mail.name}</span>
 
-<span className="px-4 py-2">
-  {new Date(mail.createdAt).toLocaleString("en-US", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  })}
-</span>
+                                        <span className="px-4 py-2">
+                                            {new Date(mail.createdAt).toLocaleString("en-US", {
+                                                year: "numeric",
+                                                month: "2-digit",
+                                                day: "2-digit",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                hour12: true,
+                                            })}
+                                        </span>
 
 
 
@@ -513,23 +572,45 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                     <strong>Name:</strong> {selectedMail.name}
                                 </div>
                                 <div>
-                                    <strong>Department:</strong> {selectedMail.depts}
+                                    <strong>Email:</strong> {selectedMail.Email}
                                 </div>
                                 <div>
                                     <strong>Request Type:</strong> {selectedMail.requesttype1}
                                 </div>
+                                <div>
+                                    <strong>Request Type:</strong> {selectedMail.ConcernNumber}
+                                </div>
+                                <div>
+                                    <strong>Date:</strong>{" "}
+                                    {new Date(selectedMail.createdAt).toLocaleString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                    })}
+                                </div>
+                                <div>
+                                    <strong>Site:</strong> {selectedMail.site}
+                                </div>
 
-                               <div>
-  <strong>Date:</strong>{" "}
-  {new Date(selectedMail.createdAt).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  })}
+<div className="hidden">
+  <label className="font-semibold">Read Status:</label>
+  <input
+    type="text"
+    value={selectedMail?.readstatus || ""}
+    onChange={(e) =>
+      setSelectedMail({
+        ...selectedMail!,
+        readstatus: e.target.value
+      })
+    }
+    className="w-full border px-2 py-1 rounded"
+  />
 </div>
+
+
 
 
                                 <div>
@@ -538,16 +619,27 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                         {selectedMail.priority}
                                     </Badge>
                                 </div>
+
                                 <div className="pt-2 border-t mt-2">
                                     <strong>Remarks:</strong>
                                     <p className="mt-1 text-gray-700">{selectedMail.teaser}</p>
                                 </div>
                             </div>
 
+
                             <div className="mt-6 flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                                    Close
-                                </Button>
+
+<Button
+  variant="outline"
+  onClick={() => {
+    handleUpdate();      // tawagin muna ang update function
+    setIsDialogOpen(false); // saka isara ang dialog
+  }}
+>
+  Close
+</Button>
+
+
                                 <Button onClick={openAddDialog}>Create Ticket</Button>
                             </div>
                         </>
@@ -754,17 +846,17 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                         </div>
 
                         {/* Processed By (Full Width, Required + Red Border) */}
-<div className="flex flex-col space-y-1.5">
-  <Label className={getErrorClass("processedBy")}>Processed By</Label>
-  <Input
-    placeholder="Name of processor"
-    value={ticketForm.processedBy} // Pre-filled with FullName
-    className={getErrorClass("processedBy")}
-    onChange={(e) =>
-      setTicketForm({ ...ticketForm, processedBy: e.target.value })
-    }
-  />
-</div>
+                        <div className="flex flex-col space-y-1.5">
+                            <Label className={getErrorClass("processedBy")}>Processed By</Label>
+                            <Input
+                                placeholder="Name of processor"
+                                value={ticketForm.processedBy} // Pre-filled with FullName
+                                className={getErrorClass("processedBy")}
+                                onChange={(e) =>
+                                    setTicketForm({ ...ticketForm, processedBy: e.target.value })
+                                }
+                            />
+                        </div>
 
 
                         <DialogFooter className="pt-4">
