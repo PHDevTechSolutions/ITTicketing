@@ -27,8 +27,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+
 import { Button } from "@/components/ui/button";
-import { DialogFooter } from "@/components/ui/dialog";
+import {  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose, } from "@/components/ui/dialog";
 import { ModeToggle } from "../components/mode-toggle";
 
 export type PageType =
@@ -92,6 +98,30 @@ interface ConcernItem {
   Email: string;
   readstatus: string;
 }
+interface MailItem {
+  ConcernNumber?: string
+  name: string
+  Email: string
+  subject: string
+  depts: string
+  date: string
+  teaser: string
+  priority: string
+  status: string
+  requesttype1: string
+  type1: string
+  createdAt: string
+  site: string
+  readstatus: "read" | "unread"
+}
+
+interface InboxItem {
+  ConcernNumber: string;
+  remarks: string;
+  createdAt: string;
+  readstatus: "Read" | "Unread";
+}
+
 
 interface Ticket {
   id: string;
@@ -123,6 +153,9 @@ export default function Page() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [selectedConcern, setSelectedConcern] = React.useState<ConcernItem | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
+const [unreadCount, setUnreadCount] = useState(0)
+const [readCount, setReadCount] = useState(0)
+
   const initialConcernState: Concern = {
     FullName: "",
     department: "",
@@ -137,6 +170,7 @@ export default function Page() {
     Email: "",
   };
 
+  const [selectedInboxItem, setSelectedInboxItem] = useState<InboxItem | null>(null);
   // New concern form state
   const [newConcern, setNewConcern] = React.useState<Concern>(initialConcernState);
 
@@ -175,41 +209,74 @@ export default function Page() {
     };
   };
 
+  const timeAgo = (date: Date) => {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime(); // difference in ms
+
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
+  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+  return "Just now";
+};
+
+
   React.useEffect(() => {
-    async function loadConcerns() {
-      try {
-        // Load current user info for pre-fill
-        const storedUser = localStorage.getItem("currentUser");
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setNewConcern((prev) => ({
-            ...prev,
-            FullName: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
-            department: parsedUser.department || "",
-            Email: parsedUser.Email,
-          }));
-        }
-
-        // Load all concerns
-        const res = await fetch("/api/euconcern");
-        const data = await res.json();
-
-        if (data.success && Array.isArray(data.data)) {
-          // Map each backend object to our ConcernItem shape
-          const mapped = data.data.map((it: any) => mapBackendToConcernItem(it));
-          setConcerns(mapped);
-        } else {
-          console.error("euconcern: unexpected payload", data);
-        }
-      } catch (error) {
-        console.error("Failed to load concerns:", error);
-      } finally {
-        setLoading(false);
+    fetchInbox();
+  async function loadConcerns() {
+    try {
+      // Load current user info
+      const storedUser = localStorage.getItem("currentUser")
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser)
+        setNewConcern((prev) => ({
+          ...prev,
+          FullName: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
+          department: parsedUser.department || "",
+          Email: parsedUser.Email,
+        }))
       }
-    }
 
-    loadConcerns();
-  }, []);
+      // Load all concerns
+      const res = await fetch("/api/euconcern")
+      const data = await res.json()
+
+      if (data.success && Array.isArray(data.data)) {
+        const mapped: ConcernItem[] = data.data.map((it: any) => ({
+          ...mapBackendToConcernItem(it),
+          readstatus:
+            it.readstatus?.toLowerCase() === "read" ? "read" : "unread",
+        }))
+
+        setConcerns(mapped)
+
+        const unread = mapped.filter(
+          (c) => c.readstatus === "unread"
+        ).length
+
+        const read = mapped.filter(
+          (c) => c.readstatus === "read"
+        ).length
+
+        setUnreadCount(unread)
+        setReadCount(read)
+      } else {
+        console.error("euconcern: unexpected payload", data)
+      }
+    } catch (error) {
+      console.error("Failed to load concerns:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  loadConcerns()
+}, [])
+
 
 
   // Pagination Setup
@@ -237,6 +304,52 @@ export default function Page() {
       setCurrentPageNumber((p) => p - 1);
     }
   };
+
+  // Sa taas ng component
+const [inbox, setInbox] = useState<InboxItem[]>([]);
+const unreadCount1 = inbox.filter(item => item.readstatus === "Unread").length;
+
+const fetchInbox = async () => {
+  try {
+    const res = await fetch("/api/inbox");
+    if (!res.ok) {
+      console.error("Failed to fetch inbox:", await res.text());
+      return;
+    }
+
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      setInbox(data.data);
+    } else {
+      console.error("Unexpected inbox data:", data);
+    }
+  } catch (error) {
+    console.error("Inbox fetch error:", error);
+  }
+};
+
+const handleOpenInbox = async (item: InboxItem) => {
+  setSelectedInboxItem(item);
+
+  if (item.readstatus === "Unread") {
+    try {
+      await fetch(`/api/inbox/${item.ConcernNumber}`, { method: "PATCH" });
+
+      // Update UI locally
+      setInbox((prev) =>
+        prev.map((i) =>
+          i.ConcernNumber === item.ConcernNumber ? { ...i, readstatus: "Read" } : i
+        )
+      );
+    } catch (error) {
+      console.error("Failed to mark as read", error);
+    }
+  }
+};
+
+
+
+  
 
   // Open a concern by ConcernNumber (fetch full details)
   const handleOpenConcern = async (concernNumber: string) => {
@@ -371,7 +484,7 @@ export default function Page() {
     fetchTickets();
   }, []);
 
-
+  
 
 
 
@@ -449,12 +562,12 @@ export default function Page() {
 
   const breadcrumbMap: Record<PageType, string> = {
     home: "DISRUPTIVE SOLUTIONS INC. HELP DESK",
-    inbox: "Inbox",
-    openTickets: "Open Tickets",
-    pendingConcerns: "Pending Concern",
-    closedTickets: "Closed Tickets",
-    createConcern: "Create Concern",
-    trash: "Trash",
+    inbox: "",
+    openTickets: "",
+    pendingConcerns: "",
+    closedTickets: "",
+    createConcern: "",
+    trash: "",
   };
 
   return (
@@ -594,24 +707,22 @@ export default function Page() {
                       onChange={(e) => setNewConcern({ ...newConcern, FullName: e.target.value })}
                     />
                   </div>
-                                    {/* READ STATUS */}
-{/* READ STATUS FIELD */}
-<div className="flex flex-col space-y-1.5">
-  <Label className={validationErrors.readstatus ? "text-red-600 dark:text-red-400" : ""}>
-    Read Status *
-  </Label>
-  <Input
-    placeholder="Read Status"
-    // ✅ Kukunin ang value na 'Read' mula sa state:
-    value={newConcern.readstatus} 
-    className={getErrorClass("readstatus")}
-    // ✅ Ginawang read-only para hindi na ma-edit:
-    readOnly
-    // Tiyakin lang na tamang key ang ginagamit:
-    onChange={(e) => setNewConcern({ ...newConcern, readstatus: e.target.value })} 
-  />
-</div>
-                  <div className="flex flex-col space-y-1.5">
+                  {/* READ STATUS */}
+                  <div className="flex flex-col space-y-1.5 hidden">
+                    <Label className={validationErrors.readstatus ? "text-red-600 dark:text-red-400" : ""}>
+                      Read Status *
+                    </Label>
+                    <Input
+                      placeholder="Read Status"
+                      value={newConcern.readstatus}
+                      className={getErrorClass("readstatus")}
+                      readOnly
+                      onChange={(e) => setNewConcern({ ...newConcern, readstatus: e.target.value })}
+                    />
+                  </div>
+
+                  {/* EMAIL */}
+                  <div className="flex flex-col space-y-1.5 hidden">
                     <Label className={validationErrors.Email ? "text-red-600 dark:text-red-400" : ""}>
                       Email *
                     </Label>
@@ -619,12 +730,11 @@ export default function Page() {
                       placeholder="Requester's Email"
                       value={newConcern.Email}
                       className={getErrorClass("Email")}
-                      // *** IDAGDAG ITO ***
                       readOnly
-                      // *******************
                       onChange={(e) => setNewConcern({ ...newConcern, Email: e.target.value })}
                     />
                   </div>
+
 
                   {/* Department Select (Hardcoded) */}
                   <div className="flex flex-col space-y-1.5">
@@ -793,85 +903,161 @@ export default function Page() {
             </div>
           )}
 
-          {currentPage === "inbox" && (
-            <div className="max-w-4xl mx-auto w-full">
-              <h2 className="text-2xl font-bold text-foreground mb-2">Inbox</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Here you can see updates on your concerns. Please check regularly for any new updates.
-              </p>
+{currentPage === "inbox" && (
+  <div className="max-w-4xl mx-auto w-full">
+<div className="flex justify-between items-center mb-4">
+    <h2 className="text-2xl font-bold text-foreground">Inbox</h2>
+    
+    {/* TOOLTIP/INFO ICON BLOCK */}
+    <details className="relative group">
+      <summary 
+        className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
+                   hover:bg-primary/20 transition-all outline-none select-none list-none"
+      >
+        {/* Info Icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
+          viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round"
+                d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+        </svg>
+      </summary>
 
-              <br></br>
-              {/* READ / UNREAD COUNTERS */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex items-center gap-2 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 px-3 py-1 rounded-full">
-                  <span className="font-medium">Unread</span>
-                  <span className="font-bold">2</span> {/* Replace with unreadCount */}
-                </div>
+      {/* TOOLTIP/DETAILS CONTENT */}
+      <div 
+        className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
+                   shadow-2xl bg-white dark:bg-gray-900 text-sm 
+                   text-gray-700 dark:text-gray-300 leading-relaxed z-10 
+                   animate-in fade-in slide-in-from-top-2 duration-300"
+        style={{ minWidth: '200px' }} 
+      >
+        <p>
+          Here you can see updates on your concerns. Please check regularly for any new notifications or status changes.
+        </p>
+      </div>
+    </details>
+  </div>
 
-                <div className="flex items-center gap-2 bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 px-3 py-1 rounded-full">
-                  <span className="font-medium">Read</span>
-                  <span className="font-bold">1</span> {/* Replace with readCount */}
-                </div>
-              </div>
 
-              <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm divide-y">
-                {/* Row Example 1 */}
-                <div className="flex items-start gap-3 p-4 hover:bg-muted/50 cursor-pointer">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mt-1"></div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-foreground">TCK-000145</div>
-                    <div className="text-sm text-muted-foreground mt-0.5">
-                      Technician assigned to your request. Please expect an update soon.
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">2 hours ago</div>
-                  </div>
-                </div>
+    {/* Unread indicator */}
+    {unreadCount1 > 0 && (
+      <div className="mb-2 flex items-center gap-2 text-sm text-blue-600 font-medium">
+        <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+        You have {unreadCount1} unread {unreadCount1 === 1 ? "message" : "messages"}
+      </div>
+    )}
 
-                {/* Row Example 2 */}
-                <div className="flex items-start gap-3 p-4 hover:bg-muted/50 cursor-pointer">
-                  <div className="w-3 h-3 bg-gray-400 dark:bg-gray-500 rounded-full mt-1"></div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-foreground">TCK-000142</div>
-                    <div className="text-sm text-muted-foreground mt-0.5">
-                      Parts ordered. Will update once available.
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">1 day ago • Read</div>
-                  </div>
-                </div>
+    {/* Inbox list */}
+    <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm divide-y">
+      {inbox.length === 0 ? (
+        <div className="p-4 text-sm text-muted-foreground">
+          No inbox messages.
+        </div>
+      ) : (
+        inbox.map((item) => {
+          const readStatus = item.readstatus || "Unread";
+          const createdAt = item.createdAt ? new Date(item.createdAt) : new Date();
 
-                {/* Row Example 3 */}
-                <div className="flex items-start gap-3 p-4 hover:bg-muted/50 cursor-pointer">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full mt-1"></div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-foreground">TCK-000138</div>
-                    <div className="text-sm text-muted-foreground mt-0.5">
-                      IT is currently inspecting your workstation issue.
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">3 hours ago</div>
-                  </div>
+          return (
+           <div
+  key={item.ConcernNumber}
+  className="flex items-start gap-3 p-4 hover:bg-muted/50 cursor-pointer"
+  onClick={() => handleOpenInbox(item)}
+>
+
+              <div
+                className={`w-3 h-3 rounded-full mt-1 ${
+                  readStatus === "Unread"
+                    ? "bg-blue-500"
+                    : "bg-gray-400 dark:bg-gray-500"
+                }`}
+              ></div>
+
+              <div className="flex-1">
+                <div className="font-semibold text-foreground">{item.ConcernNumber}</div>
+                <div className="text-sm text-muted-foreground mt-0.5">
+                  {item.remarks || "Technician assigned to your request. Please expect an update soon."}
                 </div>
+<div className="text-xs text-muted-foreground mt-1">
+  {timeAgo(createdAt)} {readStatus === "Read" ? "• Read" : ""}
+</div>
+
               </div>
             </div>
-          )}
+          );
+        })
+      )}
+    </div>
 
-
+    {/* Dialog outside of map */}
+    {selectedInboxItem && (
+      <Dialog open={!!selectedInboxItem} onOpenChange={() => setSelectedInboxItem(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{selectedInboxItem.ConcernNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            {selectedInboxItem.remarks}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )}
+  </div>
+)}
 
           {/* OPEN TICKETS */}
           {currentPage === "openTickets" && (
-            <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-foreground mb-4">Open Tickets</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Here you can see the concerns you have submitted. You can edit or delete them,
-                and also check if the IT admin has read your concern.
-              </p>
+<div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
+    
+   {/* BAGONG HEADING AT INFO ICON */}
+<div className="flex justify-between items-center mb-4">
+  <h2 className="text-2xl font-bold text-foreground">Open Tickets</h2>
+  
+  {/* Ginamit ang 'relative' container para ma-position ang absolute na tooltip */}
+  <details className="relative group">
+    <summary 
+      className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
+                 hover:bg-primary/20 transition-all outline-none select-none list-none"
+    >
+      {/* Info Icon (Hindi na gumagamit ng text, puro icon na lang) */}
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
+        viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round"
+              d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+      </svg>
+    </summary>
 
-              <br></br>
+    {/* TOOLTIP/DETAILS CONTENT */}
+    <div 
+      className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
+                 shadow-2xl bg-white dark:bg-gray-900 text-sm 
+                 text-gray-700 dark:text-gray-300 leading-relaxed 
+                 z-10 animate-in fade-in slide-in-from-top-2 duration-300"
+      style={{ minWidth: '200px' }} // Para hindi masyadong paliit
+    >
+      <p className="mb-2">
+        Here you can see the concerns you have submitted. You can edit or delete them, 
+        and also check if the IT admin has read your concern.
+      </p>
+      
+      {/* Inayos ang Note text para mas kumpleto */}
+      <p className="font-semibold text-primary dark:text-blue-400 border-t border-border pt-2 mt-2">
+        Note: Once a ticket is created, it will move from here to **"Pending Concerns."**
+      </p>
+    </div>
+  </details>
+</div>
               <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
                 {/* Gumamit ng w-full at table-fixed para maiwasan ang horizontal scrollbar at masigurado ang column widths */}
                 <table className="w-full text-sm text-foreground text-center table-fixed">
                   <thead className="bg-gray-100 dark:bg-gray-800">
                     <tr className="h-12">
                       {/* Binigyan ng sapat na width, hindi mag-ttrucante */}
+                       <th className="px-4 py-3 font-semibold w-[30%]">Concern ID</th>
                       <th className="px-4 py-3 font-semibold w-[30%]">Concern</th>
                       {/* Itong column lang ang may fixed width at mag-ttrucante */}
                       <th className="px-4 py-3 font-semibold w-[45%]">Remarks</th>
@@ -880,33 +1066,38 @@ export default function Page() {
                     </tr>
                   </thead>
 
-                  <tbody className="text-center">
-                    {paginatedConcerns.map((item) => (
-                      <tr
-                        key={item.ConcernNumber}
-                        className="border-t border-border h-12 hover:bg-accent/60 hover:text-accent-foreground cursor-pointer transition"
-                        onClick={() => item.ConcernNumber && handleOpenConcern(item.ConcernNumber)}
-                      >
-                        {/* WALANG TRUNCATION DITO (Concern) */}
-                        <td className="px-4 py-2 font-medium text-foreground">
-                          {item.type || "No type"}
-                        </td>
-                        {/* TRUNCATION APPLIED DITO (Remarks) */}
-                        <td className="px-4 py-2 font-medium text-foreground truncate whitespace-nowrap overflow-hidden">
-                          {item.remarks || "No remarks"}
-                        </td>
-                        {/* READ STATUS - Walang truncation */}
-  <td className="px-4 py-2">
-  <span className="px-2 py-1 text-xs rounded-full 
-                   bg-red-100 text-red-700 
-                   dark:bg-red-900/50 dark:text-red-300 font-semibold">
-    {item.readstatus ? item.readstatus : "No Read Status"}
-  </span>
-</td>
+                 <tbody className="text-center">
+  {paginatedConcerns.map((item) => (
+    <tr
+      key={item.ConcernNumber}
+      className="border-t border-border h-12 hover:bg-accent/60 hover:text-accent-foreground cursor-pointer transition"
+      onClick={() => item.ConcernNumber && handleOpenConcern(item.ConcernNumber)}
+    >
+      <td className="px-4 py-2 font-normal text-foreground">
+        {item.ConcernNumber || "No ID"}
+      </td>
+      <td className="px-4 py-2 font-normal text-foreground">
+        {item.type || "No type"}
+      </td>
+      <td className="px-4 py-2 font-normal text-foreground truncate whitespace-nowrap overflow-hidden">
+        {item.remarks || "No remarks"}
+      </td>
+      <td className="px-4 py-2 font-normal">
+        <span
+          className={`px-2 py-1 text-xs rounded-full font-semibold ${
+            item.readstatus?.toLowerCase() === "read"
+              ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+              : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+          }`}
+        >
+          {item.readstatus || "No Read Status"}
+        </span>
+      </td>
+    </tr>
+  ))}
+</tbody>
 
-                      </tr>
-                    ))}
-                  </tbody>
+
                 </table>
               </div>
 
@@ -1116,11 +1307,38 @@ export default function Page() {
           )}
           {currentPage === "closedTickets" && (
             <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4 text-foreground">Closed Tickets</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Here you can see your concerns that have been completed. You can also check the status of each concern here.
-              </p>
-              <br></br>
+{/* BAGONG HEADING AT INFO ICON CONTAINER */}
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-2xl font-bold text-foreground">Closed Tickets</h2>
+      
+      {/* TOOLTIP/INFO ICON BLOCK */}
+      <details className="relative group">
+        <summary 
+          className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
+                     hover:bg-primary/20 transition-all outline-none select-none list-none"
+        >
+          {/* Info Icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+          </svg>
+        </summary>
+
+        {/* TOOLTIP/DETAILS CONTENT */}
+        <div 
+          className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
+                     shadow-2xl bg-white dark:bg-gray-900 text-sm 
+                     text-gray-700 dark:text-gray-300 leading-relaxed z-10 
+                     animate-in fade-in slide-in-from-top-2 duration-300"
+          style={{ minWidth: '200px' }} 
+        >
+          <p>
+            Here you can see your concerns that have been completed. You can also check the final status of each concern here.
+          </p>
+        </div>
+      </details>
+    </div>
               {loadingTickets ? (
                 <p className="text-center mt-4 text-foreground">Loading tickets...</p>
               ) : closedTickets.length === 0 ? (
@@ -1175,13 +1393,42 @@ export default function Page() {
 
             </div>
           )}
+
           {currentPage === "pendingConcerns" && (
             <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
-              <h2 className="text-2xl font-bold text-foreground mb-4">Pending Concerns</h2>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Here you can see your pending or ongoing concerns. You can check which technician is assigned and who is processing your concern.
-              </p>
-              <br></br>
+{/* BAGONG HEADING AT INFO ICON CONTAINER */}
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-2xl font-bold text-foreground">Pending Concerns</h2>
+      
+      {/* TOOLTIP/INFO ICON BLOCK */}
+      <details className="relative group">
+        <summary 
+          className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
+                     hover:bg-primary/20 transition-all outline-none select-none list-none"
+        >
+          {/* Info Icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round"
+                  d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+          </svg>
+        </summary>
+
+        {/* TOOLTIP/DETAILS CONTENT */}
+        <div 
+          className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
+                     shadow-2xl bg-white dark:bg-gray-900 text-sm 
+                     text-gray-700 dark:text-gray-300 leading-relaxed z-10 
+                     animate-in fade-in slide-in-from-top-2 duration-300"
+          style={{ minWidth: '200px' }} 
+        >
+          <p>
+            Here you can see your pending or ongoing concerns. You can check which technician is assigned and who is processing your concern.
+          </p>
+        </div>
+      </details>
+    </div>
+
 
               <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
                 {/* Removed table-fixed and min-w-full to allow columns to size naturally */}

@@ -410,31 +410,57 @@ const handleUpdate = async () => {
 
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
+    e.preventDefault();
 
-        // 2. Form Validation: Check required fields
-        if (!validateForm(ticketForm)) {
-            toast.error("Please fill out all required fields marked in red.");
-            return;
-        }
-
-        try {
-            // 🚀 Call the API function
-            await createTicket(ticketForm);
-            console.log("🧾 Ticket submitted:", ticketForm);
-            toast.success("Ticket successfully created from concern!")
-            // Cleanup and Close
-            setTicketForm(initialNewTicketState);
-            setIsAddDialogOpen(false);
-            setValidationErrors({});
-
-            // 1. Page Refresh: DAPAT MAG REFRESH YUNG PAGE KAPAG NAG TRUE
-            window.location.reload();
-
-        } catch (error) {
-            toast.error("Failed to submit ticket.");
-        }
+    // 2. Form Validation: Check required fields
+    if (!validateForm(ticketForm)) {
+        toast.error("Please fill out all required fields marked in red.");
+        return;
     }
+
+    try {
+        // 🚀 Call the API function to create ticket
+        await createTicket(ticketForm);
+        console.log("🧾 Ticket submitted:", ticketForm);
+        toast.success("Ticket successfully created from concern!");
+
+        // 🔹 Automatic POST to inbox
+        try {
+            const inboxRes = await fetch("/api/inbox", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ConcernNumber: selectedMail?.ConcernNumber,
+                    remarks: "Technician assigned to your request. Please expect an update soon."
+                }),
+            });
+
+            if (!inboxRes.ok) {
+                const text = await inboxRes.text();
+                console.error("Failed to post to inbox:", text);
+                toast.warning("Ticket created but failed to notify inbox.");
+            } else {
+                const inboxData = await inboxRes.json();
+                console.log("Inbox created:", inboxData);
+            }
+        } catch (err) {
+            console.error("Inbox API error:", err);
+            toast.warning("Ticket created but failed to notify inbox.");
+        }
+
+        // Cleanup and Close
+        setTicketForm(initialNewTicketState);
+        setIsAddDialogOpen(false);
+        setValidationErrors({});
+
+        // 1. Page Refresh: DAPAT MAG REFRESH YUNG PAGE KAPAG NAG TRUE
+        window.location.reload();
+
+    } catch (error) {
+        toast.error("Failed to submit ticket.");
+    }
+};
+
 
     const handleManualSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -518,16 +544,18 @@ const handleUpdate = async () => {
                                         <span className="font-semibold text-gray-900">{mail.name}</span>
 
                                         <span className="px-4 py-2">
-                                            {new Date(mail.createdAt).toLocaleString("en-US", {
-                                                year: "numeric",
-                                                month: "2-digit",
-                                                day: "2-digit",
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                                hour12: true,
-                                            })}
-                                        </span>
-
+  {new Date(mail.createdAt).toLocaleString("en-US", {
+    // Para sa Month Day, Year (e.g., December 20, 2025)
+    year: "numeric",
+    month: "long", // Ito ang nagpapalabas ng buwan bilang text (December)
+    day: "numeric",  // Ito ang nagpapalabas ng araw (20)
+    
+    // Para sa Oras (e.g., 03:48 PM)
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  })}
+</span>
 
 
                                     </div>
