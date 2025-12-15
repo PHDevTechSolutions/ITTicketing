@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Send, X } from "lucide-react";
 import { SidebarLeft } from "../components/sidebar-left";
 import { SidebarRight } from "../components/sidebar-right";
@@ -29,12 +29,14 @@ import {
 } from "@/components/ui/select";
 
 import { Button } from "@/components/ui/button";
-import {  Dialog,
+import {
+  Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose, } from "@/components/ui/dialog";
+  DialogClose,
+} from "@/components/ui/dialog";
 import { ModeToggle } from "../components/mode-toggle";
 
 export type PageType =
@@ -58,6 +60,7 @@ interface Concern {
   remarks: string;
   Email: string;
   readstatus: string;
+  ConcernNumber?: string;
 }
 
 interface ITConcern {
@@ -80,6 +83,7 @@ interface ITConcern {
   processedBy: string; // Used in Dialog
   Email: string;
   readstatus: string;
+  ConcernNumber?: string;
   // --------------------
 }
 
@@ -141,20 +145,24 @@ interface Ticket {
   requesttype: string;
   Email: string;
   readstatus: string;
+  ConcernNumber: string;
 }
 
 
 
 export default function Page() {
-
+  const [readInbox, setReadInbox] = React.useState<string[]>([]);
   const [currentPage, setCurrentPage] = React.useState<PageType>("home");
   const [concerns, setConcerns] = React.useState<ConcernItem[]>([]);
   const [submitMessage, setSubmitMessage] = React.useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [selectedConcern, setSelectedConcern] = React.useState<ConcernItem | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-const [unreadCount, setUnreadCount] = useState(0)
-const [readCount, setReadCount] = useState(0)
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  const [readCount, setReadCount] = useState(0)
+  const [activeItem, setActiveItem] = useState<string | null>("Pending Concern")
+  // 🔥 FILTER BASED ON SELECTED DATE
+  // 🔹 Filter tickets based on selected date and active calendar item
 
   const initialConcernState: Concern = {
     FullName: "",
@@ -210,72 +218,78 @@ const [readCount, setReadCount] = useState(0)
   };
 
   const timeAgo = (date: Date) => {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime(); // difference in ms
+    const now = new Date();
+    const diff = now.getTime() - date.getTime(); // difference in ms
 
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
 
-  if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
-  return "Just now";
-};
+    if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
+    if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+    if (minutes > 0) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+    return "Just now";
+  };
 
 
-  React.useEffect(() => {
-    fetchInbox();
+React.useEffect(() => {
+  fetchInbox();
+
   async function loadConcerns() {
     try {
-      // Load current user info
-      const storedUser = localStorage.getItem("currentUser")
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser)
-        setNewConcern((prev) => ({
-          ...prev,
-          FullName: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
-          department: parsedUser.department || "",
-          Email: parsedUser.Email,
-        }))
-      }
+      // 1️⃣ Load current user info
+      const storedUser = localStorage.getItem("currentUser");
+      if (!storedUser) return;
 
-      // Load all concerns
-      const res = await fetch("/api/euconcern")
-      const data = await res.json()
+      const parsedUser = JSON.parse(storedUser);
+      const userEmail = parsedUser.Email;
+
+      setNewConcern((prev) => ({
+        ...prev,
+        FullName: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
+        department: parsedUser.department || "",
+        Email: parsedUser.Email,
+        priority: "Medium",
+      }));
+
+      // 2️⃣ Load all concerns from API
+      const res = await fetch("/api/euconcern");
+      const data = await res.json();
 
       if (data.success && Array.isArray(data.data)) {
-        const mapped: ConcernItem[] = data.data.map((it: any) => ({
+        // 🔥 Filter by user email
+        const filtered = data.data.filter((item: any) => item.Email === userEmail);
+
+        const mapped: ConcernItem[] = filtered.map((it: any) => ({
           ...mapBackendToConcernItem(it),
-          readstatus:
-            it.readstatus?.toLowerCase() === "read" ? "read" : "unread",
-        }))
+          readstatus: it.readstatus?.toLowerCase() === "read" ? "read" : "unread",
+        }));
 
-        setConcerns(mapped)
+        setConcerns(mapped);
 
-        const unread = mapped.filter(
-          (c) => c.readstatus === "unread"
-        ).length
+        // 3️⃣ Load read inbox from localStorage
+        const storedRead = JSON.parse(localStorage.getItem("readInbox") || "[]");
 
-        const read = mapped.filter(
-          (c) => c.readstatus === "read"
-        ).length
+        // 4️⃣ Compute unread/read counts
+        const unread = mapped.filter((c) => !storedRead.includes(c.ConcernNumber)).length;
+        const read = mapped.filter((c) => storedRead.includes(c.ConcernNumber)).length;
 
-        setUnreadCount(unread)
-        setReadCount(read)
+        setUnreadCount(unread);
+        setReadCount(read);
+        setReadInbox(storedRead);
       } else {
-        console.error("euconcern: unexpected payload", data)
+        console.error("euconcern: unexpected payload", data);
       }
     } catch (error) {
-      console.error("Failed to load concerns:", error)
+      console.error("Failed to load concerns:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
-  loadConcerns()
-}, [])
+  loadConcerns();
+}, []);
 
 
 
@@ -306,50 +320,63 @@ const [readCount, setReadCount] = useState(0)
   };
 
   // Sa taas ng component
-const [inbox, setInbox] = useState<InboxItem[]>([]);
-const unreadCount1 = inbox.filter(item => item.readstatus === "Unread").length;
+  const [inbox, setInbox] = useState<InboxItem[]>([]);
+  const unreadCount1 = inbox.filter(item => item.readstatus === "Unread").length;
 
-const fetchInbox = async () => {
-  try {
-    const res = await fetch("/api/inbox");
-    if (!res.ok) {
-      console.error("Failed to fetch inbox:", await res.text());
-      return;
-    }
-
-    const data = await res.json();
-    if (data.success && Array.isArray(data.data)) {
-      setInbox(data.data);
-    } else {
-      console.error("Unexpected inbox data:", data);
-    }
-  } catch (error) {
-    console.error("Inbox fetch error:", error);
-  }
-};
-
-const handleOpenInbox = async (item: InboxItem) => {
-  setSelectedInboxItem(item);
-
-  if (item.readstatus === "Unread") {
+  const fetchInbox = async () => {
     try {
-      await fetch(`/api/inbox/${item.ConcernNumber}`, { method: "PATCH" });
+      const res = await fetch("/api/inbox");
+      if (!res.ok) {
+        console.error("Failed to fetch inbox:", await res.text());
+        return;
+      }
 
-      // Update UI locally
-      setInbox((prev) =>
-        prev.map((i) =>
-          i.ConcernNumber === item.ConcernNumber ? { ...i, readstatus: "Read" } : i
-        )
-      );
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setInbox(data.data);
+      } else {
+        console.error("Unexpected inbox data:", data);
+      }
     } catch (error) {
-      console.error("Failed to mark as read", error);
+      console.error("Inbox fetch error:", error);
     }
-  }
-};
-
-
-
+  };
   
+  const handleOpenInbox = async (item: InboxItem) => {
+    setSelectedInboxItem(item);
+
+    // Load stored read items from localStorage
+    const storedRead: string[] = JSON.parse(localStorage.getItem("readInbox") || "[]");
+
+    // Check if this item is already marked as read
+    const alreadyRead = storedRead.includes(item.ConcernNumber);
+
+    if (!alreadyRead) {
+      try {
+        // 1️⃣ Update DB
+        await fetch(`/api/inbox/${item.ConcernNumber}`, { method: "PATCH" });
+
+        // 2️⃣ Update localStorage
+        const updatedRead = [...storedRead, item.ConcernNumber];
+        localStorage.setItem("readInbox", JSON.stringify(updatedRead));
+        setReadInbox(updatedRead);
+
+        // 3️⃣ Update UI (unread/read count)
+        setInbox((prev) =>
+          prev.map((i) =>
+            i.ConcernNumber === item.ConcernNumber ? { ...i, readstatus: "Read" } : i
+          )
+        );
+
+        const unread = inbox.filter((i) => !updatedRead.includes(i.ConcernNumber)).length;
+        setUnreadCount(unread);
+      } catch (error) {
+        console.error("Failed to mark as read", error);
+      }
+    }
+  };
+
+
 
   // Open a concern by ConcernNumber (fetch full details)
   const handleOpenConcern = async (concernNumber: string) => {
@@ -450,41 +477,80 @@ const handleOpenInbox = async (item: InboxItem) => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [closedTickets, setClosedTickets] = useState<Ticket[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+
   // ----------------------------
   // FETCH API /api/tickets (GET)
   // ----------------------------
   const fetchTickets = async () => {
-    try {
-      const res = await fetch("/api/tickets");
-      const data = await res.json();
+  try {
+    const storedUser = localStorage.getItem("currentUser")
+    if (!storedUser) return
 
-      if (data.success) {
-        const allTickets: Ticket[] = data.data;
+    const { Email } = JSON.parse(storedUser)
 
-        // Active tickets: Pending or Ongoing
-        const activeTickets = allTickets.filter(
-          (t) => t.status === "Pending" || t.status === "Ongoing"
-        );
-        setTickets(activeTickets);
+    const res = await fetch(`/api/tickets?email=${encodeURIComponent(Email)}`)
+    const data = await res.json()
 
-        // Closed tickets: Finished
-        const finishedTickets = allTickets.filter((t) => t.status === "Finished");
-        setClosedTickets(finishedTickets);
-      }
-    } catch (error) {
-      console.error("Failed to load tickets:", error);
-    } finally {
-      setLoadingTickets(false);
+    if (data.success) {
+      const allTickets: Ticket[] = data.data
+
+      // Active tickets
+      const activeTickets = allTickets.filter(
+        (t) => t.status === "Pending" || t.status === "Ongoing"
+      )
+      setTickets(activeTickets)
+
+      // Closed tickets
+      const finishedTickets = allTickets.filter(
+        (t) => t.status === "Finished"
+      )
+      setClosedTickets(finishedTickets)
     }
-  };
+  } catch (error) {
+    console.error("Failed to load tickets:", error)
+  } finally {
+    setLoadingTickets(false)
+  }
+}
 
+
+  const filteredTickets = useMemo(() => {
+    if (!selectedDate) return tickets
+    return tickets.filter((t) => {
+      const created = new Date(t.createdAt)
+      return created.toDateString() === selectedDate.toDateString()
+    })
+  }, [selectedDate, tickets])
+
+  const filteredClosedTickets = useMemo(() => {
+    if (!selectedDate) return closedTickets
+    return closedTickets.filter(
+      (t) => new Date(t.createdAt).toDateString() === selectedDate.toDateString()
+    )
+  }, [selectedDate, closedTickets])
+
+  const filteredConcerns = useMemo(() => {
+    if (!selectedDate) return concerns; // show all if no date selected
+    return concerns.filter((item) => {
+      if (!item.createdAt) return false;
+      const itemDate = new Date(item.createdAt);
+      return itemDate.toDateString() === selectedDate.toDateString();
+    });
+  }, [concerns, selectedDate]);
+
+
+  // Fetch tickets on component mount
+  useEffect(() => {
+    fetchTickets()
+  }, [])
 
   // Load tickets once
   useEffect(() => {
     fetchTickets();
   }, []);
 
-  
+
 
 
 
@@ -562,11 +628,11 @@ const handleOpenInbox = async (item: InboxItem) => {
 
   const breadcrumbMap: Record<PageType, string> = {
     home: "DISRUPTIVE SOLUTIONS INC. HELP DESK",
-    inbox: "",
-    openTickets: "",
-    pendingConcerns: "",
-    closedTickets: "",
-    createConcern: "",
+    inbox: "Inbox",
+    openTickets: "Open Tickets",
+    pendingConcerns: "Pending Concerns",
+    closedTickets: "Closed Tickets",
+    createConcern: "Create Concern",
     trash: "",
   };
 
@@ -580,17 +646,36 @@ const handleOpenInbox = async (item: InboxItem) => {
       <SidebarInset>
         <header className="bg-background sticky top-0 flex h-14 shrink-0 items-center gap-2">
           <div className="flex flex-1 items-center gap-2 px-3">
-            {/* *** IDINAGDAG ANG ID PARA SA DOM TRIGGER *** */}
             <SidebarTrigger id="sidebar-toggle-button" />
             <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
+
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="line-clamp-1">{breadcrumbMap[currentPage]}</BreadcrumbPage>
+                  {/* Home button lagi */}
+                  <button
+                    onClick={() => setCurrentPage("home")}
+                    className="text-primary hover:underline line-clamp-1"
+                  >
+                    Dashboard
+                  </button>
                 </BreadcrumbItem>
+
+                {currentPage !== "home" && (
+                  <>
+                    <span className="px-2">→</span>
+                    <BreadcrumbItem>
+                      <BreadcrumbPage className="line-clamp-1">
+                        {breadcrumbMap[currentPage] || currentPage}
+                      </BreadcrumbPage>
+                    </BreadcrumbItem>
+                  </>
+                )}
               </BreadcrumbList>
             </Breadcrumb>
+
           </div>
+
           <div className="mr-5">
             <ModeToggle />
           </div>
@@ -805,22 +890,6 @@ const handleOpenInbox = async (item: InboxItem) => {
                     </Select>
                   </div>
 
-                  {/* Mode (Hardcoded) */}
-                  <div className="flex flex-col space-y-1.5">
-                    <Label className={getErrorClass("mode")}>Mode *</Label>
-                    <Select
-                      value={newConcern.mode}
-                      onValueChange={(val) => setNewConcern({ ...newConcern, mode: val })}
-                    >
-                      <SelectTrigger className={`w-full ${getErrorClass("mode")}`}>
-                        <SelectValue placeholder="Select mode" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Web Form">Web Form</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
                   {/* Site (Hardcoded) */}
                   <div className="flex flex-col space-y-1.5">
                     <Label className={getErrorClass("site")}>Site *</Label>
@@ -840,34 +909,29 @@ const handleOpenInbox = async (item: InboxItem) => {
                     </Select>
                   </div>
 
-                  {/* Date Sched */}
-                  <div className="flex flex-col space-y-1.5">
-                    <Label>Date Sched (optional)</Label>
-                    <Input
+                  {/* Date Sched (Hidden) */}
+                  <div className="hidden">
+                    <input
                       type="date"
-                      value={newConcern.dateSched}
-                      onChange={(e) => setNewConcern({ ...newConcern, dateSched: e.target.value })}
+                      value={newConcern.dateSched || ""}
+                      onChange={(e) =>
+                        setNewConcern({ ...newConcern, dateSched: e.target.value })
+                      }
                     />
                   </div>
 
-                  {/* Priority (Hardcoded) */}
-                  <div className="flex flex-col space-y-1.5">
-                    <Label className={getErrorClass("priority")}>Priority *</Label>
-                    <Select
-                      value={newConcern.priority}
-                      onValueChange={(val) => setNewConcern({ ...newConcern, priority: val })}
-                    >
-                      <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
-                        <SelectValue placeholder="Select priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Low">Low</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="High">High</SelectItem>
-                        <SelectItem value="Critical">Critical</SelectItem>
-                      </SelectContent>
-                    </Select>
+
+                  {/* Date Sched (Hidden) */}
+                  <div className="hidden">
+                    <input
+                      type="date"
+                      value={newConcern.dateSched || ""}
+                      onChange={(e) =>
+                        setNewConcern({ ...newConcern, dateSched: e.target.value })
+                      }
+                    />
                   </div>
+
                 </div>
 
                 {/* Remarks */}
@@ -903,161 +967,159 @@ const handleOpenInbox = async (item: InboxItem) => {
             </div>
           )}
 
-{currentPage === "inbox" && (
-  <div className="max-w-4xl mx-auto w-full">
-<div className="flex justify-between items-center mb-4">
-    <h2 className="text-2xl font-bold text-foreground">Inbox</h2>
-    
-    {/* TOOLTIP/INFO ICON BLOCK */}
-    <details className="relative group">
-      <summary 
-        className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
-                   hover:bg-primary/20 transition-all outline-none select-none list-none"
-      >
-        {/* Info Icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
-          viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round"
-                d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-        </svg>
-      </summary>
+          {currentPage === "inbox" && (
+            <div className="max-w-4xl mx-auto w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-foreground">Inbox</h2>
 
-      {/* TOOLTIP/DETAILS CONTENT */}
-      <div 
-        className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
+                {/* TOOLTIP/INFO ICON BLOCK */}
+                <details className="relative group">
+                  <summary
+                    className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
+                   hover:bg-primary/20 transition-all outline-none select-none list-none"
+                  >
+                    {/* Info Icon */}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                    </svg>
+                  </summary>
+
+                  {/* TOOLTIP/DETAILS CONTENT */}
+                  <div
+                    className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
                    shadow-2xl bg-white dark:bg-gray-900 text-sm 
                    text-gray-700 dark:text-gray-300 leading-relaxed z-10 
                    animate-in fade-in slide-in-from-top-2 duration-300"
-        style={{ minWidth: '200px' }} 
-      >
-        <p>
-          Here you can see updates on your concerns. Please check regularly for any new notifications or status changes.
-        </p>
-      </div>
-    </details>
-  </div>
-
-
-    {/* Unread indicator */}
-    {unreadCount1 > 0 && (
-      <div className="mb-2 flex items-center gap-2 text-sm text-blue-600 font-medium">
-        <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
-        You have {unreadCount1} unread {unreadCount1 === 1 ? "message" : "messages"}
-      </div>
-    )}
-
-    {/* Inbox list */}
-    <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm divide-y">
-      {inbox.length === 0 ? (
-        <div className="p-4 text-sm text-muted-foreground">
-          No inbox messages.
-        </div>
-      ) : (
-        inbox.map((item) => {
-          const readStatus = item.readstatus || "Unread";
-          const createdAt = item.createdAt ? new Date(item.createdAt) : new Date();
-
-          return (
-           <div
-  key={item.ConcernNumber}
-  className="flex items-start gap-3 p-4 hover:bg-muted/50 cursor-pointer"
-  onClick={() => handleOpenInbox(item)}
->
-
-              <div
-                className={`w-3 h-3 rounded-full mt-1 ${
-                  readStatus === "Unread"
-                    ? "bg-blue-500"
-                    : "bg-gray-400 dark:bg-gray-500"
-                }`}
-              ></div>
-
-              <div className="flex-1">
-                <div className="font-semibold text-foreground">{item.ConcernNumber}</div>
-                <div className="text-sm text-muted-foreground mt-0.5">
-                  {item.remarks || "Technician assigned to your request. Please expect an update soon."}
-                </div>
-<div className="text-xs text-muted-foreground mt-1">
-  {timeAgo(createdAt)} {readStatus === "Read" ? "• Read" : ""}
-</div>
-
+                    style={{ minWidth: '200px' }}
+                  >
+                    <p>
+                      Here you can see updates on your concerns. Please check regularly for any new notifications or status changes.
+                    </p>
+                  </div>
+                </details>
               </div>
-            </div>
-          );
-        })
-      )}
-    </div>
 
-    {/* Dialog outside of map */}
-    {selectedInboxItem && (
-      <Dialog open={!!selectedInboxItem} onOpenChange={() => setSelectedInboxItem(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{selectedInboxItem.ConcernNumber}</DialogTitle>
-          </DialogHeader>
-          <div className="p-4">
-            {selectedInboxItem.remarks}
-          </div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Close</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    )}
-  </div>
-)}
+
+              {/* Unread indicator */}
+              {/* Unread indicator */}
+              {unreadCount > 0 && (
+                <div className="mb-2 flex items-center gap-2 text-sm text-blue-600 font-medium">
+                  <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                  You have {unreadCount} unread {unreadCount === 1 ? "message" : "messages"}
+                </div>
+              )}
+
+
+              <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm divide-y">
+                {inbox.length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground">
+                    No inbox messages.
+                  </div>
+                ) : (
+                  inbox.map((item) => {
+                    const createdAt = item.createdAt ? new Date(item.createdAt) : new Date();
+                    const isRead = readInbox.includes(item.ConcernNumber) || item.readstatus === "Read";
+
+                    return (
+                      <div
+                        key={item.ConcernNumber}
+                        className={`flex items-start gap-3 p-4 cursor-pointer ${isRead ? "bg-gray-100 dark:bg-gray-800" : "hover:bg-muted/50"
+                          }`}
+                        onClick={() => handleOpenInbox(item)}
+                      >
+                        <div
+                          className={`w-3 h-3 rounded-full mt-1 ${isRead ? "bg-gray-400 dark:bg-gray-500" : "bg-blue-500"
+                            }`}
+                        ></div>
+
+                        <div className="flex-1">
+                          <div className="font-semibold text-foreground">{item.ConcernNumber}</div>
+                          <div className="text-sm text-muted-foreground mt-0.5">
+                            {item.remarks || "Technician assigned to your request. Please expect an update soon."}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {timeAgo(createdAt)} {isRead ? "• Read" : ""}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+
+              {/* Dialog outside of map */}
+              {selectedInboxItem && (
+                <Dialog open={!!selectedInboxItem} onOpenChange={() => setSelectedInboxItem(null)}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{selectedInboxItem.ConcernNumber}</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-4">
+                      {selectedInboxItem.remarks}
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Close</Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+          )}
 
           {/* OPEN TICKETS */}
           {currentPage === "openTickets" && (
-<div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
-    
-   {/* BAGONG HEADING AT INFO ICON */}
-<div className="flex justify-between items-center mb-4">
-  <h2 className="text-2xl font-bold text-foreground">Open Tickets</h2>
-  
-  {/* Ginamit ang 'relative' container para ma-position ang absolute na tooltip */}
-  <details className="relative group">
-    <summary 
-      className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
-                 hover:bg-primary/20 transition-all outline-none select-none list-none"
-    >
-      {/* Info Icon (Hindi na gumagamit ng text, puro icon na lang) */}
-      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
-        viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round"
-              d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-      </svg>
-    </summary>
+            <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
 
-    {/* TOOLTIP/DETAILS CONTENT */}
-    <div 
-      className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
+              {/* BAGONG HEADING AT INFO ICON */}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-foreground">Open Tickets</h2>
+
+                {/* Ginamit ang 'relative' container para ma-position ang absolute na tooltip */}
+                <details className="relative group">
+                  <summary
+                    className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
+                 hover:bg-primary/20 transition-all outline-none select-none list-none"
+                  >
+                    {/* Info Icon (Hindi na gumagamit ng text, puro icon na lang) */}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                    </svg>
+                  </summary>
+
+                  {/* TOOLTIP/DETAILS CONTENT */}
+                  <div
+                    className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
                  shadow-2xl bg-white dark:bg-gray-900 text-sm 
                  text-gray-700 dark:text-gray-300 leading-relaxed 
                  z-10 animate-in fade-in slide-in-from-top-2 duration-300"
-      style={{ minWidth: '200px' }} // Para hindi masyadong paliit
-    >
-      <p className="mb-2">
-        Here you can see the concerns you have submitted. You can edit or delete them, 
-        and also check if the IT admin has read your concern.
-      </p>
-      
-      {/* Inayos ang Note text para mas kumpleto */}
-      <p className="font-semibold text-primary dark:text-blue-400 border-t border-border pt-2 mt-2">
-        Note: Once a ticket is created, it will move from here to **"Pending Concerns."**
-      </p>
-    </div>
-  </details>
-</div>
+                    style={{ minWidth: '200px' }} // Para hindi masyadong paliit
+                  >
+                    <p className="mb-2">
+                      Here you can see the concerns you have submitted. You can edit or delete them,
+                      and also check if the IT admin has read your concern.
+                    </p>
+
+                    {/* Inayos ang Note text para mas kumpleto */}
+                    <p className="font-semibold text-primary dark:text-blue-400 border-t border-border pt-2 mt-2">
+                      Note: Once a ticket is created, it will move from here to **"Pending Concerns."**
+                    </p>
+                  </div>
+                </details>
+              </div>
               <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
                 {/* Gumamit ng w-full at table-fixed para maiwasan ang horizontal scrollbar at masigurado ang column widths */}
                 <table className="w-full text-sm text-foreground text-center table-fixed">
                   <thead className="bg-gray-100 dark:bg-gray-800">
                     <tr className="h-12">
                       {/* Binigyan ng sapat na width, hindi mag-ttrucante */}
-                       <th className="px-4 py-3 font-semibold w-[30%]">Concern ID</th>
+                      <th className="px-4 py-3 font-semibold w-[30%]">Concern ID</th>
                       <th className="px-4 py-3 font-semibold w-[30%]">Concern</th>
                       {/* Itong column lang ang may fixed width at mag-ttrucante */}
                       <th className="px-4 py-3 font-semibold w-[45%]">Remarks</th>
@@ -1066,36 +1128,35 @@ const handleOpenInbox = async (item: InboxItem) => {
                     </tr>
                   </thead>
 
-                 <tbody className="text-center">
-  {paginatedConcerns.map((item) => (
-    <tr
-      key={item.ConcernNumber}
-      className="border-t border-border h-12 hover:bg-accent/60 hover:text-accent-foreground cursor-pointer transition"
-      onClick={() => item.ConcernNumber && handleOpenConcern(item.ConcernNumber)}
-    >
-      <td className="px-4 py-2 font-normal text-foreground">
-        {item.ConcernNumber || "No ID"}
-      </td>
-      <td className="px-4 py-2 font-normal text-foreground">
-        {item.type || "No type"}
-      </td>
-      <td className="px-4 py-2 font-normal text-foreground truncate whitespace-nowrap overflow-hidden">
-        {item.remarks || "No remarks"}
-      </td>
-      <td className="px-4 py-2 font-normal">
-        <span
-          className={`px-2 py-1 text-xs rounded-full font-semibold ${
-            item.readstatus?.toLowerCase() === "read"
-              ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-              : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-          }`}
-        >
-          {item.readstatus || "No Read Status"}
-        </span>
-      </td>
-    </tr>
-  ))}
-</tbody>
+                  <tbody className="text-center">
+                    {filteredConcerns.map((item) => (
+                      <tr
+                        key={item.ConcernNumber}
+                        className="border-t border-border h-12 hover:bg-accent/60 hover:text-accent-foreground cursor-pointer transition"
+                        onClick={() => item.ConcernNumber && handleOpenConcern(item.ConcernNumber)}
+                      >
+                        <td className="px-4 py-2 font-normal text-foreground">
+                          {item.ConcernNumber || "No ID"}
+                        </td>
+                        <td className="px-4 py-2 font-normal text-foreground">
+                          {item.type || "No type"}
+                        </td>
+                        <td className="px-4 py-2 font-normal text-foreground truncate whitespace-nowrap overflow-hidden">
+                          {item.remarks || "No remarks"}
+                        </td>
+                        <td className="px-4 py-2 font-normal">
+                          <span
+                            className={`px-2 py-1 text-xs rounded-full font-semibold ${item.readstatus?.toLowerCase() === "read"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                              : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                              }`}
+                          >
+                            {item.readstatus || "No Read Status"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
 
 
                 </table>
@@ -1191,6 +1252,24 @@ const handleOpenInbox = async (item: InboxItem) => {
 
                       {/* Type of Concern (FIXED: onValueChange uses setSelectedConcern) */}
                       <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("requestType")}>Request Type *</Label>
+                        <Select
+                          value={selectedConcern.requestType || ""}
+                          onValueChange={(val) => setSelectedConcern({ ...selectedConcern, requestType: val })} // <-- FIXED
+                        >
+                          <SelectTrigger className={`w-full ${getErrorClass("requestType")}`}>
+                            <SelectValue placeholder="Select request type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Incident">Incident</SelectItem>
+                            <SelectItem value="Request">Request</SelectItem>
+
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Type of Concern (FIXED: onValueChange uses setSelectedConcern) */}
+                      <div className="flex flex-col space-y-1.5">
                         <Label className={getErrorClass("type")}>Type of Concern *</Label>
                         <Select
                           value={selectedConcern.type || ""}
@@ -1214,6 +1293,26 @@ const handleOpenInbox = async (item: InboxItem) => {
                         </Select>
                       </div>
 
+                      <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("site")}>Site *</Label>
+                        <Select
+                          value={selectedConcern.site || ""}
+                          onValueChange={(val) => setSelectedConcern({ ...selectedConcern, site: val })} // <-- FIXED
+                        >
+                          <SelectTrigger className={`w-full ${getErrorClass("site")}`}>
+                            <SelectValue placeholder="Select site" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Disruptive Solutions Inc - Pasig">Disruptive Solutions Inc - Pasig</SelectItem>
+                            <SelectItem value="Disruptive Solutions Inc - J&L">Disruptive Solutions Inc - J&L</SelectItem>
+                            <SelectItem value="Disruptive Solutions Inc - Primex">Disruptive Solutions Inc - Primex</SelectItem>
+                            <SelectItem value="Buildchem">Buildchem</SelectItem>
+
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+
                       {/* Remarks (Correct) */}
                       <div>
                         <label className="font-semibold text-foreground">Remarks:</label>
@@ -1229,36 +1328,27 @@ const handleOpenInbox = async (item: InboxItem) => {
 
                       {/* Date Scheduled (Correct) */}
                       <div>
-                        <label className="font-semibold text-foreground">Date Scheduled:</label>
+                        <label className="font-semibold text-foreground">Date Created:</label>
                         <input
-                          type="date"
-                          value={selectedConcern.dateSchedd ? selectedConcern.dateSchedd.substring(0, 10) : ""}
-                          onChange={(e) =>
-                            setSelectedConcern({ ...selectedConcern, dateSchedd: e.target.value })
+                          type="text"
+                          value={
+                            selectedConcern.createdAt
+                              ? new Date(selectedConcern.createdAt).toLocaleString("en-US", {
+                                month: "long",
+                                day: "2-digit",
+                                year: "numeric",
+                                hour: "numeric",
+                                minute: "2-digit",
+                                hour12: true,
+                              })
+                              : ""
                           }
-                          className="w-full border border-border bg-background text-foreground
-                  px-2 py-1 rounded focus:ring-2 focus:ring-primary outline-none"
+                          disabled
+                          className="w-full border border-border bg-muted text-foreground
+      px-2 py-1 rounded cursor-not-allowed"
                         />
                       </div>
 
-                      {/* Priority (FIXED: onValueChange uses setSelectedConcern) */}
-                      <div className="flex flex-col space-y-1.5">
-                        <Label className={getErrorClass("priority")}>Priority *</Label>
-                        <Select
-                          value={selectedConcern.priority || ""}
-                          onValueChange={(val) => setSelectedConcern({ ...selectedConcern, priority: val })} // <-- FIXED
-                        >
-                          <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Low">Low</SelectItem>
-                            <SelectItem value="Medium">Medium</SelectItem>
-                            <SelectItem value="High">High</SelectItem>
-                            <SelectItem value="Critical">Critical</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
 
                       {/* Concern Number (Correct) */}
                       <div>
@@ -1307,50 +1397,35 @@ const handleOpenInbox = async (item: InboxItem) => {
           )}
           {currentPage === "closedTickets" && (
             <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
-{/* BAGONG HEADING AT INFO ICON CONTAINER */}
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-2xl font-bold text-foreground">Closed Tickets</h2>
-      
-      {/* TOOLTIP/INFO ICON BLOCK */}
-      <details className="relative group">
-        <summary 
-          className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
-                     hover:bg-primary/20 transition-all outline-none select-none list-none"
-        >
-          {/* Info Icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
-            viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-          </svg>
-        </summary>
+              {/* Heading & tooltip */}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-foreground">Closed Tickets</h2>
+                <details className="relative group">
+                  <summary className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 hover:bg-primary/20 transition-all outline-none select-none list-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                    </svg>
+                  </summary>
+                  <div className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border shadow-2xl bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-300 leading-relaxed z-10 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <p>
+                      Here you can see your concerns that have been completed. You can also check the final status of each concern here.
+                    </p>
+                  </div>
+                </details>
+              </div>
 
-        {/* TOOLTIP/DETAILS CONTENT */}
-        <div 
-          className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
-                     shadow-2xl bg-white dark:bg-gray-900 text-sm 
-                     text-gray-700 dark:text-gray-300 leading-relaxed z-10 
-                     animate-in fade-in slide-in-from-top-2 duration-300"
-          style={{ minWidth: '200px' }} 
-        >
-          <p>
-            Here you can see your concerns that have been completed. You can also check the final status of each concern here.
-          </p>
-        </div>
-      </details>
-    </div>
               {loadingTickets ? (
                 <p className="text-center mt-4 text-foreground">Loading tickets...</p>
-              ) : closedTickets.length === 0 ? (
+              ) : filteredClosedTickets.length === 0 ? (
                 <p className="text-center mt-4 text-foreground">No closed tickets found.</p>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
-                  {/* Removed table-fixed and min-w-full to allow columns to size naturally */}
                   <table className="w-full text-sm text-foreground text-center">
                     <thead className="bg-gray-100 dark:bg-gray-800">
                       <tr className="h-12">
                         <th className="px-4 font-semibold">Request Type</th>
-                        {/* ADDED max-w-xs to constrain the Group column */}
                         <th className="px-4 font-semibold max-w-xs">Group</th>
                         <th className="px-4 font-semibold">Technician</th>
                         <th className="px-4 font-semibold">Type of Concern</th>
@@ -1361,15 +1436,11 @@ const handleOpenInbox = async (item: InboxItem) => {
                     </thead>
 
                     <tbody>
-                      {closedTickets.map((ticket) => (
-                        <tr
-                          key={ticket.id}
-                          className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12"
-                        >
-                          <td className="px-4 py-3">{ticket.requesttype}</td>
-                          {/* TRUNCATION APPLIED ONLY TO THE GROUP COLUMN */}
-                          <td className="px-4 py-3 max-w-xs truncate whitespace-nowrap overflow-hidden">{ticket.group}</td>
+                      {filteredClosedTickets.map((ticket) => (
+                        <tr key={ticket.id} className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12">
 
+                          <td className="px-4 py-3">{ticket.requesttype}</td>
+                          <td className="px-4 py-3 max-w-xs truncate whitespace-nowrap overflow-hidden">{ticket.group}</td>
                           <td className="px-4 py-3">{ticket.technicianname}</td>
                           <td className="px-4 py-3">{ticket.type}</td>
                           <td className="px-4 py-3">{ticket.status}</td>
@@ -1390,44 +1461,43 @@ const handleOpenInbox = async (item: InboxItem) => {
                   </table>
                 </div>
               )}
-
             </div>
           )}
 
           {currentPage === "pendingConcerns" && (
             <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
-{/* BAGONG HEADING AT INFO ICON CONTAINER */}
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-2xl font-bold text-foreground">Pending Concerns</h2>
-      
-      {/* TOOLTIP/INFO ICON BLOCK */}
-      <details className="relative group">
-        <summary 
-          className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
-                     hover:bg-primary/20 transition-all outline-none select-none list-none"
-        >
-          {/* Info Icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
-            viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round"
-                  d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-          </svg>
-        </summary>
+              {/* BAGONG HEADING AT INFO ICON CONTAINER */}
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-foreground">Pending Concerns</h2>
 
-        {/* TOOLTIP/DETAILS CONTENT */}
-        <div 
-          className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
+                {/* TOOLTIP/INFO ICON BLOCK */}
+                <details className="relative group">
+                  <summary
+                    className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
+                     hover:bg-primary/20 transition-all outline-none select-none list-none"
+                  >
+                    {/* Info Icon */}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
+                      viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round"
+                        d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
+                    </svg>
+                  </summary>
+
+                  {/* TOOLTIP/DETAILS CONTENT */}
+                  <div
+                    className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
                      shadow-2xl bg-white dark:bg-gray-900 text-sm 
                      text-gray-700 dark:text-gray-300 leading-relaxed z-10 
                      animate-in fade-in slide-in-from-top-2 duration-300"
-          style={{ minWidth: '200px' }} 
-        >
-          <p>
-            Here you can see your pending or ongoing concerns. You can check which technician is assigned and who is processing your concern.
-          </p>
-        </div>
-      </details>
-    </div>
+                    style={{ minWidth: '200px' }}
+                  >
+                    <p>
+                      Here you can see your pending or ongoing concerns. You can check which technician is assigned and who is processing your concern.
+                    </p>
+                  </div>
+                </details>
+              </div>
 
 
               <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
@@ -1436,51 +1506,55 @@ const handleOpenInbox = async (item: InboxItem) => {
                   <thead className="bg-gray-100 dark:bg-gray-800">
                     <tr className="h-12">
                       {/* Removed width classes from most headers */}
+                      <th className="px-4 font-semibold">Concen ID</th>
                       <th className="px-4 font-semibold">Request Type</th>
                       {/* ADDED max-w-xs to constrain the Group column */}
                       <th className="px-4 font-semibold max-w-xs">Group</th>
                       <th className="px-4 font-semibold">Technician</th>
                       <th className="px-4 font-semibold">Type of Concern</th>
                       <th className="px-4 font-semibold">Status</th>
-                      <th className="px-4 font-semibold">Date Created</th>
+                      <th className="px-4 font-semibold">Date Scheduled</th>
                       <th className="px-4 font-semibold">Processed by</th>
                     </tr>
                   </thead>
-
                   <tbody>
-                    {tickets.map((t) => (
+                    {filteredTickets.map((t) => (
                       <tr
                         key={t.id}
                         className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12"
                       >
+                        <td className="px-4 py-3">{t.ConcernNumber}</td>
                         <td className="px-4 py-3">{t.requesttype}</td>
-                        {/* TRUNCATION APPLIED ONLY TO THE GROUP COLUMN */}
                         <td className="px-4 py-3 max-w-xs truncate whitespace-nowrap overflow-hidden">{t.group}</td>
-
                         <td className="px-4 py-3">{t.technicianname}</td>
                         <td className="px-4 py-3">{t.type}</td>
                         <td className="px-4 py-3">{t.status}</td>
                         <td className="px-4 py-3">
-                          {new Date(t.createdAt).toLocaleString("en-US", {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: true,
-                          })}
+                          <span className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
+                            {new Date(t.dateSched + "T00:00:00").toLocaleDateString("en-US", {
+                              year: "numeric",
+                              month: "long",
+                              day: "2-digit",
+                            })}
+                          </span>
                         </td>
+
                         <td className="px-4 py-3">{t.processedBy}</td>
                       </tr>
                     ))}
                   </tbody>
+
+
                 </table>
               </div>
             </div>
           )}
         </div>
       </SidebarInset>
-      <SidebarRight />
+      <SidebarRight
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+      />
     </SidebarProvider>
   )
 }

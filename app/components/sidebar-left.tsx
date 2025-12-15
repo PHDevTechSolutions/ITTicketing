@@ -247,14 +247,15 @@ export function SidebarLeft({
         {/* LOGOUT */}
         <Dialog open={openLogout} onOpenChange={setOpenLogout}>
           <DialogTrigger asChild>
-            <Button
-              variant="secondary"
-              size="icon"
-              className="bg-red-100 hover:bg-red-200 text-red-700"
-              title="Logout"
-            >
-              <LogOut className="h-5 w-5" />
-            </Button>
+<Button
+  variant="secondary"
+  size="icon"
+  className="bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-800 dark:hover:bg-red-700 dark:text-red-300"
+  title="Logout"
+>
+  <LogOut className="h-5 w-5" />
+</Button>
+
           </DialogTrigger>
 
           <DialogContent className="sm:max-w-[400px]">

@@ -18,6 +18,7 @@ interface IncomingTicketData {
   group: string;
   technicianname: string;
   ticketNumber?: string;
+  ConcernNumber: string;
   id?: string;
   createdAt?: Date;
 }
@@ -38,44 +39,52 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ----------------------------------------------------------------------
   // --- 🚀 GET: FETCH ALL TICKETS ---
   // ----------------------------------------------------------------------
-  if (req.method === 'GET') {
-    try {
-      const tickets = await ticketsCollection.find({})
-        .sort({ createdAt: -1 })
-        .toArray();
+// ----------------------------------------------------------------------
+// --- 🚀 GET: FETCH ALL TICKETS (with optional email filter) ---
+// ----------------------------------------------------------------------
+if (req.method === 'GET') {
+  try {
+    const { email } = req.query; // Kunin ang email query parameter
+    const query: any = email ? { Email: email } : {}; // Kung may email, i-filter
 
-      // 🔥 MAP ALL DATA (Kompleto, walang tinatago)
-      const formattedTickets = tickets.map(ticket => ({
-        id: ticket.ticketNumber || ticket._id.toHexString(),
-        ticketNumber: ticket.ticketNumber || "N/A",
-        Fullname: ticket.Fullname,
-        department: ticket.department,
-        dateSched: ticket.dateSched,
-        type: ticket.type,
-        status: ticket.status,
-        remarks: ticket.remarks,
-        processedBy: ticket.processedBy,
-        priority: ticket.priority,
-        requesttype: ticket.requesttype,
-        mode: ticket.mode,
-        site: ticket.site,
-        group: ticket.group,
-        technicianname: ticket.technicianname,
-        createdAt: ticket.createdAt ? ticket.createdAt.toISOString() : "N/A",
-      }));
+    const tickets = await ticketsCollection.find(query)
+      .sort({ createdAt: -1 })
+      .toArray();
 
-      return res.status(200).json({
-        success: true,
-        data: formattedTickets,
-        message: 'Tickets fetched successfully.'
-      });
+    // 🔥 MAP ALL DATA (Kompleto, walang tinatago)
+    const formattedTickets = tickets.map(ticket => ({
+      id: ticket.ticketNumber || ticket._id.toHexString(),
+      ticketNumber: ticket.ticketNumber || "N/A",
+      ConcernNumber: ticket.ConcernNumber, 
+      Fullname: ticket.Fullname,
+      department: ticket.department,
+      dateSched: ticket.dateSched,
+      type: ticket.type,
+      status: ticket.status,
+      remarks: ticket.remarks,
+      processedBy: ticket.processedBy,
+      priority: ticket.priority,
+      requesttype: ticket.requesttype,
+      mode: ticket.mode,
+      site: ticket.site,
+      group: ticket.group,
+      technicianname: ticket.technicianname,
+      createdAt: ticket.createdAt ? ticket.createdAt.toISOString() : "N/A",
+    }));
 
-    } catch (error) {
-      console.error('Ticket fetching failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during ticket fetching.';
-      return res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
-    }
+    return res.status(200).json({
+      success: true,
+      data: formattedTickets,
+      message: 'Tickets fetched successfully.'
+    });
+
+  } catch (error) {
+    console.error('Ticket fetching failed:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during ticket fetching.';
+    return res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
   }
+}
+
 
   // ----------------------------------------------------------------------
   // --- 📝 POST: CREATE TICKET ---

@@ -1,41 +1,36 @@
-import * as React from "react"
-import { Plus } from "lucide-react"
+"use client"
 
-import { Calendars } from "../components/calendars"
+import * as React from "react"
+import { Check, ChevronRight } from "lucide-react"
+
 import { DatePicker } from "../components/date-picker"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarRail,
   SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
 } from "@/components/ui/sidebar"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
-
-const data = {
-  calendars: [
-    {
-      name: "My Calendars",
-      items: ["Personal", "Work", "Family"],
-    },
-    {
-      name: "Favorites",
-      items: ["Holidays", "Birthdays"],
-    },
-    {
-      name: "Other",
-      items: ["Travel", "Reminders", "Deadlines"],
-    },
-  ],
+interface SidebarRightProps extends React.ComponentProps<typeof Sidebar> {
+  selectedDate: Date | null
+  onDateChange: (date: Date | null) => void
 }
 
-export function SidebarRight({
-  ...props
-}: React.ComponentProps<typeof Sidebar>) {
+const calendarData = [
+  {
+    name: "",
+    items: [""],
+  },
+]
+
+export function SidebarRight({ selectedDate, onDateChange, ...props }: SidebarRightProps) {
   return (
     <Sidebar
       collapsible="none"
@@ -43,17 +38,43 @@ export function SidebarRight({
       {...props}
     >
       <SidebarContent>
-        <DatePicker />
+        {/* DatePicker */}
+        <DatePicker
+          selectedDate={selectedDate}
+          onChange={onDateChange}
+        />
+
         <SidebarSeparator className="mx-0" />
-        <Calendars calendars={data.calendars} />
+
+        {/* Calendars / Menu items */}
+        {calendarData.map((calendar, index) => (
+          <React.Fragment key={calendar.name}>
+            <SidebarGroup className="py-0">
+              <Collapsible defaultOpen={index === 0} className="group/collapsible">
+                <SidebarGroupLabel
+                  asChild
+                  className="group/label text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground w-full text-sm"
+                >
+                  <CollapsibleTrigger>
+                    {calendar.name}
+                
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </SidebarGroup>
+          </React.Fragment>
+        ))}
       </SidebarContent>
+
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton>
-              <Plus />
-              <span>New Calendar</span>
-            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

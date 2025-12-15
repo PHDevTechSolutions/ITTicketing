@@ -48,7 +48,7 @@ interface MailItem {
     status: string
     ConcernNumber?: string; // add this
     requesttype1: string
-    type1: string
+    type: string
     createdAt: string;
     site: string;
     readstatus: string;
@@ -196,7 +196,7 @@ const useFetchList = (apiPath: string, fallbackData: string[]) => {
 // --- Main Component ---
 export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const [mails, setMails] = useState<MailItem[]>([]);
-    
+
     useEffect(() => {
         const fetchConcerns = async () => {
             try {
@@ -216,6 +216,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                     createdAt: c.createdAt ?? "N/A", // <-- use the DB value directly
                     requesttype1: c.reqt,
                     site: c.site,
+                    type: c.type,
                     teaser: `${c.remarks}.`,
                     priority: c.priority || "Normal",
                     status: c.status || "Pending",
@@ -231,6 +232,8 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
 
         fetchConcerns();
     }, []);
+
+    
 
 
     // ⚙️ States for dynamic lists 
@@ -273,7 +276,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
     }));
 
     const [originalReadStatus, setOriginalReadStatus] = useState<string>(
-  selectedMail?.readstatus || ""
+        selectedMail?.readstatus || ""
     );
 
     // Filter mails based on toggle
@@ -302,14 +305,14 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
     const getErrorClass = (fieldName: keyof TicketForm) => {
         return validationErrors[fieldName] ? "border-red-500 focus:border-red-500 focus:ring-red-500" : "";
     };
-    
+
 
 
     // 🔹 Handlers
     const openDialog = (mail: MailItem) => {
         setSelectedMail(mail)
         setIsDialogOpen(true)
-        handleUpdate(); 
+        handleUpdate();
     }
 
     const openAddDialog = () => {
@@ -334,6 +337,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                 Fullname: selectedMail.name,
                 department: selectedMail.depts,
                 requesttype: selectedMail.requesttype1,
+                type: selectedMail.type,
                 remarks: selectedMail.teaser,
                 priority: selectedMail.priority,
                 createdAt: selectedMail.createdAt,
@@ -373,93 +377,93 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
         }
     };
 
-const handleUpdate = async () => {
-  if (!selectedMail) return;
+    const handleUpdate = async () => {
+        if (!selectedMail) return;
 
-  // Determine the new read status
-  let newReadStatus = selectedMail.readstatus;
-  if (selectedMail.readstatus.toLowerCase() === "unread") {
-    newReadStatus = "read";
-  }
+        // Determine the new read status
+        let newReadStatus = selectedMail.readstatus;
+        if (selectedMail.readstatus.toLowerCase() === "unread") {
+            newReadStatus = "read";
+        }
 
-  // Check if readstatus actually changed
-  if (newReadStatus === originalReadStatus) {
-    return;
-  }
+        // Check if readstatus actually changed
+        if (newReadStatus === originalReadStatus) {
+            return;
+        }
 
-  try {
-    const res = await fetch(`/api/euconcern/${selectedMail.ConcernNumber}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        readstatus: newReadStatus, // send the updated value to DB
-      }),
-    });
+        try {
+            const res = await fetch(`/api/euconcern/${selectedMail.ConcernNumber}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    readstatus: newReadStatus, // send the updated value to DB
+                }),
+            });
 
-    const data = await res.json();
+            const data = await res.json();
 
-    // Update frontend state after successful DB update
-    setSelectedMail({ ...selectedMail, readstatus: newReadStatus });
-    setOriginalReadStatus(newReadStatus);
-  } catch (error) {
-    console.error(error);
-  }
-};
+            // Update frontend state after successful DB update
+            setSelectedMail({ ...selectedMail, readstatus: newReadStatus });
+            setOriginalReadStatus(newReadStatus);
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
 
 
 
     const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+        e.preventDefault();
 
-    // 2. Form Validation: Check required fields
-    if (!validateForm(ticketForm)) {
-        toast.error("Please fill out all required fields marked in red.");
-        return;
-    }
-
-    try {
-        // 🚀 Call the API function to create ticket
-        await createTicket(ticketForm);
-        console.log("🧾 Ticket submitted:", ticketForm);
-        toast.success("Ticket successfully created from concern!");
-
-        // 🔹 Automatic POST to inbox
-        try {
-            const inboxRes = await fetch("/api/inbox", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ConcernNumber: selectedMail?.ConcernNumber,
-                    remarks: "Technician assigned to your request. Please expect an update soon."
-                }),
-            });
-
-            if (!inboxRes.ok) {
-                const text = await inboxRes.text();
-                console.error("Failed to post to inbox:", text);
-                toast.warning("Ticket created but failed to notify inbox.");
-            } else {
-                const inboxData = await inboxRes.json();
-                console.log("Inbox created:", inboxData);
-            }
-        } catch (err) {
-            console.error("Inbox API error:", err);
-            toast.warning("Ticket created but failed to notify inbox.");
+        // 2. Form Validation: Check required fields
+        if (!validateForm(ticketForm)) {
+            toast.error("Please fill out all required fields marked in red.");
+            return;
         }
 
-        // Cleanup and Close
-        setTicketForm(initialNewTicketState);
-        setIsAddDialogOpen(false);
-        setValidationErrors({});
+        try {
+            // 🚀 Call the API function to create ticket
+            await createTicket(ticketForm);
+            console.log("🧾 Ticket submitted:", ticketForm);
+            toast.success("Ticket successfully created from concern!");
 
-        // 1. Page Refresh: DAPAT MAG REFRESH YUNG PAGE KAPAG NAG TRUE
-        window.location.reload();
+            // 🔹 Automatic POST to inbox
+            try {
+                const inboxRes = await fetch("/api/inbox", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        ConcernNumber: selectedMail?.ConcernNumber,
+                        remarks: "Technician assigned to your request. Please expect an update soon."
+                    }),
+                });
 
-    } catch (error) {
-        toast.error("Failed to submit ticket.");
-    }
-};
+                if (!inboxRes.ok) {
+                    const text = await inboxRes.text();
+                    console.error("Failed to post to inbox:", text);
+                    toast.warning("Ticket created but failed to notify inbox.");
+                } else {
+                    const inboxData = await inboxRes.json();
+                    console.log("Inbox created:", inboxData);
+                }
+            } catch (err) {
+                console.error("Inbox API error:", err);
+                toast.warning("Ticket created but failed to notify inbox.");
+            }
+
+            // Cleanup and Close
+            setTicketForm(initialNewTicketState);
+            setIsAddDialogOpen(false);
+            setValidationErrors({});
+
+            // 1. Page Refresh: DAPAT MAG REFRESH YUNG PAGE KAPAG NAG TRUE
+            window.location.reload();
+
+        } catch (error) {
+            toast.error("Failed to submit ticket.");
+        }
+    };
 
 
     const handleManualSubmit = async (e: React.FormEvent) => {
@@ -503,14 +507,6 @@ const handleUpdate = async () => {
                             {activeItem?.title}
                         </div>
                         <div className="flex items-center gap-3">
-                            <Label className="flex items-center gap-2 text-sm">
-                                <span>Unreads</span>
-                                <Switch
-                                    checked={showUnreadOnly}
-                                    onCheckedChange={(checked) => setShowUnreadOnly(checked as boolean)}
-                                    className="shadow-none"
-                                />
-                            </Label>
                             {/* ➕ Add Ticket button */}
                             <Button
                                 size="sm"
@@ -544,18 +540,18 @@ const handleUpdate = async () => {
                                         <span className="font-semibold text-gray-900">{mail.name}</span>
 
                                         <span className="px-4 py-2">
-  {new Date(mail.createdAt).toLocaleString("en-US", {
-    // Para sa Month Day, Year (e.g., December 20, 2025)
-    year: "numeric",
-    month: "long", // Ito ang nagpapalabas ng buwan bilang text (December)
-    day: "numeric",  // Ito ang nagpapalabas ng araw (20)
-    
-    // Para sa Oras (e.g., 03:48 PM)
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  })}
-</span>
+                                            {new Date(mail.createdAt).toLocaleString("en-US", {
+                                                // Para sa Month Day, Year (e.g., December 20, 2025)
+                                                year: "numeric",
+                                                month: "long", // Ito ang nagpapalabas ng buwan bilang text (December)
+                                                day: "numeric",  // Ito ang nagpapalabas ng araw (20)
+
+                                                // Para sa Oras (e.g., 03:48 PM)
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                                hour12: true,
+                                            })}
+                                        </span>
 
 
                                     </div>
@@ -609,7 +605,7 @@ const handleUpdate = async () => {
                                     <strong>Request Type:</strong> {selectedMail.ConcernNumber}
                                 </div>
                                 <div>
-                                    <strong>Date:</strong>{" "}
+                                    <strong>Date Created:</strong>{" "}
                                     {new Date(selectedMail.createdAt).toLocaleString("en-US", {
                                         month: "short",
                                         day: "numeric",
@@ -623,20 +619,20 @@ const handleUpdate = async () => {
                                     <strong>Site:</strong> {selectedMail.site}
                                 </div>
 
-<div className="hidden">
-  <label className="font-semibold">Read Status:</label>
-  <input
-    type="text"
-    value={selectedMail?.readstatus || ""}
-    onChange={(e) =>
-      setSelectedMail({
-        ...selectedMail!,
-        readstatus: e.target.value
-      })
-    }
-    className="w-full border px-2 py-1 rounded"
-  />
-</div>
+                                <div className="hidden">
+                                    <label className="font-semibold">Read Status:</label>
+                                    <input
+                                        type="text"
+                                        value={selectedMail?.readstatus || ""}
+                                        onChange={(e) =>
+                                            setSelectedMail({
+                                                ...selectedMail!,
+                                                readstatus: e.target.value
+                                            })
+                                        }
+                                        className="w-full border px-2 py-1 rounded"
+                                    />
+                                </div>
 
 
 
@@ -657,15 +653,15 @@ const handleUpdate = async () => {
 
                             <div className="mt-6 flex justify-end gap-2">
 
-<Button
-  variant="outline"
-  onClick={() => {
-    handleUpdate();      // tawagin muna ang update function
-    setIsDialogOpen(false); // saka isara ang dialog
-  }}
->
-  Close
-</Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        handleUpdate();      // tawagin muna ang update function
+                                        setIsDialogOpen(false); // saka isara ang dialog
+                                    }}
+                                >
+                                    Close
+                                </Button>
 
 
                                 <Button onClick={openAddDialog}>Create Ticket</Button>
@@ -699,6 +695,12 @@ const handleUpdate = async () => {
                                 <Input value={ticketForm.Fullname} readOnly className={getErrorClass("Fullname")} />
                             </div>
 
+                            
+                            <div className="flex flex-col space-y-1.5">
+                                <Label className={getErrorClass("Email")}>Email</Label>
+                                <Input value={ticketForm.Email} readOnly className={getErrorClass("Email")} />
+                            </div>
+
                             {/* Department (Required + Red Border) */}
 
                             <div className="flex flex-col space-y-1.5">
@@ -706,51 +708,43 @@ const handleUpdate = async () => {
                                 <Input value={ticketForm.department} readOnly className={getErrorClass("department")} />
                             </div>
 
-                            {/* Row 2 */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("requesttype")}>Request Type</Label>
-                                <Input value={ticketForm.requesttype} readOnly className={getErrorClass("requesttype")} />
-                            </div>
+{/* Row 2 */}
+<div className="flex flex-col space-y-1.5">
+  <Label className={getErrorClass("requesttype")}>Request Type</Label>
+  <Input
+    value={selectedMail?.requesttype1 ?? ""}
+    readOnly
+    className={getErrorClass("requesttype")}
+  />
+</div>
 
-                            {/* Type of Concern (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("type")}>Type of Concern</Label>
-                                <Select
-                                    value={ticketForm.type}
-                                    onValueChange={(value) =>
-                                        setTicketForm({ ...ticketForm, type: value })
-                                    }
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("type")}`}>
-                                        <SelectValue placeholder="Select concern type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {concernTypes.map(concern => <SelectItem key={concern.name} value={concern.name}>{concern.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
 
-                            {/* Mode (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("mode")}>Mode</Label>
-                                <Select
-                                    value={ticketForm.mode}
-                                    onValueChange={(value) =>
-                                        setTicketForm({ ...ticketForm, mode: value })
-                                    }
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("mode")}`}>
-                                        <SelectValue placeholder="Select Mode" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {modes.map((mode) => (
-                                            <SelectItem key={mode.name} value={mode.name}>
-                                                {mode.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+{/* Row 2 */}
+<div className="flex flex-col space-y-1.5">
+  <Label className={getErrorClass("type")}>Type Of Concern</Label>
+  <Input
+    value={selectedMail?.subject ?? ""}
+    readOnly
+    className={getErrorClass("type")}
+  />
+</div>
+
+
+                           
+
+                           {/* Mode (Read-only) */}
+{/* Mode (Read-only, White BG) */}
+<div className="flex flex-col space-y-1.5">
+  <Label>Mode</Label>
+  <input
+    type="text"
+    value="Web Form"
+    readOnly
+    className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-foreground cursor-default"
+  />
+</div>
+
+
 
                             {/* Row 3 */}
                             {/* Group (Required + Red Border) */}
@@ -817,16 +811,18 @@ const handleUpdate = async () => {
                             </div>
 
                             {/* Row 4 */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label>Date Sched (optional)</Label>
-                                <Input
-                                    type="date"
-                                    value={ticketForm.dateSched}
-                                    onChange={(e) =>
-                                        setTicketForm({ ...ticketForm, dateSched: e.target.value })
-                                    }
-                                />
-                            </div>
+<div className="flex flex-col space-y-1.5">
+  <Label>Date Scheduled</Label>
+  <Input
+    type="date"
+    value={ticketForm.dateSched}
+    min={new Date().toISOString().split("T")[0]} // hindi pwedeng past date
+    onChange={(e) =>
+      setTicketForm({ ...ticketForm, dateSched: e.target.value })
+    }
+  />
+</div>
+
 
                             {/* Priority (Required + Red Border) */}
                             <div className="flex flex-col space-y-1.5">

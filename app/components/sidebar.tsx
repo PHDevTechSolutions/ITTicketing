@@ -59,16 +59,29 @@ const data = {
   ],
 };
 
+// User type
+interface UserType {
+  Firstname: string;
+  Lastname: string;
+  Username: string;
+  Email: string;
+  Role: string;
+  ReferenceID: string;
+  createdAt: string;
+  ProfilePic?: string;
+  Password?: string;
+}
+
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
   const initialOpenStates = data.navMain.map((item, index) =>
     index === 0 ? true : item.items.some((sub) => pathname === sub.url)
   );
-  const [openStates, setOpenStates] = useState(initialOpenStates);
+  const [openStates, setOpenStates] = useState<boolean[]>(initialOpenStates);
 
   const handleToggle = (index: number) => {
-    setOpenStates((prev) => {
+    setOpenStates((prev: boolean[]) => {
       const newState = [...prev];
       newState[index] = !newState[index];
       return newState;
@@ -76,11 +89,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   };
 
   // Profile & logout states
+  const [newPassword, setNewPassword] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>({
+  const [currentUser, setCurrentUser] = useState<UserType>({
     Firstname: "",
     Lastname: "",
     Username: "",
@@ -88,45 +102,76 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     Role: "",
     ReferenceID: "",
     createdAt: new Date().toISOString(),
+    Password: "",
   });
   const [openLogout, setOpenLogout] = useState(false);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setProfilePic(URL.createObjectURL(e.target.files[0]));
+  // Format date helper
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
+
+  // Fetch profile from localStorage
+  const fetchProfile = () => {
+    setIsProfileLoading(true);
+    setProfileError(null);
+    try {
+      const storedUser = localStorage.getItem("currentUser");
+      if (!storedUser) {
+        setProfileError("No login session found.");
+        return;
+      }
+      const userData = JSON.parse(storedUser);
+      setCurrentUser(userData);
+      setProfilePic(userData.ProfilePic || null);
+    } catch (err) {
+      console.error(err);
+      setProfileError("Failed to load profile.");
+    } finally {
+      setIsProfileLoading(false);
     }
   };
 
+
+ const handlePasswordUpdate = async () => {
+  if (!currentUser.ReferenceID) {
+    alert("User ReferenceID not found.");
+    return;
+  }
+
+  if (!newPassword) {
+    alert("Please enter a new password.");
+    return;
+  }
+
+  try {
+    const res = await fetch(`/api/user/${currentUser.ReferenceID}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: newPassword }), // dito lang natin isesend ang password
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) throw new Error(data.message || "Failed to update password");
+
+    // Update local state if needed
+    setCurrentUser((prev) => ({ ...prev, Password: newPassword }));
+
+    alert("Password updated successfully!");
+    setNewPassword(""); // clear input
+  } catch (err: any) {
+    console.error(err);
+    alert("Failed to update password: " + err.message);
+  }
+};
+
+
+
+  // Handle logout
   const handleLogout = () => {
     localStorage.removeItem("refID");
     window.location.href = "/login";
   };
-
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
-
-  // Fetch profile based on ReferenceID
-const fetchProfile = () => {
-  setIsProfileLoading(true);
-  setProfileError(null);
-
-  try {
-    const storedUser = localStorage.getItem("currentUser");
-    if (!storedUser) {
-      setProfileError("No login session found.");
-      setIsProfileLoading(false);
-      return;
-    }
-    const userData = JSON.parse(storedUser);
-    setCurrentUser(userData);
-  } catch (error) {
-    console.error(error);
-    setProfileError("Failed to load profile.");
-  } finally {
-    setIsProfileLoading(false);
-  }
-};
-
 
   return (
     <Sidebar {...props} className="bg-white text-gray-900 border-r border-gray-200">
@@ -142,7 +187,7 @@ const fetchProfile = () => {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-
+      
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
@@ -155,15 +200,13 @@ const fetchProfile = () => {
                 >
                   <div className="flex items-center justify-between w-full">
                     <ChevronRight
-                      className={`h-4 w-4 mr-2 transition-transform ${
-                        openStates[index] ? "rotate-90 text-indigo-600" : "rotate-0 text-gray-500"
-                      }`}
+                      className={`h-4 w-4 mr-2 transition-transform ${openStates[index] ? "rotate-90 text-indigo-600" : "rotate-0 text-gray-500"}`}
                     />
                     <span className="font-semibold text-base flex-grow text-left">{item.title}</span>
                   </div>
                 </SidebarMenuButton>
 
-                {item.items?.length && openStates[index] ? (
+                {item.items && item.items.length > 0 && openStates[index] && (
                   <SidebarMenuSub>
                     {item.items.map((subItem) => {
                       const isActive = pathname === subItem.url;
@@ -172,11 +215,7 @@ const fetchProfile = () => {
                           <SidebarMenuSubButton
                             asChild
                             isActive={isActive}
-                            className={
-                              isActive
-                                ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-                                : "hover:bg-gray-100 text-gray-700"
-                            }
+                            className={isActive ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "hover:bg-gray-100 text-gray-700"}
                           >
                             <a href={subItem.url}>{subItem.title}</a>
                           </SidebarMenuSubButton>
@@ -184,7 +223,7 @@ const fetchProfile = () => {
                       );
                     })}
                   </SidebarMenuSub>
-                ) : null}
+                )}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
@@ -194,14 +233,7 @@ const fetchProfile = () => {
       {/* Profile & Logout Footer */}
       <div className="mr-auto flex items-center gap-3 px-4 py-2 border-t border-gray-200">
         {/* Profile */}
-<Dialog
-  open={isProfileOpen}
-  onOpenChange={(open) => {
-    setIsProfileOpen(open);
-    if (open) fetchProfile();
-  }}
->
-
+        <Dialog open={isProfileOpen} onOpenChange={(open) => { setIsProfileOpen(open); if (open) fetchProfile(); }}>
           <DialogTrigger asChild>
             <Button variant="ghost" size="icon" title="Profile" className="text-gray-600 hover:bg-gray-100">
               <User className="h-5 w-5" />
@@ -214,29 +246,6 @@ const fetchProfile = () => {
                 Profile Information
               </DialogTitle>
             </DialogHeader>
-
-            <div className="flex flex-col items-center mt-4 mb-2">
-              <div className="relative">
-                <img
-                  src={profilePic || "https://cdn-icons-png.flaticon.com/512/149/149071.png"}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full object-cover border-2 border-indigo-400 shadow-lg"
-                />
-                <label
-                  htmlFor="profile-upload"
-                  className="absolute bottom-0 right-0 bg-indigo-500 text-white text-xs px-2 py-1 rounded-md cursor-pointer hover:bg-indigo-600"
-                >
-                  Change
-                </label>
-                <input
-                  type="file"
-                  id="profile-upload"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-              </div>
-            </div>
 
             <div className="grid gap-4 py-4 text-sm w-full">
               {isProfileLoading ? (
@@ -253,9 +262,7 @@ const fetchProfile = () => {
                 <>
                   <div>
                     <Label className="text-gray-500">Full Name:</Label>
-                    <p className="font-medium text-gray-800">
-                      {currentUser.Firstname} {currentUser.Lastname}
-                    </p>
+                    <p className="font-medium text-gray-800">{currentUser.Firstname} {currentUser.Lastname}</p>
                   </div>
                   <div>
                     <Label className="text-gray-500">Username:</Label>
@@ -277,11 +284,26 @@ const fetchProfile = () => {
                     <Label className="text-gray-500">Joined:</Label>
                     <p className="font-medium text-gray-800">{formatDate(currentUser.createdAt)}</p>
                   </div>
+
+<div>
+  <Label className="text-gray-500">New Password:</Label>
+  <input
+    type="password"
+    value={newPassword}
+    onChange={(e) => setNewPassword(e.target.value)}
+    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    placeholder="Enter new password"
+  />
+</div>
+
                 </>
               )}
             </div>
 
-            <DialogFooter className="flex justify-center">
+            <DialogFooter className="flex justify-center gap-2">
+<Button variant="outline" onClick={handlePasswordUpdate}>
+  Update Password
+</Button>
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
               </DialogClose>
@@ -311,15 +333,11 @@ const fetchProfile = () => {
               <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>
               </DialogClose>
-
-              <Button variant="destructive" onClick={handleLogout}>
-                Logout
-              </Button>
+              <Button variant="destructive" onClick={handleLogout}>Logout</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-
       <SidebarRail />
     </Sidebar>
   );

@@ -84,7 +84,7 @@ interface ITConcern {
   technicianname: string; // Used in Dialog
   processedBy: string; // Used in Dialog
   // --------------------
-   createdAt: string;
+  createdAt: string;
 }
 
 // --------------------------
@@ -108,7 +108,7 @@ interface CurrentUser {
 }
 
 const profilePic = "";
-const handleImageChange = () => {};
+const handleImageChange = () => { };
 const handleLogout = () => {
   toast.info("Logged out (Dummy Function)");
 };
@@ -146,14 +146,14 @@ const formatDate = (date: string | Date | undefined): string => {
 const getPriorityBg = (priority: ITConcern["priority"]) => {
   switch (priority) {
     case "Critical":
-      return "bg-red-50 hover:bg-red-100/70";
+      return "bg-red-100 hover:bg-red-100/70";
     case "High":
-      return "bg-orange-50 hover:bg-orange-100/70";
+      return "bg-orange-100 hover:bg-orange-100/70";
     case "Medium":
-      return "bg-yellow-50 hover:bg-yellow-100/70";
+      return "bg-yellow-100 hover:bg-yellow-100/70";
     case "Low":
     default:
-      return "bg-green-50 hover:bg-green-100/70";
+      return "bg-green-100 hover:bg-green-100/70";
   }
 };
 
@@ -217,7 +217,7 @@ function ConcernCard({
               hour12: true,     // Halimbawa: AM
             })}
           </span>
-          
+
           {/* Status Badge */}
           <span
             className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusBadgeColors(
@@ -309,19 +309,17 @@ export default function ITConcernsPage() {
   // ----------------------------
   // Filtering and Searching Logic (UPDATED)
   // ----------------------------
-  const filteredConcerns = useMemo(() => {
-    let results = concerns;
-    const lowerSearchTerm = searchTerm.toLowerCase();
+const filteredConcerns = useMemo(() => {
+  let results = concerns;
+  const lowerSearchTerm = searchTerm.toLowerCase();
 
-    // 1. Search Filter (by ID, Employee, or Remarks)
-    if (lowerSearchTerm) {
-      results = results.filter(
-        (c) =>
-          c.id.toLowerCase().includes(lowerSearchTerm) ||
-          c.employeeName.toLowerCase().includes(lowerSearchTerm) ||
-          c.remarks.toLowerCase().includes(lowerSearchTerm)
-      );
-    }
+  if (lowerSearchTerm) {
+    results = results.filter(
+      (c) =>
+        c.Fullname?.toLowerCase().includes(lowerSearchTerm)
+
+    );
+  }
 
     // 2. Department Filter (NEW)
     if (departmentFilter && departmentFilter !== "all") {
@@ -366,45 +364,41 @@ export default function ITConcernsPage() {
   const endIndex = startIndex + itemsPerPage;
   const concernsForPage = filteredConcerns.slice(startIndex, endIndex);
 
-  const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-    }
-  };
+  const pageNumbers = useMemo<(number | "...")[]>(() => {
+    const pages: (number | "...")[] = [];
+    const maxVisible = 5;
 
-  const pageNumbers = useMemo(() => {
-    const pages = [];
-    const maxVisiblePages = 5;
-
-    if (totalPages <= maxVisiblePages) {
+    if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
-    } else {
-      pages.push(1);
-      if (currentPage > 3) pages.push("...");
-
-      let start = Math.max(2, currentPage - 1);
-      let end = Math.min(totalPages - 1, currentPage + 1);
-
-      if (currentPage === 1) end = 3;
-      if (currentPage === totalPages) start = totalPages - 2;
-
-      for (let i = start; i <= end; i++) {
-        if (i !== 1 && i !== totalPages) pages.push(i);
-      }
-
-      if (currentPage < totalPages - 2) pages.push("...");
-      pages.push(totalPages);
+      return pages;
     }
 
-    return pages.filter((item, index, self) => {
-      // Remove consecutive ellipses and duplicates
-      if (item === "..." && self[index - 1] === "...") return false;
-      return self.indexOf(item) === index;
-    });
-  }, [totalPages, currentPage]);
+    // Always show first page
+    pages.push(1);
 
+    const left = Math.max(2, currentPage - 1);
+    const right = Math.min(totalPages - 1, currentPage + 1);
+
+    if (left > 2) pages.push("...");
+
+    for (let i = left; i <= right; i++) {
+      pages.push(i);
+    }
+
+    if (right < totalPages - 1) pages.push("...");
+
+    // Always show last page
+    pages.push(totalPages);
+
+    return pages;
+  }, [currentPage, totalPages]);
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
   // ----------------------------
   // API Handlers (Unchanged)
   // ----------------------------
@@ -495,7 +489,7 @@ export default function ITConcernsPage() {
   return (
     <SidebarProvider>
       {/* ADDED: A dummy AppSidebar to prevent error, assuming it's in the correct path */}
-      <AppSidebar /> 
+      <AppSidebar />
       <SidebarInset>
         {/* --------------- HEADER ---------------- (Unchanged) */}
         <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
@@ -552,7 +546,7 @@ export default function ITConcernsPage() {
               <div className="relative w-64">
                 <Input
                   type="search"
-                  placeholder="Search by ID, Employee, or Remarks..."
+                  placeholder="Search Employee Name"
                   className="pl-4 h-10 pr-10 rounded-lg bg-white border-gray-300 focus-visible:ring-2 focus-visible:ring-gray-500"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -571,13 +565,18 @@ export default function ITConcernsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Departments</SelectItem>
                   <Separator />
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
-                  <SelectItem value="IT">IT</SelectItem>
-                  <SelectItem value="Sales">Sales</SelectItem>
-                  {/* ADDED: Other dummy departments to demonstrate filter */}
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Operations">Operations</SelectItem>
+                  <SelectItem value="Sales Department">Sales Department</SelectItem>
+                  <SelectItem value="IT Department">IT Department</SelectItem>
+                  <SelectItem value="HR Department">HR Department</SelectItem>
+                  <SelectItem value="Accounting Department">Accounting Department</SelectItem>
+                  <SelectItem value="Procurement Department">Procurement Department</SelectItem>
+                  <SelectItem value="Marketing Department">Marketing Department</SelectItem>
+                  <SelectItem value="Ecommerce Department">Ecommerce Department</SelectItem>
+                  <SelectItem value="CSR Department">CSR Department</SelectItem>
+                  <SelectItem value="Admin Department">Admin Department</SelectItem>
+                  <SelectItem value="Warehouse Department">Warehouse Department</SelectItem>
+                  <SelectItem value="Logistic Department">Logistic Department</SelectItem>
+                  <SelectItem value="Engineering Department">Engineering Department</SelectItem>
                 </SelectContent>
               </Select>
               {/* END NEW DEPARTMENT FILTER */}
@@ -640,9 +639,9 @@ export default function ITConcernsPage() {
                     >
                       <td className="p-3">{c.Fullname}</td>
                       <td className="p-3">{c.department}</td>
-                       <td className="p-3">
-            {c.dateSched}
-          </td>
+                      <td className="p-3">
+                        {c.dateSched}
+                      </td>
                       <td className="p-3">{c.site}</td>
                       <td className="p-3 truncate max-w-xs">{c.remarks}</td>
                       <td className="p-3 text-center">{c.priority}</td>
@@ -673,11 +672,13 @@ export default function ITConcernsPage() {
             </div>
           )}
 
-          {/* PAGINATION (Unchanged) */}
+          {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="mt-8">
               <Pagination>
                 <PaginationContent>
+
+                  {/* PREVIOUS */}
                   <PaginationItem>
                     <PaginationPrevious
                       onClick={() => goToPage(currentPage - 1)}
@@ -689,15 +690,16 @@ export default function ITConcernsPage() {
                     />
                   </PaginationItem>
 
+                  {/* PAGE NUMBERS */}
                   {pageNumbers.map((page, index) =>
                     page === "..." ? (
-                      <PaginationItem key={index}>
-                        <PaginationEllipsis />
+                      <PaginationItem key={`ellipsis-${index}`}>
+                        <PaginationEllipsis className="pointer-events-none" />
                       </PaginationItem>
                     ) : (
                       <PaginationItem key={page}>
                         <PaginationLink
-                          onClick={() => goToPage(page as number)}
+                          onClick={() => goToPage(page)}
                           isActive={page === currentPage}
                         >
                           {page}
@@ -706,6 +708,7 @@ export default function ITConcernsPage() {
                     )
                   )}
 
+                  {/* NEXT */}
                   <PaginationItem>
                     <PaginationNext
                       onClick={() => goToPage(currentPage + 1)}
@@ -716,8 +719,11 @@ export default function ITConcernsPage() {
                       }
                     />
                   </PaginationItem>
+
                 </PaginationContent>
               </Pagination>
+
+              {/* FOOTER INFO */}
               <div className="text-center text-sm mt-3 text-gray-500">
                 Showing {startIndex + 1} to{" "}
                 {Math.min(endIndex, filteredConcerns.length)} of{" "}
@@ -750,8 +756,16 @@ export default function ITConcernsPage() {
                     <strong>Department:</strong> {selectedConcern.department}
                   </p>
                   <p>
-                    <strong>Date Scheduled:</strong> {selectedConcern.dateSched}
-                  </p>{" "}
+                    <strong>Date Scheduled:</strong>{" "}
+                    {selectedConcern.dateSched
+                      ? new Date(selectedConcern.dateSched).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "2-digit",
+                      })
+                      : "N/A"}
+                  </p>
+
                   {/* ADDED: dateSched (from interface) */}
                   <p>
                     <strong>Type:</strong> {selectedConcern.type}
@@ -763,7 +777,7 @@ export default function ITConcernsPage() {
                   <p>
                     <strong>Mode:</strong> {selectedConcern.mode}
                   </p>{" "}
-                  
+
                   {/* ADDED: mode (from interface) */}
                   <p>
                     <strong>Site:</strong> {selectedConcern.site}
@@ -784,6 +798,20 @@ export default function ITConcernsPage() {
                   <p>
                     <strong>Priority:</strong> {selectedConcern.priority}
                   </p>
+                  <p>
+                    <strong>Date Created:</strong>{" "}
+                    {selectedConcern.createdAt
+                      ? new Date(selectedConcern.createdAt).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "2-digit",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        hour12: true,
+                      })
+                      : "N/A"}
+                  </p>
+
 
 
                   <div>
