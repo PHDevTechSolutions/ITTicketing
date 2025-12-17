@@ -5,6 +5,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { GalleryVerticalEnd, User, LogOut, Loader2, ChevronRight } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Bell } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -165,6 +166,33 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   }
 };
 
+// --------------------
+// Notification states
+// --------------------
+const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+const [notifications, setNotifications] = useState<{ message: string; date: string }[]>([]);
+const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
+
+// Example: dummy notifications or fetch from API
+React.useEffect(() => {
+  const sampleNotifications = [
+    { message: "New ticket assigned.", date: new Date().toISOString() },
+    { message: "Your concern has been updated.", date: new Date().toISOString() },
+  ];
+  setNotifications(sampleNotifications);
+  setUnreadNotifications(sampleNotifications.length);
+}, []);
+
+// Handle notification click
+const handleNotificationClick = (notif: { message: string; date: string }, index: number) => {
+  console.log("Notification clicked:", notif);
+
+  // Mark as read example
+  setUnreadNotifications((prev) => Math.max(prev - 1, 0));
+
+  // Optional: remove clicked notification
+  setNotifications((prev) => prev.filter((_, i) => i !== index));
+};
 
 
   // Handle logout
@@ -232,6 +260,59 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
       {/* Profile & Logout Footer */}
       <div className="mr-auto flex items-center gap-3 px-4 py-2 border-t border-gray-200">
+         {/* -------------------- */}
+  {/* Notification Bell */}
+  {/* -------------------- */}
+  <div className="relative">
+    <Button
+      variant="ghost"
+      size="icon"
+      title="Notifications"
+      className="text-gray-600 hover:bg-gray-100"
+      onClick={() => setIsNotificationOpen(true)}
+    >
+      <Bell className="h-5 w-5" />
+      {unreadNotifications > 0 && (
+        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white font-bold">
+          {unreadNotifications}
+        </span>
+      )}
+    </Button>
+
+    {/* Notification Dialog */}
+    <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+      <DialogContent className="sm:max-w-[400px]">
+        <DialogHeader>
+          <DialogTitle>Notifications</DialogTitle>
+        </DialogHeader>
+
+        <div className="grid gap-2 py-2 text-sm max-h-80 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <p className="text-gray-500 text-center">No new notifications</p>
+          ) : (
+            notifications.map((notif, index) => (
+              <div
+                key={index}
+                className="p-2 border-b last:border-b-0 hover:bg-gray-50 rounded cursor-pointer"
+                onClick={() => handleNotificationClick(notif, index)} // ✅ tama
+              >
+                {notif.message}
+                <span className="text-gray-400 text-xs block">
+                  {formatDate(notif.date)}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+
+        <DialogFooter className="flex justify-center">
+          <DialogClose asChild>
+            <Button variant="outline">Close</Button>
+          </DialogClose>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  </div>
         {/* Profile */}
         <Dialog open={isProfileOpen} onOpenChange={(open) => { setIsProfileOpen(open); if (open) fetchProfile(); }}>
           <DialogTrigger asChild>

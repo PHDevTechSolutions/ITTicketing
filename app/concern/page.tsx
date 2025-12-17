@@ -181,12 +181,7 @@ const formatDate = (date: string | Date | undefined): string => {
     if (filterBy !== "all" && filterBy !== "") {
         filtered = filtered.filter(c => {
             switch (filterBy) {
-                case "id": return c.id;
-                case "employee": return c.employeeName;
                 case "department": return c.department;
-                case "type": return c.type;
-                case "priority": return c.priority;
-                case "status": return c.status;
                 default: return true;
             }
         });
@@ -197,11 +192,7 @@ const formatDate = (date: string | Date | undefined): string => {
         filtered = filtered.filter(c => {
             // Search across relevant fields (adjust as needed)
             return (
-                c.id.toLowerCase().includes(lowerCaseSearchTerm) ||
-                c.employeeName.toLowerCase().includes(lowerCaseSearchTerm) ||
-                c.department.toLowerCase().includes(lowerCaseSearchTerm) ||
-                c.type.toLowerCase().includes(lowerCaseSearchTerm) ||
-                c.remarks.toLowerCase().includes(lowerCaseSearchTerm)
+                c.department.toLowerCase().includes(lowerCaseSearchTerm)
             );
         });
     }
@@ -503,10 +494,8 @@ const formatDate = (date: string | Date | undefined): string => {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button variant="outline" className="bg-white hover:bg-gray-100">
-                <Download className="h-5 w-5 text-gray-600" /> Download
-              </Button>
-              <div className="relative w-64">
+
+              <div className="relative w-51">
                 <Input
                   type="search"
                   placeholder="Search..."
@@ -522,12 +511,7 @@ const formatDate = (date: string | Date | undefined): string => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Fields</SelectItem>
-                  <SelectItem value="id">Ticket ID</SelectItem>
-                  <SelectItem value="employee">Employee Name</SelectItem>
                   <SelectItem value="department">Department</SelectItem>
-                  <SelectItem value="type">Concern Type</SelectItem>
-                  <SelectItem value="priority">Priority</SelectItem>
-                  <SelectItem value="status">Status</SelectItem>
                 </SelectContent>
               </Select>
             </div>

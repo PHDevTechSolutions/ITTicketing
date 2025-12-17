@@ -16,6 +16,7 @@ interface IncomingConcernData {
   reqt: string;
   ConcernNumber?: string;
   id?: string;
+  thereisaticket: string;
   readstatus: string;
   createdAt?: string; // stored as ISO string
 }
@@ -35,37 +36,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const ConcernsCollection = db.collection<IncomingConcernData>("concerns");
 
   if (req.method === "GET") {
-    try {
-      const concerns = await ConcernsCollection.find({}).sort({ createdAt: -1 }).toArray();
+  try {
+    const concerns = await ConcernsCollection
+      .find({ mode: "no" }) // ✅ FETCH ONLY mode = "no"
+      .sort({ createdAt: -1 })
+      .toArray();
 
-      const formattedConcerns = concerns.map((c) => ({
-        id: c.ConcernNumber || c._id.toHexString(),
-        employeeName: c.Fullname,
-        department: c.department,
-        type: c.type,
-        reqt: c.requesttype,
-        remarks: c.remarks,
-        Email: c.Email,
-        site: c.site,
-        createdAt: c.createdAt ?? new Date().toISOString(),
-        priority: c.priority,
-        readstatus: c.readstatus,
-        ConcernNumber: c.ConcernNumber,
-        status: "Pending", // default
-      }));
+    const formattedConcerns = concerns.map((c) => ({
+      id: c.ConcernNumber || c._id.toHexString(),
+      employeeName: c.Fullname,
+      department: c.department,
+      type: c.type,
+      reqt: c.requesttype,
+      remarks: c.remarks,
+      Email: c.Email,
+      site: c.site,
+      mode: c.mode ?? "no",
+      thereisaticket: c.thereisaticket ?? "no",
+      createdAt: c.createdAt ?? new Date().toISOString(),
+      priority: c.priority ?? "Normal",
+      readstatus: c.readstatus ?? "unread",
+      ConcernNumber: c.ConcernNumber,
+      status: "Pending",
+    }));
 
-      return res.status(200).json({
-        success: true,
-        data: formattedConcerns,
-        message: "Concerns fetched successfully.",
-      });
-    } catch (error) {
-      console.error("Concern fetching failed:", error);
-      return res.status(500).json({
-        success: false,
-        message: error instanceof Error ? error.message : "Unknown error during fetching.",
-      });
-    }
+    return res.status(200).json({
+      success: true,
+      data: formattedConcerns,
+      message: "Concerns fetched successfully.",
+    });
+  } catch (error) {
+    console.error("Concern fetching failed:", error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
   } else if (req.method === "POST") {
     try {
       const ConcernData: IncomingConcernData = req.body;

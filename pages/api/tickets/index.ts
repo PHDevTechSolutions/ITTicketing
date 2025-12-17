@@ -14,6 +14,7 @@ interface IncomingTicketData {
   priority: "Low" | "Medium" | "High" | "Critical" | string;
   requesttype: string;
   mode: string;
+  thereisaticket: string;
   site: string;
   group: string;
   technicianname: string;

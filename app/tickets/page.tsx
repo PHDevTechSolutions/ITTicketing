@@ -1,5 +1,6 @@
 "use client";
-
+import * as XLSX from "xlsx"
+import { saveAs } from "file-saver"
 import { useEffect, useState, useMemo } from "react";
 import { AppSidebar } from "../components/sidebar";
 import {
@@ -64,6 +65,17 @@ import { toast } from "sonner"; // Added for notifications
 type Department = "HR" | "Finance" | "IT" | "Sales" | "Marketing" | "Operations";
 type Status = "Pending" | "Ongoing" | "Finished";
 type Priority = "Low" | "Medium" | "High" | "Critical";
+
+
+interface Ticket {
+  _id: string
+  Subject: string
+  Department: string
+  Status: string
+  CreatedAt: string
+  // 👉 idagdag mo lang yung fields na meron talaga sa ticket mo
+}
+
 
 interface ITConcern {
   id: string;
@@ -251,9 +263,34 @@ export default function ITConcernsPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   // ADDED: Dummy state for current user to satisfy the Profile Dialog's JSX
 
-  // --- Pagination State ---
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
+  // 1️⃣ Raw data
+  const [tickets, setTickets] = useState<Ticket[]>([])
+
+  // 2️⃣ Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState<number>(8)
+
+  // 3️⃣ Filtered data
+  const filteredItems = tickets.filter((ticket) => {
+    // 👉 palitan mo ng actual filters mo
+    return true
+  })
+
+  // 4️⃣ Pagination logic
+  const paginationEnabled = itemsPerPage < 100
+
+  const displayedItems = paginationEnabled
+    ? filteredItems.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    )
+    : filteredItems.slice(0, itemsPerPage)
+
+  // 5️⃣ Reset page when itemsPerPage changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [itemsPerPage])
+
   // -------------------------
 
   // ----------------------------
@@ -267,6 +304,7 @@ export default function ITConcernsPage() {
   // ----------------------------
   const DUMMY_CONCERNS_DATA: ITConcern[] = [];
   // ----------------------------
+
 
   // ----------------------------
   // FETCH API /api/tickets (GET)
@@ -309,17 +347,17 @@ export default function ITConcernsPage() {
   // ----------------------------
   // Filtering and Searching Logic (UPDATED)
   // ----------------------------
-const filteredConcerns = useMemo(() => {
-  let results = concerns;
-  const lowerSearchTerm = searchTerm.toLowerCase();
+  const filteredConcerns = useMemo(() => {
+    let results = concerns;
+    const lowerSearchTerm = searchTerm.toLowerCase();
 
-  if (lowerSearchTerm) {
-    results = results.filter(
-      (c) =>
-        c.Fullname?.toLowerCase().includes(lowerSearchTerm)
+    if (lowerSearchTerm) {
+      results = results.filter(
+        (c) =>
+          c.Fullname?.toLowerCase().includes(lowerSearchTerm)
 
-    );
-  }
+      );
+    }
 
     // 2. Department Filter (NEW)
     if (departmentFilter && departmentFilter !== "all") {
@@ -364,6 +402,7 @@ const filteredConcerns = useMemo(() => {
   const endIndex = startIndex + itemsPerPage;
   const concernsForPage = filteredConcerns.slice(startIndex, endIndex);
 
+
   const pageNumbers = useMemo<(number | "...")[]>(() => {
     const pages: (number | "...")[] = [];
     const maxVisible = 5;
@@ -407,6 +446,43 @@ const filteredConcerns = useMemo(() => {
     setStatus(concern.status);
     setIsDeleteConfirmOpen(false);
   };
+  
+const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
+  e.stopPropagation() // ⚡ Important: hindi matatamaan ng parent row/card click
+
+  if (!concernsForPage || concernsForPage.length === 0) return
+
+  // Optional: format columns for Excel
+  const formattedData = concernsForPage.map((c) => ({
+    Employee: c.Fullname,
+    Department: c.department,
+    "Date Scheduled": c.dateSched,
+    Site: c.site,
+    Remarks: c.remarks,
+    Priority: c.priority,
+    Status: c.status,
+  }))
+
+  // Create worksheet and workbook
+  const worksheet = XLSX.utils.json_to_sheet(formattedData)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets")
+
+  // Convert to Blob
+  const excelBuffer = XLSX.write(workbook, {
+    bookType: "xlsx",
+    type: "array",
+  })
+  const file = new Blob([excelBuffer], {
+    type:
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  })
+
+  // Trigger download
+  saveAs(file, `tickets_${Date.now()}.xlsx`)
+}
+
+
 
   const handleUpdate = async () => {
     if (!selectedConcern) return;
@@ -536,14 +612,13 @@ const filteredConcerns = useMemo(() => {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 bg-white hover:bg-gray-100 border-gray-300"
-              >
-                <Download className="h-5 w-5 text-gray-600" /> Download
-              </Button>
+              <Button onClick={handleDownloadExcel}>
+  Download
+</Button>
 
-              <div className="relative w-64">
+
+
+              <div className="relative w-56">
                 <Input
                   type="search"
                   placeholder="Search Employee Name"
@@ -583,7 +658,7 @@ const filteredConcerns = useMemo(() => {
 
               {/* EXISTING STATUS/PRIORITY FILTER */}
               <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[180px] h-10 bg-white border-gray-300 focus:ring-gray-500">
+                <SelectTrigger className="w-[160px] h-10 bg-white border-gray-300 focus:ring-gray-500">
                   <SelectValue placeholder="Filter by Status/Priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -605,6 +680,25 @@ const filteredConcerns = useMemo(() => {
                   <SelectItem value="priority-low">Priority: Low</SelectItem>
                 </SelectContent>
               </Select>
+              <Select
+                value={String(itemsPerPage)}
+                onValueChange={(value) => setItemsPerPage(Number(value))}
+              >
+                <SelectTrigger className="w-[100px] h-10">
+                  <SelectValue placeholder="Items" />
+                </SelectTrigger>
+
+                <SelectContent>
+                  <SelectItem value="8">8</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <Separator />
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="500">500</SelectItem>
+                  <SelectItem value="1000">1000</SelectItem>
+                </SelectContent>
+              </Select>
+
             </div>
           </div>
 

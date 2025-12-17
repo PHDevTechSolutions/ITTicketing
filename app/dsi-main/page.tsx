@@ -124,6 +124,7 @@ interface InboxItem {
   remarks: string;
   createdAt: string;
   readstatus: "Read" | "Unread";
+
 }
 
 
@@ -148,8 +149,6 @@ interface Ticket {
   ConcernNumber: string;
 }
 
-
-
 export default function Page() {
   const [readInbox, setReadInbox] = React.useState<string[]>([]);
   const [currentPage, setCurrentPage] = React.useState<PageType>("home");
@@ -169,7 +168,7 @@ export default function Page() {
     department: "",
     requestType: "",
     type: "",
-    mode: "",
+    mode: "no",
     site: "",
     readstatus: "Unread",
     dateSched: new Date().toISOString().split("T")[0], // YYYY-MM-DD
@@ -233,63 +232,63 @@ export default function Page() {
   };
 
 
-React.useEffect(() => {
-  fetchInbox();
+  React.useEffect(() => {
+    fetchInbox();
 
-  async function loadConcerns() {
-    try {
-      // 1️⃣ Load current user info
-      const storedUser = localStorage.getItem("currentUser");
-      if (!storedUser) return;
+    async function loadConcerns() {
+      try {
+        // 1️⃣ Load current user info
+        const storedUser = localStorage.getItem("currentUser");
+        if (!storedUser) return;
 
-      const parsedUser = JSON.parse(storedUser);
-      const userEmail = parsedUser.Email;
+        const parsedUser = JSON.parse(storedUser);
+        const userEmail = parsedUser.Email;
 
-      setNewConcern((prev) => ({
-        ...prev,
-        FullName: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
-        department: parsedUser.department || "",
-        Email: parsedUser.Email,
-        priority: "Medium",
-      }));
-
-      // 2️⃣ Load all concerns from API
-      const res = await fetch("/api/euconcern");
-      const data = await res.json();
-
-      if (data.success && Array.isArray(data.data)) {
-        // 🔥 Filter by user email
-        const filtered = data.data.filter((item: any) => item.Email === userEmail);
-
-        const mapped: ConcernItem[] = filtered.map((it: any) => ({
-          ...mapBackendToConcernItem(it),
-          readstatus: it.readstatus?.toLowerCase() === "read" ? "read" : "unread",
+        setNewConcern((prev) => ({
+          ...prev,
+          FullName: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
+          department: parsedUser.department || "",
+          Email: parsedUser.Email,
+          priority: "Medium",
         }));
 
-        setConcerns(mapped);
+        // 2️⃣ Load all concerns from API
+        const res = await fetch("/api/euconcern");
+        const data = await res.json();
 
-        // 3️⃣ Load read inbox from localStorage
-        const storedRead = JSON.parse(localStorage.getItem("readInbox") || "[]");
+        if (data.success && Array.isArray(data.data)) {
+          // 🔥 Filter by user email
+          const filtered = data.data.filter((item: any) => item.Email === userEmail);
 
-        // 4️⃣ Compute unread/read counts
-        const unread = mapped.filter((c) => !storedRead.includes(c.ConcernNumber)).length;
-        const read = mapped.filter((c) => storedRead.includes(c.ConcernNumber)).length;
+          const mapped: ConcernItem[] = filtered.map((it: any) => ({
+            ...mapBackendToConcernItem(it),
+            readstatus: it.readstatus?.toLowerCase() === "read" ? "read" : "unread",
+          }));
 
-        setUnreadCount(unread);
-        setReadCount(read);
-        setReadInbox(storedRead);
-      } else {
-        console.error("euconcern: unexpected payload", data);
+          setConcerns(mapped);
+
+          // 3️⃣ Load read inbox from localStorage
+          const storedRead = JSON.parse(localStorage.getItem("readInbox") || "[]");
+
+          // 4️⃣ Compute unread/read counts
+          const unread = mapped.filter((c) => !storedRead.includes(c.ConcernNumber)).length;
+          const read = mapped.filter((c) => storedRead.includes(c.ConcernNumber)).length;
+
+          setUnreadCount(unread);
+          setReadCount(read);
+          setReadInbox(storedRead);
+        } else {
+          console.error("euconcern: unexpected payload", data);
+        }
+      } catch (error) {
+        console.error("Failed to load concerns:", error);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Failed to load concerns:", error);
-    } finally {
-      setLoading(false);
     }
-  }
 
-  loadConcerns();
-}, []);
+    loadConcerns();
+  }, []);
 
 
 
@@ -341,7 +340,7 @@ React.useEffect(() => {
       console.error("Inbox fetch error:", error);
     }
   };
-  
+
   const handleOpenInbox = async (item: InboxItem) => {
     setSelectedInboxItem(item);
 
@@ -483,36 +482,36 @@ React.useEffect(() => {
   // FETCH API /api/tickets (GET)
   // ----------------------------
   const fetchTickets = async () => {
-  try {
-    const storedUser = localStorage.getItem("currentUser")
-    if (!storedUser) return
+    try {
+      const storedUser = localStorage.getItem("currentUser")
+      if (!storedUser) return
 
-    const { Email } = JSON.parse(storedUser)
+      const { Email } = JSON.parse(storedUser)
 
-    const res = await fetch(`/api/tickets?email=${encodeURIComponent(Email)}`)
-    const data = await res.json()
+      const res = await fetch(`/api/tickets?email=${encodeURIComponent(Email)}`)
+      const data = await res.json()
 
-    if (data.success) {
-      const allTickets: Ticket[] = data.data
+      if (data.success) {
+        const allTickets: Ticket[] = data.data
 
-      // Active tickets
-      const activeTickets = allTickets.filter(
-        (t) => t.status === "Pending" || t.status === "Ongoing"
-      )
-      setTickets(activeTickets)
+        // Active tickets
+        const activeTickets = allTickets.filter(
+          (t) => t.status === "Pending" || t.status === "Ongoing"
+        )
+        setTickets(activeTickets)
 
-      // Closed tickets
-      const finishedTickets = allTickets.filter(
-        (t) => t.status === "Finished"
-      )
-      setClosedTickets(finishedTickets)
+        // Closed tickets
+        const finishedTickets = allTickets.filter(
+          (t) => t.status === "Finished"
+        )
+        setClosedTickets(finishedTickets)
+      }
+    } catch (error) {
+      console.error("Failed to load tickets:", error)
+    } finally {
+      setLoadingTickets(false)
     }
-  } catch (error) {
-    console.error("Failed to load tickets:", error)
-  } finally {
-    setLoadingTickets(false)
   }
-}
 
 
   const filteredTickets = useMemo(() => {
@@ -550,13 +549,6 @@ React.useEffect(() => {
     fetchTickets();
   }, []);
 
-
-
-
-
-
-
-
   const handlePageChange = React.useCallback(
     (page: PageType) => {
       setCurrentPage(page);
@@ -581,6 +573,8 @@ React.useEffect(() => {
       Email: newConcern.Email,
       readstatus: newConcern.readstatus,
       dateSched: newConcern.dateSched || "",
+
+
     };
 
     try {
@@ -934,6 +928,17 @@ React.useEffect(() => {
 
                 </div>
 
+                <div className="hidden">
+                  <select
+                    value={newConcern.mode}
+                    onChange={(e) =>
+                      setNewConcern({ ...newConcern, mode: e.target.value })
+                    }
+                  >
+                    <option value="no">No</option>
+                    <option value="yes">Yes</option>
+                  </select>
+                </div>
                 {/* Remarks */}
                 <div className="flex flex-col space-y-1.5">
                   <Label className={validationErrors.remarks ? "text-red-600 dark:text-red-400" : ""}>Remarks *</Label>
@@ -1345,7 +1350,7 @@ React.useEffect(() => {
                           }
                           disabled
                           className="w-full border border-border bg-muted text-foreground
-      px-2 py-1 rounded cursor-not-allowed"
+                          px-2 py-1 rounded cursor-not-allowed"
                         />
                       </div>
 

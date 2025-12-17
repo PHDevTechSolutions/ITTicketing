@@ -44,6 +44,7 @@ interface MailItem {
     depts: string
     date: string
     teaser: string
+    mode: string
     priority: "Critical" | "High" | "Normal" | "Resolved" | string
     status: string
     ConcernNumber?: string; // add this
@@ -145,7 +146,7 @@ const initialNewTicketState: TicketForm = {
     processedBy: "",
     priority: "",
     requesttype: "",
-    mode: "",
+    mode: "Web Form",
     site: "",
     group: "",
     technicianname: "",
@@ -157,10 +158,10 @@ const initialNewTicketState: TicketForm = {
 
 // Define REQUIRED_FIELDS here (excluding ticketNumber and dateSched)
 const REQUIRED_FIELDS: (keyof TicketForm)[] = [
-    "Fullname", "department", "type", "priority", "requesttype", "mode", "site", "group", "remarks", "processedBy", "technicianname", "status"
+    "Fullname", "department", "type", "priority", "requesttype", "mode", "site", "group", "remarks", "processedBy","dateSched", "technicianname", "status"
 ];
 
-
+ 
 // 🔄 Helper function for fetching lists and pre-filling FullName
 const useFetchList = (apiPath: string, fallbackData: string[]) => {
     const [list, setList] = React.useState<Item[]>([])
@@ -215,7 +216,8 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                     subject: `${c.type} (${c.department})`,
                     createdAt: c.createdAt ?? "N/A", // <-- use the DB value directly
                     requesttype1: c.reqt,
-                    site: c.site,
+                    site: c.site || "",
+                    mode: c.mode,
                     type: c.type,
                     teaser: `${c.remarks}.`,
                     priority: c.priority || "Normal",
@@ -410,60 +412,100 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
         }
     };
 
+    const handleUpdateMode = async () => {
+    if (!selectedMail) return;
+
+    // Check if mode already "Yes"
+    if (selectedMail.mode?.toLowerCase() === "yes") {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/euconcern/${selectedMail.ConcernNumber}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                mode: "Yes", // update mode to "Yes"
+            }),
+        });
+
+        if (!res.ok) {
+            console.error("Failed to update mode");
+            return;
+        }
+
+        const data = await res.json();
+        console.log("Mode updated:", data);
+
+        // Update frontend state after successful DB update
+        setSelectedMail({ ...selectedMail, mode: "Yes" });
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+
 
 
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    e.preventDefault();
 
-        // 2. Form Validation: Check required fields
-        if (!validateForm(ticketForm)) {
-            toast.error("Please fill out all required fields marked in red.");
-            return;
-        }
+    // 1️⃣ Form Validation
+    if (!validateForm(ticketForm)) {
+        toast.error("Please fill out all required fields marked in red.");
+        return;
+    }
 
+    try {
+        // 2️⃣ CREATE TICKET
+        await createTicket(ticketForm);
+        console.log("🧾 Ticket submitted:", ticketForm);
+        toast.success("Ticket successfully created from concern!");
+
+        // 3️⃣ POST TO INBOX
         try {
-            // 🚀 Call the API function to create ticket
-            await createTicket(ticketForm);
-            console.log("🧾 Ticket submitted:", ticketForm);
-            toast.success("Ticket successfully created from concern!");
+            const inboxRes = await fetch("/api/inbox", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ConcernNumber: selectedMail?.ConcernNumber,
+                    remarks: "Technician assigned to your request. Please expect an update soon."
+                }),
+            });
 
-            // 🔹 Automatic POST to inbox
-            try {
-                const inboxRes = await fetch("/api/inbox", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        ConcernNumber: selectedMail?.ConcernNumber,
-                        remarks: "Technician assigned to your request. Please expect an update soon."
-                    }),
-                });
-
-                if (!inboxRes.ok) {
-                    const text = await inboxRes.text();
-                    console.error("Failed to post to inbox:", text);
-                    toast.warning("Ticket created but failed to notify inbox.");
-                } else {
-                    const inboxData = await inboxRes.json();
-                    console.log("Inbox created:", inboxData);
-                }
-            } catch (err) {
-                console.error("Inbox API error:", err);
+            if (!inboxRes.ok) {
+                const text = await inboxRes.text();
+                console.error("Failed to post to inbox:", text);
                 toast.warning("Ticket created but failed to notify inbox.");
+            } else {
+                const inboxData = await inboxRes.json();
+                console.log("Inbox created:", inboxData);
             }
-
-            // Cleanup and Close
-            setTicketForm(initialNewTicketState);
-            setIsAddDialogOpen(false);
-            setValidationErrors({});
-
-            // 1. Page Refresh: DAPAT MAG REFRESH YUNG PAGE KAPAG NAG TRUE
-            window.location.reload();
-
-        } catch (error) {
-            toast.error("Failed to submit ticket.");
+        } catch (err) {
+            console.error("Inbox API error:", err);
+            toast.warning("Ticket created but failed to notify inbox.");
         }
-    };
+
+        // 4️⃣ UPDATE CONCERN MODE
+        await handleUpdateMode(); // ⭐ Tawagin dito para i-set mode = "Yes"
+
+        // 5️⃣ Cleanup UI
+        setTicketForm(initialNewTicketState);
+        setIsAddDialogOpen(false);
+        setValidationErrors({});
+
+        // 6️⃣ Page Refresh
+        window.location.reload();
+
+    } catch (error) {
+        console.error(error);
+        toast.error("Failed to submit ticket.");
+    }
+};
+
+
+    
 
 
     const handleManualSubmit = async (e: React.FormEvent) => {
@@ -812,7 +854,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
 
                             {/* Row 4 */}
 <div className="flex flex-col space-y-1.5">
-  <Label>Date Scheduled</Label>
+  <Label>Date Scheduled (Required)</Label>
   <Input
     type="date"
     value={ticketForm.dateSched}
