@@ -3,9 +3,8 @@
 import * as React from "react";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import { GalleryVerticalEnd, User, LogOut, Loader2, ChevronRight } from "lucide-react";
+import { GalleryVerticalEnd, User, LogOut, Loader2, ChevronRight, Bell } from "lucide-react";
 import { Label } from "@/components/ui/label";
-import { Bell } from "lucide-react"; 
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,7 +29,28 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-// Navigation Data
+// ----------------- TYPES -----------------
+type Notification = {
+  ticketNumber: string;
+  action: "created" | "updated" | "processed";
+  actor: string;
+  message: string;
+  date: string;
+};
+
+interface UserType {
+  Firstname: string;
+  Lastname: string;
+  Username: string;
+  Email: string;
+  Role: string;
+  ReferenceID: string;
+  createdAt: string;
+  ProfilePic?: string;
+  Password?: string;
+}
+
+// ----------------- NAV DATA -----------------
 const data = {
   navMain: [
     {
@@ -60,36 +80,24 @@ const data = {
   ],
 };
 
-// User type
-interface UserType {
-  Firstname: string;
-  Lastname: string;
-  Username: string;
-  Email: string;
-  Role: string;
-  ReferenceID: string;
-  createdAt: string;
-  ProfilePic?: string;
-  Password?: string;
-}
-
+// ----------------- COMPONENT -----------------
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
+  // Sidebar open state
   const initialOpenStates = data.navMain.map((item, index) =>
     index === 0 ? true : item.items.some((sub) => pathname === sub.url)
   );
   const [openStates, setOpenStates] = useState<boolean[]>(initialOpenStates);
-
   const handleToggle = (index: number) => {
-    setOpenStates((prev: boolean[]) => {
+    setOpenStates((prev) => {
       const newState = [...prev];
       newState[index] = !newState[index];
       return newState;
     });
   };
 
-  // Profile & logout states
+  // Profile states
   const [newPassword, setNewPassword] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState<string | null>(null);
@@ -107,11 +115,19 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   });
   const [openLogout, setOpenLogout] = useState(false);
 
-  // Format date helper
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "2-digit" });
+  // Notification states
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
 
-  // Fetch profile from localStorage
+  // ----------------- HELPERS -----------------
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
+
   const fetchProfile = () => {
     setIsProfileLoading(true);
     setProfileError(null);
@@ -132,75 +148,59 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     }
   };
 
+  const handleNotificationClick = (notif: Notification, index: number) => {
+    console.log("Notification clicked:", notif);
+    // router.push(`/tickets/${notif.ticketNumber}`); // optional
+    // setUnreadNotifications(prev => Math.max(prev - 1, 0)); // optional mark as read
+  };
 
- const handlePasswordUpdate = async () => {
-  if (!currentUser.ReferenceID) {
-    alert("User ReferenceID not found.");
-    return;
-  }
+  // ----------------- FETCH NOTIFICATIONS -----------------
+  React.useEffect(() => {
+    async function loadNotifications() {
+      const res = await fetch("/api/tickets");
+      const data = await res.json();
 
-  if (!newPassword) {
-    alert("Please enter a new password.");
-    return;
-  }
+      const formatted: Notification[] = data.notifications.map((n: any) => ({
+        ticketNumber: n.ticketNumber,
+        action: n.action,
+        actor: n.actor,
+        message: n.message,
+        date: n.date,
+      }));
 
-  try {
-    const res = await fetch(`/api/user/${currentUser.ReferenceID}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: newPassword }), // dito lang natin isesend ang password
-    });
+      setNotifications(formatted);
+      setUnreadNotifications(formatted.length);
+    }
 
-    const data = await res.json();
+    loadNotifications();
+  }, []);
 
-    if (!res.ok) throw new Error(data.message || "Failed to update password");
+    const handlePasswordUpdate = async () => {
+    if (!currentUser.ReferenceID || !newPassword) return alert("Missing info");
 
-    // Update local state if needed
-    setCurrentUser((prev) => ({ ...prev, Password: newPassword }));
+    try {
+      const res = await fetch(`/api/user/${currentUser.ReferenceID}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      setCurrentUser((prev) => ({ ...prev, Password: newPassword }));
+      alert("Password updated successfully!");
+      setNewPassword("");
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed: " + err.message);
+    }
+  };
 
-    alert("Password updated successfully!");
-    setNewPassword(""); // clear input
-  } catch (err: any) {
-    console.error(err);
-    alert("Failed to update password: " + err.message);
-  }
-};
-
-// --------------------
-// Notification states
-// --------------------
-const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-const [notifications, setNotifications] = useState<{ message: string; date: string }[]>([]);
-const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
-
-// Example: dummy notifications or fetch from API
-React.useEffect(() => {
-  const sampleNotifications = [
-    { message: "New ticket assigned.", date: new Date().toISOString() },
-    { message: "Your concern has been updated.", date: new Date().toISOString() },
-  ];
-  setNotifications(sampleNotifications);
-  setUnreadNotifications(sampleNotifications.length);
-}, []);
-
-// Handle notification click
-const handleNotificationClick = (notif: { message: string; date: string }, index: number) => {
-  console.log("Notification clicked:", notif);
-
-  // Mark as read example
-  setUnreadNotifications((prev) => Math.max(prev - 1, 0));
-
-  // Optional: remove clicked notification
-  setNotifications((prev) => prev.filter((_, i) => i !== index));
-};
-
-
-  // Handle logout
   const handleLogout = () => {
     localStorage.removeItem("refID");
     window.location.href = "/login";
   };
 
+  // ----------------- JSX -----------------
   return (
     <Sidebar {...props} className="bg-white text-gray-900 border-r border-gray-200">
       <SidebarHeader>
@@ -215,7 +215,7 @@ const handleNotificationClick = (notif: { message: string; date: string }, index
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-      
+
       <SidebarContent>
         <SidebarGroup>
           <SidebarMenu>
@@ -228,7 +228,9 @@ const handleNotificationClick = (notif: { message: string; date: string }, index
                 >
                   <div className="flex items-center justify-between w-full">
                     <ChevronRight
-                      className={`h-4 w-4 mr-2 transition-transform ${openStates[index] ? "rotate-90 text-indigo-600" : "rotate-0 text-gray-500"}`}
+                      className={`h-4 w-4 mr-2 transition-transform ${
+                        openStates[index] ? "rotate-90 text-indigo-600" : "rotate-0 text-gray-500"
+                      }`}
                     />
                     <span className="font-semibold text-base flex-grow text-left">{item.title}</span>
                   </div>
@@ -243,7 +245,11 @@ const handleNotificationClick = (notif: { message: string; date: string }, index
                           <SidebarMenuSubButton
                             asChild
                             isActive={isActive}
-                            className={isActive ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200" : "hover:bg-gray-100 text-gray-700"}
+                            className={
+                              isActive
+                                ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                                : "hover:bg-gray-100 text-gray-700"
+                            }
                           >
                             <a href={subItem.url}>{subItem.title}</a>
                           </SidebarMenuSubButton>
@@ -258,63 +264,82 @@ const handleNotificationClick = (notif: { message: string; date: string }, index
         </SidebarGroup>
       </SidebarContent>
 
-      {/* Profile & Logout Footer */}
+      {/* Footer: Notifications, Profile, Logout */}
       <div className="mr-auto flex items-center gap-3 px-4 py-2 border-t border-gray-200">
-         {/* -------------------- */}
-  {/* Notification Bell */}
-  {/* -------------------- */}
-  <div className="relative">
-    <Button
-      variant="ghost"
-      size="icon"
-      title="Notifications"
-      className="text-gray-600 hover:bg-gray-100"
-      onClick={() => setIsNotificationOpen(true)}
-    >
-      <Bell className="h-5 w-5" />
-      {unreadNotifications > 0 && (
-        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white font-bold">
-          {unreadNotifications}
-        </span>
-      )}
-    </Button>
+        {/* Notification */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            title="Notifications"
+            className="text-gray-600 hover:bg-gray-100"
+            onClick={() => setIsNotificationOpen(true)}
+          >
+            <Bell className="h-5 w-5" />
+            {unreadNotifications > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white font-bold">
+                {unreadNotifications}
+              </span>
+            )}
+          </Button>
 
-    {/* Notification Dialog */}
-    <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle>Notifications</DialogTitle>
-        </DialogHeader>
+          {/* Notifications Dialog */}
+          <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+            <DialogContent className="sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle>Notifications</DialogTitle>
+              </DialogHeader>
 
-        <div className="grid gap-2 py-2 text-sm max-h-80 overflow-y-auto">
-          {notifications.length === 0 ? (
-            <p className="text-gray-500 text-center">No new notifications</p>
-          ) : (
-            notifications.map((notif, index) => (
-              <div
-                key={index}
-                className="p-2 border-b last:border-b-0 hover:bg-gray-50 rounded cursor-pointer"
-                onClick={() => handleNotificationClick(notif, index)} // ✅ tama
-              >
-                {notif.message}
-                <span className="text-gray-400 text-xs block">
-                  {formatDate(notif.date)}
-                </span>
+              <div className="grid gap-2 py-2 text-sm max-h-80 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <p className="text-gray-500 text-center">No new notifications</p>
+                ) : (
+                  notifications.map((notif, index) => (
+                    <div
+                      key={index}
+                      className="p-3 border-b last:border-b-0 hover:bg-gray-50 rounded cursor-pointer"
+                      onClick={() => handleNotificationClick(notif, index)}
+                    >
+                      <p className="text-sm">
+                        <span className="font-semibold">{notif.actor}</span> {notif.message}
+                      </p>
+                      <div className="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>Ticket #{notif.ticketNumber}</span>
+                        <span>{formatDate(notif.date)}</span>
+                      </div>
+                      <span
+                        className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium ${
+                          notif.action === "created"
+                            ? "bg-green-100 text-green-700"
+                            : notif.action === "updated"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-purple-100 text-purple-700"
+                        }`}
+                      >
+                        {notif.action.toUpperCase()}
+                      </span>
+                    </div>
+                  ))
+                )}
               </div>
-            ))
-          )}
+
+              <DialogFooter className="flex justify-center">
+                <DialogClose asChild>
+                  <Button variant="outline">Close</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
 
-        <DialogFooter className="flex justify-center">
-          <DialogClose asChild>
-            <Button variant="outline">Close</Button>
-          </DialogClose>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  </div>
         {/* Profile */}
-        <Dialog open={isProfileOpen} onOpenChange={(open) => { setIsProfileOpen(open); if (open) fetchProfile(); }}>
+        <Dialog
+          open={isProfileOpen}
+          onOpenChange={(open) => {
+            setIsProfileOpen(open);
+            if (open) fetchProfile();
+          }}
+        >
           <DialogTrigger asChild>
             <Button variant="ghost" size="icon" title="Profile" className="text-gray-600 hover:bg-gray-100">
               <User className="h-5 w-5" />
@@ -365,26 +390,24 @@ const handleNotificationClick = (notif: { message: string; date: string }, index
                     <Label className="text-gray-500">Joined:</Label>
                     <p className="font-medium text-gray-800">{formatDate(currentUser.createdAt)}</p>
                   </div>
-
-<div>
-  <Label className="text-gray-500">New Password:</Label>
-  <input
-    type="password"
-    value={newPassword}
-    onChange={(e) => setNewPassword(e.target.value)}
-    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-    placeholder="Enter new password"
-  />
-</div>
-
+                  <div>
+                    <Label className="text-gray-500">New Password:</Label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Enter new password"
+                    />
+                  </div>
                 </>
               )}
             </div>
 
             <DialogFooter className="flex justify-center gap-2">
-<Button variant="outline" onClick={handlePasswordUpdate}>
-  Update Password
-</Button>
+              <Button variant="outline" onClick={handlePasswordUpdate}>
+                Update Password
+              </Button>
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
               </DialogClose>
@@ -419,6 +442,7 @@ const handleNotificationClick = (notif: { message: string; date: string }, index
           </DialogContent>
         </Dialog>
       </div>
+
       <SidebarRail />
     </Sidebar>
   );

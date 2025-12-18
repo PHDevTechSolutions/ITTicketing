@@ -87,6 +87,15 @@ interface ITConcern {
   // --------------------
 }
 
+type MyNotification = {
+  ticketNumber: string;
+  action: "created" | "updated" | "processed";
+  actor: string;
+  message: string;
+  date: string;
+  email: string;
+};
+
 interface ConcernItem {
   FullName1: string;
   department: string;
@@ -126,6 +135,8 @@ interface InboxItem {
   readstatus: "Read" | "Unread";
 
 }
+
+
 
 
 interface Ticket {
@@ -177,7 +188,51 @@ export default function Page() {
     Email: "",
   };
 
-  const [selectedInboxItem, setSelectedInboxItem] = useState<InboxItem | null>(null);
+  const [notifications, setNotifications] = React.useState<MyNotification[]>([]);
+const [selectedNotification, setSelectedNotification] = React.useState<MyNotification | null>(null);
+
+const handleNotificationClick = (notif: MyNotification) => {
+  setSelectedNotification(notif);
+}
+
+React.useEffect(() => {
+  async function loadNotifications() {
+    try {
+      // 1️⃣ Load current user from localStorage
+      const storedUser = localStorage.getItem("currentUser");
+      if (!storedUser) return;
+      const parsedUser = JSON.parse(storedUser);
+      const userEmail = parsedUser.Email;
+
+      // 2️⃣ Fetch tickets from API and pass email as query param
+      const res = await fetch(`/api/tickets?email=${encodeURIComponent(userEmail)}`);
+      const data = await res.json();
+
+      if (!data.success || !Array.isArray(data.notifications)) {
+        console.error("tickets API: unexpected payload", data);
+        return;
+      }
+
+      // 3️⃣ Map notifications to MyNotification type
+      const formatted: MyNotification[] = data.notifications.map((n: any) => ({
+        ticketNumber: n.ticketNumber,
+        action: n.action,
+        actor: n.actor,
+        message: n.message,
+        date: n.date,
+        email: n.email || userEmail, // fallback
+      }));
+
+      setNotifications(formatted);
+    } catch (err) {
+      console.error("Failed to load notifications:", err);
+    }
+  }
+
+  loadNotifications();
+}, []);
+
+
   // New concern form state
   const [newConcern, setNewConcern] = React.useState<Concern>(initialConcernState);
 
@@ -341,41 +396,7 @@ export default function Page() {
     }
   };
 
-  const handleOpenInbox = async (item: InboxItem) => {
-    setSelectedInboxItem(item);
-
-    // Load stored read items from localStorage
-    const storedRead: string[] = JSON.parse(localStorage.getItem("readInbox") || "[]");
-
-    // Check if this item is already marked as read
-    const alreadyRead = storedRead.includes(item.ConcernNumber);
-
-    if (!alreadyRead) {
-      try {
-        // 1️⃣ Update DB
-        await fetch(`/api/inbox/${item.ConcernNumber}`, { method: "PATCH" });
-
-        // 2️⃣ Update localStorage
-        const updatedRead = [...storedRead, item.ConcernNumber];
-        localStorage.setItem("readInbox", JSON.stringify(updatedRead));
-        setReadInbox(updatedRead);
-
-        // 3️⃣ Update UI (unread/read count)
-        setInbox((prev) =>
-          prev.map((i) =>
-            i.ConcernNumber === item.ConcernNumber ? { ...i, readstatus: "Read" } : i
-          )
-        );
-
-        const unread = inbox.filter((i) => !updatedRead.includes(i.ConcernNumber)).length;
-        setUnreadCount(unread);
-      } catch (error) {
-        console.error("Failed to mark as read", error);
-      }
-    }
-  };
-
-
+  
 
   // Open a concern by ConcernNumber (fetch full details)
   const handleOpenConcern = async (concernNumber: string) => {
@@ -971,110 +992,79 @@ export default function Page() {
               </form>
             </div>
           )}
-
           {currentPage === "inbox" && (
-            <div className="max-w-4xl mx-auto w-full">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-foreground">Inbox</h2>
-
-                {/* TOOLTIP/INFO ICON BLOCK */}
-                <details className="relative group">
-                  <summary
-                    className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
-                   hover:bg-primary/20 transition-all outline-none select-none list-none"
-                  >
-                    {/* Info Icon */}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
-                      viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round"
-                        d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-                    </svg>
-                  </summary>
-
-                  {/* TOOLTIP/DETAILS CONTENT */}
-                  <div
-                    className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
-                   shadow-2xl bg-white dark:bg-gray-900 text-sm 
-                   text-gray-700 dark:text-gray-300 leading-relaxed z-10 
-                   animate-in fade-in slide-in-from-top-2 duration-300"
-                    style={{ minWidth: '200px' }}
-                  >
-                    <p>
-                      Here you can see updates on your concerns. Please check regularly for any new notifications or status changes.
-                    </p>
-                  </div>
-                </details>
-              </div>
+  <div className="max-w-4xl mx-auto w-full">
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-2xl font-bold text-foreground">Inbox</h2>
+      {/* tooltip ... */}
+    </div>
 
 
-              {/* Unread indicator */}
-              {/* Unread indicator */}
-              {unreadCount > 0 && (
-                <div className="mb-2 flex items-center gap-2 text-sm text-blue-600 font-medium">
-                  <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
-                  You have {unreadCount} unread {unreadCount === 1 ? "message" : "messages"}
-                </div>
-              )}
 
+    <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm divide-y max-h-96 overflow-y-auto">
+      {notifications.length === 0 ? (
+        <div className="p-4 text-sm text-muted-foreground">No notifications.</div>
+      ) : (
+        notifications.map((notif) => {
+          const notifDate = new Date(notif.date);
+          return (
+            <div
+              key={notif.ticketNumber}
+              className="flex items-start gap-3 p-4 cursor-pointer hover:bg-muted/50"
+              onClick={() => handleNotificationClick(notif)}
+            >
+              <div
+                className={`w-3 h-3 rounded-full mt-1 ${
+                  notif.action === "created"
+                    ? "bg-green-500"
+                    : notif.action === "updated"
+                    ? "bg-blue-500"
+                    : "bg-purple-500"
+                }`}
+              ></div>
 
-              <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm divide-y">
-                {inbox.length === 0 ? (
-                  <div className="p-4 text-sm text-muted-foreground">
-                    No inbox messages.
-                  </div>
-                ) : (
-                  inbox.map((item) => {
-                    const createdAt = item.createdAt ? new Date(item.createdAt) : new Date();
-                    const isRead = readInbox.includes(item.ConcernNumber) || item.readstatus === "Read";
+             <div className="flex-1">
+  <div className="font-semibold text-foreground">
+    Ticket Update
+  </div>
 
-                    return (
-                      <div
-                        key={item.ConcernNumber}
-                        className={`flex items-start gap-3 p-4 cursor-pointer ${isRead ? "bg-gray-100 dark:bg-gray-800" : "hover:bg-muted/50"
-                          }`}
-                        onClick={() => handleOpenInbox(item)}
-                      >
-                        <div
-                          className={`w-3 h-3 rounded-full mt-1 ${isRead ? "bg-gray-400 dark:bg-gray-500" : "bg-blue-500"
-                            }`}
-                        ></div>
+  <div className="text-sm text-muted-foreground mt-0.5">
+    Ticket <span className="font-medium text-foreground">#{notif.ticketNumber} </span> 
+    has been  <span className="font-medium">{notif.message} </span> 
+    by <span className="font-medium">{notif.actor} </span>.
+  </div>
+ 
+  <div className="text-xs text-muted-foreground mt-1">
+    {notifDate.toLocaleString()}
+  </div>
+</div>
 
-                        <div className="flex-1">
-                          <div className="font-semibold text-foreground">{item.ConcernNumber}</div>
-                          <div className="text-sm text-muted-foreground mt-0.5">
-                            {item.remarks || "Technician assigned to your request. Please expect an update soon."}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {timeAgo(createdAt)} {isRead ? "• Read" : ""}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-
-              {/* Dialog outside of map */}
-              {selectedInboxItem && (
-                <Dialog open={!!selectedInboxItem} onOpenChange={() => setSelectedInboxItem(null)}>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{selectedInboxItem.ConcernNumber}</DialogTitle>
-                    </DialogHeader>
-                    <div className="p-4">
-                      {selectedInboxItem.remarks}
-                    </div>
-                    <DialogFooter>
-                      <DialogClose asChild>
-                        <Button variant="outline">Close</Button>
-                      </DialogClose>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              )}
             </div>
-          )}
+          );
+        })
+      )}
+    </div>
+
+    {selectedNotification && (
+      <Dialog open={!!selectedNotification} onOpenChange={() => setSelectedNotification(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ticket #{selectedNotification.ticketNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">{selectedNotification.message}</div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )}
+  </div>
+)}
+
+
+
 
           {/* OPEN TICKETS */}
           {currentPage === "openTickets" && (
@@ -1430,6 +1420,7 @@ export default function Page() {
                   <table className="w-full text-sm text-foreground text-center">
                     <thead className="bg-gray-100 dark:bg-gray-800">
                       <tr className="h-12">
+                         <th className="px-4 font-semibold">Ticket No.</th>
                         <th className="px-4 font-semibold">Request Type</th>
                         <th className="px-4 font-semibold max-w-xs">Group</th>
                         <th className="px-4 font-semibold">Technician</th>
@@ -1443,7 +1434,7 @@ export default function Page() {
                     <tbody>
                       {filteredClosedTickets.map((ticket) => (
                         <tr key={ticket.id} className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12">
-
+                          <td className="px-4 py-3">{ticket.ticketNumber}</td>
                           <td className="px-4 py-3">{ticket.requesttype}</td>
                           <td className="px-4 py-3 max-w-xs truncate whitespace-nowrap overflow-hidden">{ticket.group}</td>
                           <td className="px-4 py-3">{ticket.technicianname}</td>
@@ -1511,7 +1502,7 @@ export default function Page() {
                   <thead className="bg-gray-100 dark:bg-gray-800">
                     <tr className="h-12">
                       {/* Removed width classes from most headers */}
-                      <th className="px-4 font-semibold">Concen ID</th>
+                      <th className="px-4 font-semibold">Ticket No.</th>
                       <th className="px-4 font-semibold">Request Type</th>
                       {/* ADDED max-w-xs to constrain the Group column */}
                       <th className="px-4 font-semibold max-w-xs">Group</th>
@@ -1528,7 +1519,7 @@ export default function Page() {
                         key={t.id}
                         className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12"
                       >
-                        <td className="px-4 py-3">{t.ConcernNumber}</td>
+                        <td className="px-4 py-3">{t.ticketNumber}</td>
                         <td className="px-4 py-3">{t.requesttype}</td>
                         <td className="px-4 py-3 max-w-xs truncate whitespace-nowrap overflow-hidden">{t.group}</td>
                         <td className="px-4 py-3">{t.technicianname}</td>

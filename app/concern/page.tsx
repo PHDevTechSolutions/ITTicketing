@@ -9,7 +9,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarProvider, SidebarTrigger, } from "@/components/ui/sidebar"
 import {
-  Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader,DialogTrigger, DialogTitle,
+  Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTrigger, DialogTitle,
 } from "@/components/ui/dialog"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -36,7 +36,10 @@ interface ITConcern {
   priority: string
   status: "Pending" | "Ongoing" | "Finished"
   createdAt: string;
-  Fullname:string
+  Fullname: string
+  requesttype: string
+  technicianname: string
+   dateSched: string;
 }
 
 interface CurrentUser {
@@ -48,7 +51,7 @@ interface CurrentUser {
   Lastname: string;
   ReferenceID: string;
   createdAt: string;
-  Fullname:string
+  Fullname: string
 }
 
 // Removed NewTicket interface and related dummy states/handlers as they are not needed for ticket display.
@@ -61,7 +64,7 @@ export default function Page() {
   const [status, setStatus] = useState<ITConcern["status"]>("Pending")
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [profilePic, setProfilePic] = useState<string | null>(null)
-  
+
   // --- TICKET STATE ---
   const [allConcerns, setAllConcerns] = useState<ITConcern[]>([]) // Para sa lahat ng tickets
   const [isLoading, setIsLoading] = useState(true) // Loading state para sa tickets
@@ -85,7 +88,7 @@ export default function Page() {
     setProfileError(null);
     try {
       const username = localStorage.getItem("userId");
-      
+
       if (!username) {
         setProfileError("No login session found. Please log in.");
         return;
@@ -107,36 +110,36 @@ export default function Page() {
       setIsProfileLoading(false);
     }
   };
-  
+
   // 🚀 FETCH TICKETS FROM API
   const fetchConcerns = async () => {
     setIsLoading(true);
     setFetchError(null);
     try {
-        // Assume the API endpoint for all tickets is /api/tickets
-        // Note: You might need to add token/auth headers here in a real app.
-        const res = await fetch(`/api/tickets`);
-        
-        if (!res.ok) {
-            throw new Error(`Failed to fetch tickets: ${res.statusText}`);
-        }
+      // Assume the API endpoint for all tickets is /api/tickets
+      // Note: You might need to add token/auth headers here in a real app.
+      const res = await fetch(`/api/tickets`);
 
-        const data = await res.json();
-        
-        // Assuming the data.data is an array of ITConcern
-        if (Array.isArray(data.data)) {
-            setAllConcerns(data.data);
-        } else {
-            // Fallback for unexpected data structure
-             setAllConcerns([]); 
-             setFetchError("Received unexpected data format for tickets.");
-        }
+      if (!res.ok) {
+        throw new Error(`Failed to fetch tickets: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+
+      // Assuming the data.data is an array of ITConcern
+      if (Array.isArray(data.data)) {
+        setAllConcerns(data.data);
+      } else {
+        // Fallback for unexpected data structure
+        setAllConcerns([]);
+        setFetchError("Received unexpected data format for tickets.");
+      }
       toast.success("Fetch Ticket successful!")
     } catch (error) {
-        console.error("Error fetching concerns:", error);
-        setFetchError("Failed to connect to ticket service or network error.");
+      console.error("Error fetching concerns:", error);
+      setFetchError("Failed to connect to ticket service or network error.");
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -145,31 +148,31 @@ export default function Page() {
   useEffect(() => {
     fetchProfile();
     fetchConcerns();
-     // Call the new ticket fetching function
+    // Call the new ticket fetching function
   }, []);
 
   // Helper function to format date
-// Line 202 (Modified): Helper function to format date
-// Tinatanggap na ngayon ang 'string' o 'Date'
-const formatDate = (date: string | Date | undefined): string => { 
-  if (!date) return 'N/A';
-  
-  let dateToFormat: Date;
+  // Line 202 (Modified): Helper function to format date
+  // Tinatanggap na ngayon ang 'string' o 'Date'
+  const formatDate = (date: string | Date | undefined): string => {
+    if (!date) return 'N/A';
 
-  // Type check: If it's a string, convert it to a Date object
-  if (typeof date === 'string') {
-    dateToFormat = new Date(date);
-  } else {
-    dateToFormat = date; // It's already a Date object
-  }
+    let dateToFormat: Date;
 
-  // Check if the date conversion was successful
-  if (isNaN(dateToFormat.getTime())) {
-    return 'Invalid Date';
-  }
+    // Type check: If it's a string, convert it to a Date object
+    if (typeof date === 'string') {
+      dateToFormat = new Date(date);
+    } else {
+      dateToFormat = date; // It's already a Date object
+    }
 
-  return dateToFormat.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-};
+    // Check if the date conversion was successful
+    if (isNaN(dateToFormat.getTime())) {
+      return 'Invalid Date';
+    }
+
+    return dateToFormat.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  };
   // END OF PROFILE LOGIC
 
   // 🔍 FILTERING AND SEARCHING LOGIC (Using useMemo to optimize)
@@ -179,29 +182,29 @@ const formatDate = (date: string | Date | undefined): string => {
 
     // 1. Apply Filtering
     if (filterBy !== "all" && filterBy !== "") {
-        filtered = filtered.filter(c => {
-            switch (filterBy) {
-                case "department": return c.department;
-                default: return true;
-            }
-        });
+      filtered = filtered.filter(c => {
+        switch (filterBy) {
+          case "department": return c.department;
+          default: return true;
+        }
+      });
     }
 
     // 2. Apply Searching
     if (lowerCaseSearchTerm) {
-        filtered = filtered.filter(c => {
-            // Search across relevant fields (adjust as needed)
-            return (
-                c.department.toLowerCase().includes(lowerCaseSearchTerm)
-            );
-        });
+      filtered = filtered.filter(c => {
+        // Search across relevant fields (adjust as needed)
+        return (
+          c.department.toLowerCase().includes(lowerCaseSearchTerm)
+        );
+      });
     }
 
     // Reset page to 1 if the filter/search changes
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
-    
+
     return filtered;
   }, [allConcerns, filterBy, searchTerm]); // Dependencies
 
@@ -216,23 +219,23 @@ const formatDate = (date: string | Date | undefined): string => {
   // --- STYLING FUNCTIONS (Kinuha sa original code) ---
   const getRowBg = (priority: string, isRowView: boolean) => {
     if (isRowView) {
-        switch (priority) {
-            case "Critical": return "bg-red-200 hover:bg-red-300";
-            case "High": return "bg-orange-200 hover:bg-orange-300";
-            case "Medium": return "bg-yellow-200 hover:bg-yellow-300";
-            case "Low": return "bg-green-200 hover:bg-green-300";
-            case "Normal": return "bg-green-200 hover:bg-green-300";
-            default: return "bg-gray-200 hover:bg-gray-300";
-        }
+      switch (priority) {
+        case "Critical": return "bg-red-200 hover:bg-red-300";
+        case "High": return "bg-orange-200 hover:bg-orange-300";
+        case "Medium": return "bg-yellow-200 hover:bg-yellow-300";
+        case "Low": return "bg-green-200 hover:bg-green-300";
+        case "Normal": return "bg-green-200 hover:bg-green-300";
+        default: return "bg-gray-200 hover:bg-gray-300";
+      }
     } else {
-        switch (priority) {
-            case "Critical": return "bg-red-200 hover:bg-red-300";
-            case "High": return "bg-orange-300 hover:bg-orange-400";
-            case "Medium": return "bg-yellow-300 hover:bg-yellow-400";
-            case "Low": return "bg-green-300 hover:bg-green-400";
-            case "Normal": return "bg-green-300 hover:bg-green-400";
-            default: return "bg-gray-300 hover:bg-gray-400";
-        }
+      switch (priority) {
+        case "Critical": return "bg-red-200 hover:bg-red-300";
+        case "High": return "bg-orange-300 hover:bg-orange-400";
+        case "Medium": return "bg-yellow-300 hover:bg-yellow-400";
+        case "Low": return "bg-green-300 hover:bg-green-400";
+        case "Normal": return "bg-green-300 hover:bg-green-400";
+        default: return "bg-gray-300 hover:bg-gray-400";
+      }
     }
   }
 
@@ -244,19 +247,19 @@ const formatDate = (date: string | Date | undefined): string => {
       default: return "bg-gray-100 text-gray-700"
     }
   }
-  
+
   const getCardTextColors = (priority: string) => {
     // Keep the original color logic
     switch (priority) {
 
-        case "Critical":
-        case "High":
-        case "Medium":
-        case "Low":
-        case "Normal":
-            return "text-gray-800"; // Use dark text for colored backgrounds
-        default:
-            return "text-gray-700";
+      case "Critical":
+      case "High":
+      case "Medium":
+      case "Low":
+      case "Normal":
+        return "text-gray-800"; // Use dark text for colored backgrounds
+      default:
+        return "text-gray-700";
     }
   }
   // ------------------------------------------------------------------
@@ -275,7 +278,7 @@ const formatDate = (date: string | Date | undefined): string => {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("userId") 
+    localStorage.removeItem("userId")
     router.push("/login")
   }
 
@@ -307,22 +310,22 @@ const formatDate = (date: string | Date | undefined): string => {
           <p className="mt-4 text-lg font-bold">Error Loading Tickets</p>
           <p className="text-sm mt-1">{fetchError}</p>
           <Button onClick={fetchConcerns} className="mt-4" variant="outline">
-              Try Again
+            Try Again
           </Button>
         </div>
       )
     }
 
     if (currentItems.length === 0) {
-        return (
-            <div className="flex flex-col items-center justify-center p-20 bg-white rounded-lg shadow-xl text-gray-500">
-                <Search className="h-10 w-10" />
-                <p className="mt-4 text-lg font-semibold">No Tickets Found</p>
-                <p className="text-sm mt-1">Adjust your search term or filter settings.</p>
-            </div>
-        )
+      return (
+        <div className="flex flex-col items-center justify-center p-20 bg-white rounded-lg shadow-xl text-gray-500">
+          <Search className="h-10 w-10" />
+          <p className="mt-4 text-lg font-semibold">No Tickets Found</p>
+          <p className="text-sm mt-1">Adjust your search term or filter settings.</p>
+        </div>
+      )
     }
-    
+
     // --- LIST (ROW) VIEW ---
     if (isRowView) {
       return (
@@ -347,7 +350,7 @@ const formatDate = (date: string | Date | undefined): string => {
                     // Pass isRowView=true to get the lighter row background
                     className={`border-b cursor-pointer ${getRowBg(
                       c.priority,
-                      true 
+                      true
                     )}`}
                     onClick={() => openDialog(c)}
                   >
@@ -357,16 +360,16 @@ const formatDate = (date: string | Date | undefined): string => {
                     <td className="p-3 italic text-gray-500 truncate max-w-[250px]">
                       {c.remarks}
                     </td>
-                       <td className="p-3">
-            {new Date(c.createdAt).toLocaleString("en-US", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            })}
-          </td>
+                    <td className="p-3">
+                      {new Date(c.createdAt).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </td>
                     <td className="p-3 font-semibold">{c.priority}</td>
                     <td className="p-3 text-center">
                       <span
@@ -395,24 +398,24 @@ const formatDate = (date: string | Date | undefined): string => {
             onClick={() => openDialog(c)}
             className={`rounded-lg border p-5 shadow hover:shadow-xl transition duration-300 cursor-pointer 
               ${getRowBg(c.priority, false)} 
-              ${getCardTextColors(c.priority)}`} 
+              ${getCardTextColors(c.priority)}`}
           >
             <div className="flex justify-between items-start mb-2">
-                <h2 className="text-xl font-extrabold">
-                    {c.type}
-                </h2>
-                {/* Priority Badge */}
-                <span className={`text-xs font-bold uppercase px-3 py-1 rounded-full border border-current 
-                    ${c.priority === "Critical" ? 'text-red-800 border-red-800' : 
-                    c.priority === "High" ? 'text-orange-800 border-orange-800' : 
+              <h2 className="text-xl font-extrabold">
+                {c.type}
+              </h2>
+              {/* Priority Badge */}
+              <span className={`text-xs font-bold uppercase px-3 py-1 rounded-full border border-current 
+                    ${c.priority === "Critical" ? 'text-red-800 border-red-800' :
+                  c.priority === "High" ? 'text-orange-800 border-orange-800' :
                     c.priority === "Medium" ? 'text-yellow-800 border-yellow-800' :
-                    c.priority === "Normal" ? 'text-green-800 border-green-800' :  
-                    'text-green-800 border-green-800'}`}
-                >
-                    {c.priority}
-                </span>
+                      c.priority === "Normal" ? 'text-green-800 border-green-800' :
+                        'text-green-800 border-green-800'}`}
+              >
+                {c.priority}
+              </span>
             </div>
-            
+
             <h3 className="text-lg font-semibold mb-1">
               {c.Fullname}
             </h3>
@@ -421,16 +424,16 @@ const formatDate = (date: string | Date | undefined): string => {
               {c.remarks}
             </p>
             <div className="flex justify-between items-center text-xs pt-3 border-t">
-<span className="p-3">
-  {new Date(c.createdAt).toLocaleString("en-US", {
-    year: "numeric",
-    month: "long", // Ginawang 'long' para sa buong pangalan ng buwan
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: true,
-  })}
-</span>
+              <span className="p-3">
+                {new Date(c.createdAt).toLocaleString("en-US", {
+                  year: "numeric",
+                  month: "long", // Ginawang 'long' para sa buong pangalan ng buwan
+                  day: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </span>
               <span
                 className={`px-2 py-1 rounded-full font-bold uppercase ${getStatusBadgeColors(
                   c.status
@@ -469,7 +472,7 @@ const formatDate = (date: string | Date | undefined): string => {
             </Breadcrumb>
           </div>
 
-        
+
         </header>
 
         {/* MAIN CONTENT */}
@@ -552,9 +555,27 @@ const formatDate = (date: string | Date | undefined): string => {
                       </p>
                     </div>
                     <div>
-                      <Label className="font-semibold text-gray-600">Type:</Label>
+                      <Label className="font-semibold text-gray-600">Concern Type:</Label>
                       <p className="font-medium text-gray-900">
                         {selectedConcern.type}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="font-semibold text-gray-600">Type of Request:</Label>
+                      <p className="font-medium text-gray-900">
+                        {selectedConcern.requesttype}
+                      </p>
+                    </div>
+                    <div>
+                      <Label className="font-semibold text-gray-600">Technician:</Label>
+                      <p className="font-medium text-gray-900">
+                        {selectedConcern.technicianname}
+                      </p>
+                    </div>
+                                        <div>
+                      <Label className="font-semibold text-gray-600">Date Scheduled:</Label>
+                      <p className="font-medium text-gray-900">
+                        {selectedConcern.dateSched}
                       </p>
                     </div>
                     <div>
@@ -562,13 +583,12 @@ const formatDate = (date: string | Date | undefined): string => {
                         Priority:
                       </Label>
                       <p
-                        className={`font-bold ${
-                          selectedConcern.priority === "Critical"
+                        className={`font-bold ${selectedConcern.priority === "Critical"
                             ? "text-red-600"
                             : selectedConcern.priority === "High"
-                            ? "text-orange-600"
-                            : "text-green-600"
-                        }`}
+                              ? "text-orange-600"
+                              : "text-green-600"
+                          }`}
                       >
                         {selectedConcern.priority}
                       </p>
@@ -584,34 +604,11 @@ const formatDate = (date: string | Date | undefined): string => {
                     </p>
                   </div>
 
-                  <div className="pt-2">
-                    <Label className="font-semibold text-gray-600">
-                      Status
-                    </Label>
-                    <Select
-                      value={status}
-                      onValueChange={(v: ITConcern["status"]) => setStatus(v)}
-                    >
-                      <SelectTrigger className="w-full mt-1 bg-white border-gray-300">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="Ongoing">Ongoing</SelectItem>
-                        <SelectItem value="Finished">Finished</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                
                 </div>
               )}
 
               <DialogFooter className="mt-4">
-                <Button
-                  onClick={handleUpdate}
-                  className="bg-gray-700 hover:bg-gray-800 text-white font-semibold"
-                >
-                  Update Status
-                </Button>
                 <DialogClose asChild>
                   <Button variant="outline">Close</Button>
                 </DialogClose>
@@ -622,42 +619,42 @@ const formatDate = (date: string | Date | undefined): string => {
           {/* PAGINATION */}
           <div className="mt-8 flex justify-center">
             {totalConcerns > 0 && ( // Only show pagination if there are items
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (currentPage > 1) setCurrentPage(currentPage - 1)
+                      }}
+                    />
+                  </PaginationItem>
+                  {Array.from({ length: totalPages }, (_, i) => (
+                    <PaginationItem key={i}>
+                      <PaginationLink
                         href="#"
+                        isActive={i + 1 === currentPage}
                         onClick={(e) => {
                           e.preventDefault()
-                          if (currentPage > 1) setCurrentPage(currentPage - 1)
+                          setCurrentPage(i + 1)
                         }}
-                      />
+                      >
+                        {i + 1}
+                      </PaginationLink>
                     </PaginationItem>
-                    {Array.from({ length: totalPages }, (_, i) => (
-                      <PaginationItem key={i}>
-                        <PaginationLink
-                          href="#"
-                          isActive={i + 1 === currentPage}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            setCurrentPage(i + 1)
-                          }}
-                        >
-                          {i + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          if (currentPage < totalPages) setCurrentPage(currentPage + 1)
-                        }}
-                      />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        if (currentPage < totalPages) setCurrentPage(currentPage + 1)
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             )}
           </div>
         </main>

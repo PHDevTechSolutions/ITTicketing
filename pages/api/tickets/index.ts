@@ -22,6 +22,7 @@ interface IncomingTicketData {
   ConcernNumber: string;
   id?: string;
   createdAt?: Date;
+  email: string;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -38,54 +39,62 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const ticketsCollection = db.collection<IncomingTicketData>("tickets");
 
   // ----------------------------------------------------------------------
-  // --- 🚀 GET: FETCH ALL TICKETS ---
+  // --- 🚀 GET: FETCH ALL TICKETS + NOTIFICATIONS ---
   // ----------------------------------------------------------------------
-// ----------------------------------------------------------------------
-// --- 🚀 GET: FETCH ALL TICKETS (with optional email filter) ---
-// ----------------------------------------------------------------------
-if (req.method === 'GET') {
-  try {
-    const { email } = req.query; // Kunin ang email query parameter
-    const query: any = email ? { Email: email } : {}; // Kung may email, i-filter
+  if (req.method === 'GET') {
+    try {
+      const { email } = req.query; // Optional email filter
+      const query: any = email ? { Email: email } : {};
 
-    const tickets = await ticketsCollection.find(query)
-      .sort({ createdAt: -1 })
-      .toArray();
+      const tickets = await ticketsCollection.find(query)
+        .sort({ createdAt: -1 })
+        .toArray();
 
-    // 🔥 MAP ALL DATA (Kompleto, walang tinatago)
-    const formattedTickets = tickets.map(ticket => ({
-      id: ticket.ticketNumber || ticket._id.toHexString(),
-      ticketNumber: ticket.ticketNumber || "N/A",
-      ConcernNumber: ticket.ConcernNumber, 
-      Fullname: ticket.Fullname,
-      department: ticket.department,
-      dateSched: ticket.dateSched,
-      type: ticket.type,
-      status: ticket.status,
-      remarks: ticket.remarks,
-      processedBy: ticket.processedBy,
-      priority: ticket.priority,
-      requesttype: ticket.requesttype,
-      mode: ticket.mode,
-      site: ticket.site,
-      group: ticket.group,
-      technicianname: ticket.technicianname,
-      createdAt: ticket.createdAt ? ticket.createdAt.toISOString() : "N/A",
-    }));
+      // 🔥 MAP ALL DATA (kompleto)
+      const formattedTickets = tickets.map(ticket => ({
+        id: ticket.ticketNumber || ticket._id.toHexString(),
+        ticketNumber: ticket.ticketNumber || "N/A",
+        ConcernNumber: ticket.ConcernNumber, 
+        Fullname: ticket.Fullname,
+        department: ticket.department,
+        dateSched: ticket.dateSched,
+        type: ticket.type,
+        status: ticket.status,
+        remarks: ticket.remarks,
+        processedBy: ticket.processedBy,
+        priority: ticket.priority,
+        requesttype: ticket.requesttype,
+        mode: ticket.mode,
+        site: ticket.site,
+        group: ticket.group,
+        technicianname: ticket.technicianname,
+        createdAt: ticket.createdAt ? ticket.createdAt.toISOString() : "N/A",
+      }));
 
-    return res.status(200).json({
-      success: true,
-      data: formattedTickets,
-      message: 'Tickets fetched successfully.'
-    });
+      // ✅ Create notifications dynamically based on tickets
+      const notifications = tickets.map(ticket => ({
+        ticketNumber: ticket.ticketNumber || "N/A",
+        action: ticket.status === "Pending" ? "created" : ticket.status === "Ongoing" ? "processed" : "updated",
+        actor: ticket.processedBy || "System",
+        message: `Ticket has been ${ticket.status.toLowerCase()}`,
+        date: ticket.createdAt ? ticket.createdAt.toISOString() : new Date().toISOString(),
+      }));
 
-  } catch (error) {
-    console.error('Ticket fetching failed:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during ticket fetching.';
-    return res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+      return res.status(200).json({
+        success: true,
+        data: formattedTickets,
+        notifications, // ✅ send notifications along with tickets
+        message: 'Tickets fetched successfully.'
+      });
+
+    } catch (error) {
+      console.error('Ticket fetching failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during ticket fetching.';
+      return res.status(500).json({ success: false, message: `Internal server error: ${errorMessage}` });
+    }
   }
-}
 
+  
 
   // ----------------------------------------------------------------------
   // --- 📝 POST: CREATE TICKET ---
@@ -107,7 +116,6 @@ if (req.method === 'GET') {
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, "0");
       const day = String(now.getDate()).padStart(2, "0");
-
       const today = `${year}-${month}-${day}`;
 
       const todaysCount = await ticketsCollection.countDocuments({
@@ -153,4 +161,8 @@ if (req.method === 'GET') {
     res.setHeader('Allow', ['GET', 'POST']);
     res.status(405).end(`Method ${req.method} Not Allowed`);
   }
+  
+
+
+
 }

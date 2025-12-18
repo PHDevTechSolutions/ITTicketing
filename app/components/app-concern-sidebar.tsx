@@ -1103,14 +1103,16 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                             </div>
 
                             {/* Date Sched Input (Optional) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label>Date Sched (optional)</Label>
-                                <Input
-                                    type="date"
-                                    value={newTicket.dateSched}
-                                    onChange={(e) => setNewTicket({ ...newTicket, dateSched: e.target.value })}
-                                />
-                            </div>
+<div className="flex flex-col space-y-1.5">
+  <Label>Date Scheduled (Required)</Label>
+  <Input
+    type="date"
+    value={newTicket.dateSched}
+    onChange={(e) => setNewTicket({ ...newTicket, dateSched: e.target.value })}
+    min={new Date().toISOString().split("T")[0]} // <-- only future and today
+  />
+</div>
+
                             {/* Priority Select (Required + Red Border) */}
                             <div className="flex flex-col space-y-1.5">
                                 <Label className={getErrorClass("priority")}>Priority</Label>

@@ -137,29 +137,6 @@ export function SidebarLeft({
     window.location.href = "/dsi-login"
   }
 
-  // --------------------
-  // NOTIFICATIONS
-  // --------------------
-  const fetchNotifications = async () => {
-    // Example: fetch from API or localStorage
-    const fetched: NotificationType[] = [
-      { message: "New concern assigned to you.", date: new Date().toISOString(), read: false },
-      { message: "Ticket #123 updated.", date: new Date().toISOString(), read: false },
-    ]
-    setNotifications(fetched)
-    setUnreadNotifications(fetched.filter(n => !n.read).length)
-  }
-
-  const handleNotificationClick = (notif: NotificationType) => {
-    // Mark notification as read
-    notif.read = true
-    setUnreadNotifications(notifications.filter(n => !n.read).length)
-    // Do something: navigate to concern/ticket
-  }
-
-  useEffect(() => {
-    fetchNotifications()
-  }, [])
 
   // --------------------
   // UTILS
@@ -200,56 +177,7 @@ export function SidebarLeft({
       {/* PROFILE + NOTIFICATIONS + LOGOUT */}
       {/* -------------------- */}
       <div className="mr-auto flex items-center gap-3 px-4 py-2 border-t border-gray-200">
-        {/* NOTIFICATION BELL */}
-        <div className="relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            title="Notifications"
-            className="text-gray-600 hover:bg-gray-100"
-            onClick={() => setIsNotificationOpen(true)}
-          >
-            <Bell className="h-5 w-5" />
-            {unreadNotifications > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white font-bold">
-                {unreadNotifications}
-              </span>
-            )}
-          </Button>
-
-          <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-            <DialogContent className="sm:max-w-[400px]">
-              <DialogHeader>
-                <DialogTitle>Notifications</DialogTitle>
-              </DialogHeader>
-
-              <div className="grid gap-2 py-2 text-sm max-h-80 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <p className="text-gray-500 text-center">No new notifications</p>
-                ) : (
-                  notifications.map((notif, index) => (
-                    <div
-                      key={index}
-                      className="p-2 border-b last:border-b-0 hover:bg-gray-50 rounded cursor-pointer"
-                      onClick={() => handleNotificationClick(notif)}
-                    >
-                      {notif.message}
-                      <span className="text-gray-400 text-xs block">
-                        {formatDate(notif.date)}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <DialogFooter className="flex justify-center">
-                <DialogClose asChild>
-                  <Button variant="outline">Close</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+        
 
         {/* PROFILE */}
         <Dialog
