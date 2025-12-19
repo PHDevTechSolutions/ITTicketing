@@ -402,7 +402,7 @@ export default function Page() {
               ${getCardTextColors(c.priority)}`}
           >
             <div className="flex justify-between items-start mb-2">
-              <h2 className="text-xs font-extrabold">
+              <h2 className="text-xl font-extrabold">
                 {c.type}
               </h2>
               {/* Priority Badge */}

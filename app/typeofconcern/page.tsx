@@ -239,19 +239,24 @@ export default function ConcernTypesPage() {
 
         {/* MAIN */}
         <main className="p-6 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
-            <h1 className="text-3xl font-extrabold text-gray-700">Type of Concerns List</h1>
-            <Button
-              onClick={handleOpenAdd}
-              className="bg-gray-700 hover:bg-gray-800 text-white"
-            ><Plus className="h-5 w-5 mr-2" /> Type of Concern</Button>
-          </div>
+<div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
+  <h1 className="text-3xl font-extrabold text-gray-700 mb-4 md:mb-0">
+    Type of Concerns List
+  </h1>
+  <Button
+    onClick={handleOpenAdd}
+    className="bg-gray-700 hover:bg-gray-800 text-white"
+  >
+    <Plus className="h-5 w-5 mr-2" /> Type of Concern
+  </Button>
+</div>
+
 
           {/* TABLE */}
           <div className="bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden">
             <div className="overflow-x-auto">
               {/* WALANG WHITESPACE DITO */}
-              <table className="min-w-full text-left text-sm">
+              <table className="min-w-full text-left text-xs">
                 <thead className="bg-gray-700 text-white font-semibold sticky top-0">
                   <tr><th className="p-4">Type of Concern Name</th><th className="p-4 text-center w-[100px]">Action</th></tr>
                 </thead>

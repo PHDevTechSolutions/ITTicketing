@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react";
-import { ArchiveX, File, Inbox, Send, Trash2 } from "lucide-react"
+import { ArchiveX, File, Inbox, Send, Trash2, MessageSquareMore } from "lucide-react"
 import { AppSidebar } from "../components/sidebar"
 import { Label } from "@/components/ui/label"
 import {
@@ -197,36 +197,55 @@ const useFetchList = (apiPath: string, fallbackData: string[]) => {
 // --- Main Component ---
 export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const [mails, setMails] = useState<MailItem[]>([]);
+    const [unreadCount, setUnreadCount] = useState<number>(0);
 
     useEffect(() => {
         const fetchConcerns = async () => {
             try {
+                // 1️⃣ Load current user from localStorage
+                const storedUser = localStorage.getItem("currentUser");
+                if (!storedUser) return;
+
+                const parsedUser = JSON.parse(storedUser);
+                const userEmail = parsedUser.Email;
+
+                // 2️⃣ Fetch concerns
                 const res = await fetch("/api/euconcern/"); // include trailing slash
                 if (!res.ok) {
                     console.error(`HTTP error! status: ${res.status}`);
                     return;
                 }
+
                 const json = await res.json();
                 if (!json.success) return;
 
-                const formatted = json.data.map((c: any) => ({
-                    name: c.employeeName,
-                    depts: c.department,
-                    Email: c.Email,
-                    subject: `${c.type} (${c.department})`,
-                    createdAt: c.createdAt ?? "N/A", // <-- use the DB value directly
-                    requesttype1: c.reqt,
-                    site: c.site || "",
-                    mode: c.mode,
-                    type: c.type,
-                    teaser: `${c.remarks}.`,
-                    priority: c.priority || "Normal",
-                    status: c.status || "Pending",
-                    readstatus: c.readstatus,
-                    ConcernNumber: c.ConcernNumber,
-                }));
+                // 3️⃣ Format and filter by user email
+                const formatted: MailItem[] = json.data
+                    .filter((c: any) => c.Email === userEmail)
+                    .map((c: any) => ({
+                        name: c.employeeName,
+                        depts: c.department,
+                        Email: c.Email,
+                        subject: `${c.type} (${c.department})`,
+                        createdAt: c.createdAt ?? "N/A",
+                        requesttype1: c.reqt,
+                        site: c.site || "",
+                        mode: c.mode,
+                        type: c.type,
+                        teaser: `${c.remarks}.`,
+                        priority: c.priority || "Normal",
+                        status: c.status || "Pending",
+                        readstatus: c.readstatus,
+                        ConcernNumber: c.ConcernNumber,
+                    }));
 
                 setMails(formatted);
+
+                // 4️⃣ Compute unread count
+                const storedRead = JSON.parse(localStorage.getItem("readInbox") || "[]");
+                const unread = formatted.filter((c) => !storedRead.includes(c.ConcernNumber)).length;
+                setUnreadCount(unread);
+
             } catch (err) {
                 console.error("Failed to fetch concerns:", err);
             }
@@ -234,6 +253,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
 
         fetchConcerns();
     }, []);
+
 
 
 
@@ -251,6 +271,8 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
     const status = useFetchList("/api/status", data.status)
 
     const [activeItem] = React.useState(data.navMain[0])
+
+
 
     // 🟢 Dialog states
     const [selectedMail, setSelectedMail] = React.useState<MailItem | null>(null)
@@ -506,8 +528,12 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
 
 
 
+    const [searchTerm, setSearchTerm] = React.useState("");
+    const filteredMails = mails.filter((mail) =>
+  mail.name.toLowerCase().includes(searchTerm.toLowerCase())
+);
 
-const [showSidebar, setShowSidebar] = React.useState(false);
+    const [showSidebar, setShowSidebar] = React.useState(false);
 
     const handleManualSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -539,18 +565,29 @@ const [showSidebar, setShowSidebar] = React.useState(false);
     return (
         <>
             <AppSidebar />
-{/* Floating Hamburger Button */}
-<Button
-  className="fixed bottom-10 right-4 z-50 md:hidden bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
-  onClick={() => setShowSidebar(true)}
->
-  ☰
-</Button>
+            {/* Floating Hamburger Button */}
+            <div className="fixed bottom-10 right-4 z-50 md:hidden flex items-center justify-center">
+                <button
+                    className="relative bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg transition-colors"
+                    onClick={() => setShowSidebar(true)}
+                >
+                    {/* Icon para sa Concern/Message */}
+                    <MessageSquareMore size={28} />
 
-{/* Sidebar */}
-<Sidebar
-  collapsible="none"
-  className={`
+                    {/* Unread Count Badge */}
+                    {unreadCount > 0 && (
+                        <span className="absolute top-0 right-0 flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold border-2 border-white transform translate-x-1/4 -translate-y-1/4">
+                            {unreadCount}
+                        </span>
+                    )}
+                </button>
+            </div>
+
+
+            {/* Sidebar */}
+            <Sidebar
+                collapsible="none"
+                className={`
     overflow-y-auto h-screen
     bg-white border-r z-40
     transform transition-transform duration-300
@@ -559,198 +596,187 @@ const [showSidebar, setShowSidebar] = React.useState(false);
     ${showSidebar ? "w-4/5 translate-x-0" : "-translate-x-full"} 
     md:static md:translate-x-0
   `}
->
+            >
 
                 {/* 🧭 Header */}
-                <SidebarHeader className="gap-3.5 border-b p-4 bg-gray-50">
-                    <div className="flex w-full items-center justify-between">
-                        <div className="text-foreground text-base font-semibold">
-                            {activeItem?.title}
-                        </div>
-                        <div className="flex items-center gap-3">
-                            {/* ➕ Add Ticket button */}
-                            <Button
-                                size="sm"
-                                className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1"
-                                onClick={() => {
-                                    setValidationErrors({}); // Clear errors before opening
-                                    setIsManualAddDialogOpen(true);
+              <SidebarHeader className=" border-b p-3 bg-gray-50">
+  <div className="flex w-full items-center justify-between">
+    <div className="text-foreground text-base font-semibold">
+      {activeItem?.title}
+    </div>
+    <div className="flex items-center">
+      {/* ➕ Add Ticket button */}
+      <Button
+        size="sm"
+        className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1"
+        onClick={() => {
+          setValidationErrors({}); // Clear errors
+          setIsManualAddDialogOpen(true);
+        }}
+      >
+        + Ticket
+      </Button>
 
+      {/* Close button for mobile */}
+      <div className="flex justify-end p-4 md:hidden">
+        <Button onClick={() => setShowSidebar(false)} variant="outline">
+          ✕
+        </Button>
+      </div>
+    </div>
+  </div>
 
-                                }}
-                            >
-                                + Ticket
-                            </Button>
-<div className="flex justify-end p-4 md:hidden">
-  <Button onClick={() => setShowSidebar(false)} variant="outline">
-    ✕
-  </Button>
-</div>
-                        </div>
-                    </div>
-                    <SidebarInput placeholder="Search concerns..." />
-                </SidebarHeader>
-
-                {/* 📨 List of Concerns */}
+  {/* Search Input */}
+  <SidebarInput
+    placeholder="Search Employee name..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+  />
+</SidebarHeader>
                 <SidebarContent>
-                    <SidebarGroup className="px-0">
-                        <SidebarGroupContent>
-                            {mails.map((mail) => (
-                                <button
-                                    key={mail.ConcernNumber || mail.subject + mail.date} // ✅ use ConcernNumber kung available
-                                    onClick={() => openDialog(mail)}
-                                    className={`transition-all flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 ${getBgColor(mail.priority)}`}
-                                >
-                                    {/* Header: Name + Department + Date */}
-                                    <div className="flex w-full items-center gap-2">
-                                        <span className="font-semibold text-gray-900">{mail.name}</span>
-
-                                        <span className="px-4 py-2">
-                                            {new Date(mail.createdAt).toLocaleString("en-US", {
-                                                // Para sa Month Day, Year (e.g., December 20, 2025)
-                                                year: "numeric",
-                                                month: "long", // Ito ang nagpapalabas ng buwan bilang text (December)
-                                                day: "numeric",  // Ito ang nagpapalabas ng araw (20)
-
-                                                // Para sa Oras (e.g., 03:48 PM)
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                                hour12: true,
-                                            })}
-                                        </span>
-
-
-                                    </div>
-
-                                    {/* Subject + Priority Badge */}
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium text-gray-800">{mail.subject}</span>
-                                        <span
-                                            className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}
-                                        >
-                                            {mail.priority}
-                                        </span>
-                                    </div>
-
-                                    {/* Teaser */}
-                                    <span className="line-clamp-2 text-xs text-gray-700">{mail.teaser}</span>
-                                </button>
-                            ))}
-                        </SidebarGroupContent>
+  <SidebarGroup className="px-0">
+    <SidebarGroupContent>
+      {filteredMails.map((mail) => (
+        <button
+          key={mail.ConcernNumber || mail.subject + mail.date}
+          onClick={() => openDialog(mail)}
+          className={`transition-all flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 ${getBgColor(mail.priority)}`}
+        >
+          <div className="flex w-full items-center gap-2">
+            <span className="font-semibold text-gray-900">{mail.name}</span>
+            <span className="px-4 py-2">
+              {new Date(mail.createdAt).toLocaleString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-gray-800">{mail.subject}</span>
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}
+            >
+              {mail.priority}
+            </span>
+          </div>
+          <span className="line-clamp-2 text-xs text-gray-700">{mail.teaser}</span>
+        </button>
+      ))}
+    </SidebarGroupContent>
+  </SidebarGroup>
+</SidebarContent>
 
 
-
-
-                    </SidebarGroup>
-                </SidebarContent>
-
-                
             </Sidebar>
 
 
-{/* 🪟 Concern Details Dialog */}
-<Dialog open={isDialogOpen}>
-  <DialogContent
-    className="sm:max-w-md [&>button]:hidden"
+            {/* 🪟 Concern Details Dialog */}
+            <Dialog open={isDialogOpen}>
+                <DialogContent
+                    className="sm:max-w-md [&>button]:hidden"
 
-    // ❌ bawal magsara pag click sa labas
-    onInteractOutside={(e) => e.preventDefault()}
+                    // ❌ bawal magsara pag click sa labas
+                    onInteractOutside={(e) => e.preventDefault()}
 
-    // ❌ bawal magsara pag ESC
-    onEscapeKeyDown={(e) => e.preventDefault()}
-  >
-    {selectedMail && (
-      <>
-        <DialogHeader>
-          <DialogTitle>{selectedMail.subject}</DialogTitle>
-          <DialogDescription>
-            Concern details from <strong>{selectedMail.name}</strong>
-          </DialogDescription>
-        </DialogHeader>
+                    // ❌ bawal magsara pag ESC
+                    onEscapeKeyDown={(e) => e.preventDefault()}
+                >
+                    {selectedMail && (
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>{selectedMail.subject}</DialogTitle>
+                                <DialogDescription>
+                                    Concern details from <strong>{selectedMail.name}</strong>
+                                </DialogDescription>
+                            </DialogHeader>
 
-        <div className="mt-4 space-y-3 text-xs">
-          <div>
-            <strong>Name:</strong> {selectedMail.name}
-          </div>
+                            <div className="mt-4 space-y-3 text-xs">
+                                <div>
+                                    <strong>Name:</strong> {selectedMail.name}
+                                </div>
 
-          <div>
-            <strong>Email:</strong> {selectedMail.Email}
-          </div>
+                                <div>
+                                    <strong>Email:</strong> {selectedMail.Email}
+                                </div>
 
-          <div>
-            <strong>Request Type:</strong> {selectedMail.requesttype1}
-          </div>
+                                <div>
+                                    <strong>Request Type:</strong> {selectedMail.requesttype1}
+                                </div>
 
-          <div>
-            <strong>Concern Number:</strong> {selectedMail.ConcernNumber}
-          </div>
+                                <div>
+                                    <strong>Concern Number:</strong> {selectedMail.ConcernNumber}
+                                </div>
 
-          <div>
-            <strong>Date Created:</strong>{" "}
-            {new Date(selectedMail.createdAt).toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            })}
-          </div>
+                                <div>
+                                    <strong>Date Created:</strong>{" "}
+                                    {new Date(selectedMail.createdAt).toLocaleString("en-US", {
+                                        month: "short",
+                                        day: "numeric",
+                                        year: "numeric",
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                    })}
+                                </div>
 
-          <div>
-            <strong>Site:</strong> {selectedMail.site}
-          </div>
+                                <div>
+                                    <strong>Site:</strong> {selectedMail.site}
+                                </div>
 
-          {/* hidden readstatus (for update) */}
-          <div className="hidden">
-            <label className="font-semibold">Read Status:</label>
-            <input
-              type="text"
-              value={selectedMail.readstatus || ""}
-              onChange={(e) =>
-                setSelectedMail({
-                  ...selectedMail,
-                  readstatus: e.target.value,
-                })
-              }
-              className="w-full border px-2 py-1 rounded"
-            />
-          </div>
+                                {/* hidden readstatus (for update) */}
+                                <div className="hidden">
+                                    <label className="font-semibold">Read Status:</label>
+                                    <input
+                                        type="text"
+                                        value={selectedMail.readstatus || ""}
+                                        onChange={(e) =>
+                                            setSelectedMail({
+                                                ...selectedMail,
+                                                readstatus: e.target.value,
+                                            })
+                                        }
+                                        className="w-full border px-2 py-1 rounded"
+                                    />
+                                </div>
 
-          <div>
-            <strong>Priority:</strong>{" "}
-            <Badge className={getPriorityColor(selectedMail.priority)}>
-              {selectedMail.priority}
-            </Badge>
-          </div>
+                                <div>
+                                    <strong>Priority:</strong>{" "}
+                                    <Badge className={getPriorityColor(selectedMail.priority)}>
+                                        {selectedMail.priority}
+                                    </Badge>
+                                </div>
 
-          <div className="pt-2 border-t mt-2">
-            <strong>Remarks:</strong>
-            <p className="mt-1 text-gray-700">{selectedMail.teaser}</p>
-          </div>
-        </div>
+                                <div className="pt-2 border-t mt-2">
+                                    <strong>Remarks:</strong>
+                                    <p className="mt-1 text-gray-700">{selectedMail.teaser}</p>
+                                </div>
+                            </div>
 
-        <div className="mt-6 flex justify-end gap-2">
-          {/* ✅ Close button LANG ang pwedeng magsara */}
-          <Button
-            variant="outline"
-            onClick={() => {
-              handleUpdate();          // ❗ HINDI TINANGGAL
-              setIsDialogOpen(false);
-            }}
-            
-          >
-            Close
-          </Button>
+                            <div className="mt-6 flex justify-end gap-2">
+                                {/* ✅ Close button LANG ang pwedeng magsara */}
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        handleUpdate();          // ❗ HINDI TINANGGAL
+                                        setIsDialogOpen(false);
+                                    }}
 
-          <Button onClick={openAddDialog}>
-            Create Ticket
-          </Button> 
-        </div>
-      </>
-    )}
-  </DialogContent>
-</Dialog>
+                                >
+                                    Close
+                                </Button>
+
+                                <Button onClick={openAddDialog}>
+                                    Create Ticket
+                                </Button>
+                            </div>
+                        </>
+                    )}
+                </DialogContent>
+            </Dialog>
 
 
             {/* 🎫 Create Ticket Dialog (from Concern/Email) */}
