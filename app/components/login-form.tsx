@@ -62,38 +62,39 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
 
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form onSubmit={handleSubmit}>
-        <FieldGroup>
-          <Field>
-            <FieldLabel>Email</FieldLabel>
-            <Input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </Field>
+    <div className={cn("flex flex-col gap-6 border-2 border-green-600 rounded-lg p-6 shadow-md bg-white", className)} {...props}>
+  <form onSubmit={handleSubmit}>
+    <FieldGroup>
+      <Field>
+        <FieldLabel>Email</FieldLabel>
+        <Input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </Field>
 
-          <Field>
-            <FieldLabel>Password</FieldLabel>
-            <Input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </Field>
+      <Field>
+        <FieldLabel>Password</FieldLabel>
+        <Input
+          type="password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </Field>
 
-          <Button type="submit" disabled={loading}>
-            {loading ? "Logging in..." : "Login"}
-          </Button>
+      <Button type="submit" disabled={loading} className="bg-green-600 hover:bg-green-700 text-white w-full">
+        {loading ? "Logging in..." : "Login"}
+      </Button>
 
-          <FieldDescription className="text-center mt-2">
-            Don't have an account? <a href="/signup" className="underline">Sign up</a>
-          </FieldDescription>
-        </FieldGroup>
-      </form>
-    </div>
+      <FieldDescription className="text-center mt-2 text-gray-600">
+        Don't have an account? <a href="/signup" className="underline text-green-600">Sign up</a>
+      </FieldDescription>
+    </FieldGroup>
+  </form>
+</div>
+
   )
 }
