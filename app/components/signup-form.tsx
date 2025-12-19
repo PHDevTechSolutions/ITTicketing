@@ -120,7 +120,7 @@ export function SignupForm({
         setRole("")
         setDepartment("")
         setReferenceID("")
-        setTimeout(() => router.push("/dsi-login"), 1500)
+        setTimeout(() => router.push("/login"), 1500)
       } else {
         toast.error(result.message || "Registration failed")
       }

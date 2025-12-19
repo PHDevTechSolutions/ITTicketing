@@ -326,12 +326,13 @@ export default function Page() {
       )
     }
 
+
     // --- LIST (ROW) VIEW ---
     if (isRowView) {
       return (
         <div className="w-full bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden transition-all duration-500">
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="min-w-full text-left text-xs">
               <thead className="bg-gray-700 text-white font-semibold">
                 <tr>
                   <th className="p-3">Employee</th>
@@ -401,7 +402,7 @@ export default function Page() {
               ${getCardTextColors(c.priority)}`}
           >
             <div className="flex justify-between items-start mb-2">
-              <h2 className="text-xl font-extrabold">
+              <h2 className="text-xs font-extrabold">
                 {c.type}
               </h2>
               {/* Priority Badge */}
@@ -471,8 +472,6 @@ export default function Page() {
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-
-
         </header>
 
         {/* MAIN CONTENT */}
@@ -494,6 +493,7 @@ export default function Page() {
                   <List className="h-5 w-5 text-gray-700" />
                 )}
               </Button>
+
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

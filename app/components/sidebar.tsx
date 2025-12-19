@@ -121,12 +121,15 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
 
   // ----------------- HELPERS -----------------
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-    });
+ const formatDate = (dateStr: string) =>
+  new Date(dateStr).toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true, // AM / PM
+  });
 
   const fetchProfile = () => {
     setIsProfileLoading(true);
@@ -156,24 +159,25 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
   // ----------------- FETCH NOTIFICATIONS -----------------
   React.useEffect(() => {
-    async function loadNotifications() {
-      const res = await fetch("/api/tickets");
-      const data = await res.json();
+  async function loadNotifications() {
+    const res = await fetch("/api/tickets");
+    const data = await res.json();
 
-      const formatted: Notification[] = data.notifications.map((n: any) => ({
-        ticketNumber: n.ticketNumber,
-        action: n.action,
-        actor: n.actor,
-        message: n.message,
-        date: n.date,
-      }));
+    const formatted: Notification[] = data.notifications.map((n: any) => ({
+      ticketNumber: n.ticketNumber,
+      action: n.action,
+      actor: n.actor,
+      message: n.message,
+      date: n.createdAt,
+    }));
 
-      setNotifications(formatted);
-      setUnreadNotifications(formatted.length);
-    }
+    setNotifications(formatted);
+    setUnreadNotifications(formatted.length);
+  }
 
-    loadNotifications();
-  }, []);
+  loadNotifications();
+}, []);
+
 
     const handlePasswordUpdate = async () => {
     if (!currentUser.ReferenceID || !newPassword) return alert("Missing info");
@@ -301,7 +305,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                       onClick={() => handleNotificationClick(notif, index)}
                     >
                       <p className="text-sm">
-                        <span className="font-semibold">{notif.actor}</span> {notif.message}
+                        <span className="font-semibold">{notif.actor}</span>'s  Created {notif.message}
                       </p>
                       <div className="flex justify-between text-xs text-gray-400 mt-1">
                         <span>Ticket #{notif.ticketNumber}</span>

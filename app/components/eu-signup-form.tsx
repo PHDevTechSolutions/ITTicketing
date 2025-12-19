@@ -1,5 +1,4 @@
-"use client" // Must be the first line
-
+"use client"
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -28,7 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-export function EndUserSignupForm({ // ⬅️ RENAMED: EndUserSignupForm
+export function SignupForm1({
   className,
   ...props
 }: React.ComponentProps<"div">) {
@@ -36,9 +35,9 @@ export function EndUserSignupForm({ // ⬅️ RENAMED: EndUserSignupForm
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
-  const [department, setDepartment] = useState("")
   const [firstname, setFirstname] = useState("")
   const [lastname, setLastname] = useState("")
+  const [department, setDepartment] = useState("");
   const [referenceID, setReferenceID] = useState("")
   const [loading, setLoading] = useState(false)
   const router = useRouter()
@@ -62,9 +61,9 @@ export function EndUserSignupForm({ // ⬅️ RENAMED: EndUserSignupForm
       !email ||
       !password ||
       !confirmPassword ||
-      !department ||
       !firstname ||
-      !lastname
+      !lastname ||
+      !department
     ) {
       toast.error("All fields are required")
       return
@@ -83,29 +82,29 @@ export function EndUserSignupForm({ // ⬅️ RENAMED: EndUserSignupForm
     setLoading(true)
 
     try {
-      const res = await fetch("/api/euregister", {
+      const res = await fetch("/api/eugister", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           Username: username,
           Email: email,
           Password: password,
-          Department: department,
+          Role: "enduser", // <-- dito idinagdag
           Firstname: firstname,
           Lastname: lastname,
+          Department: department,
           ReferenceID: referenceID,
         }),
       })
-
-      let result
+      let result;
       try {
-        result = await res.json()
+        result = await res.json(); // try to parse JSON
       } catch (err) {
-        const text = await res.text()
-        console.error("Failed to parse JSON:", text)
-        toast.error("Server returned invalid response")
-        return
+        console.error("Failed to parse JSON:", err);
+        toast.error("Server returned invalid response");
+        return;
       }
+
 
       if (res.ok) {
         toast.success("Registration successful!")
@@ -130,7 +129,7 @@ export function EndUserSignupForm({ // ⬅️ RENAMED: EndUserSignupForm
   }
 
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
+    <div className={cn("flex flex-col gap-2", className)} {...props}>
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Create your account</CardTitle>
@@ -179,12 +178,22 @@ export function EndUserSignupForm({ // ⬅️ RENAMED: EndUserSignupForm
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Sales Department">Sales Department</SelectItem>
+                    <SelectItem value="IT Department">IT Department</SelectItem>
                     <SelectItem value="HR Department">HR Department</SelectItem>
+                    <SelectItem value="Accounting Department">Accounting Department</SelectItem>
+                    <SelectItem value="Procurement Department">Procurement Department</SelectItem>
+                    <SelectItem value="Marketing Department">Marketing Department</SelectItem>
+                    <SelectItem value="Ecommerce Department">Ecommerce Department</SelectItem>
+                    <SelectItem value="CSR Department">CSR Department</SelectItem>
+                    <SelectItem value="Admin Department">Admin Department</SelectItem>
+                    <SelectItem value="Warehouse Department">Warehouse Department</SelectItem>
+                    <SelectItem value="Logistic Department">Logistic Department</SelectItem>
+                    <SelectItem value="Engineering Department">Engineering Department</SelectItem>
                   </SelectContent>
                 </Select>
               </Field>
 
-                <Field>
+              <Field>
                 <FieldLabel>Username</FieldLabel>
                 <Input
                   type="text"
@@ -220,9 +229,9 @@ export function EndUserSignupForm({ // ⬅️ RENAMED: EndUserSignupForm
                 {loading ? "Creating Account..." : "Create Account"}
               </Button>
 
-              <FieldDescription className="text-center mt-2">
+              <FieldDescription className="text-center mt-1">
                 Already have an account?{" "}
-                <Link href="/dsi-login" className="underline">
+                <Link href="/login" className="underline">
                   Sign in
                 </Link>
               </FieldDescription>
@@ -231,7 +240,7 @@ export function EndUserSignupForm({ // ⬅️ RENAMED: EndUserSignupForm
         </CardContent>
       </Card>
 
-      <FieldDescription className="px-6 text-center text-sm">
+      <FieldDescription className="px-6 text-center text-">
         By continuing, you agree to our{" "}
         <a href="#" className="underline">
           Terms of Service

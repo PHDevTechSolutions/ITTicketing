@@ -162,7 +162,7 @@ interface Ticket {
 
 export default function Page() {
   const [readInbox, setReadInbox] = React.useState<string[]>([]);
-  const [currentPage, setCurrentPage] = React.useState<PageType>("home");
+  const [currentPage, setCurrentPage] = React.useState<PageType>("openTickets");
   const [concerns, setConcerns] = React.useState<ConcernItem[]>([]);
   const [submitMessage, setSubmitMessage] = React.useState<{ type: "success" | "error"; message: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -189,48 +189,48 @@ export default function Page() {
   };
 
   const [notifications, setNotifications] = React.useState<MyNotification[]>([]);
-const [selectedNotification, setSelectedNotification] = React.useState<MyNotification | null>(null);
+  const [selectedNotification, setSelectedNotification] = React.useState<MyNotification | null>(null);
 
-const handleNotificationClick = (notif: MyNotification) => {
-  setSelectedNotification(notif);
-}
-
-React.useEffect(() => {
-  async function loadNotifications() {
-    try {
-      // 1️⃣ Load current user from localStorage
-      const storedUser = localStorage.getItem("currentUser");
-      if (!storedUser) return;
-      const parsedUser = JSON.parse(storedUser);
-      const userEmail = parsedUser.Email;
-
-      // 2️⃣ Fetch tickets from API and pass email as query param
-      const res = await fetch(`/api/tickets?email=${encodeURIComponent(userEmail)}`);
-      const data = await res.json();
-
-      if (!data.success || !Array.isArray(data.notifications)) {
-        console.error("tickets API: unexpected payload", data);
-        return;
-      }
-
-      // 3️⃣ Map notifications to MyNotification type
-      const formatted: MyNotification[] = data.notifications.map((n: any) => ({
-        ticketNumber: n.ticketNumber,
-        action: n.action,
-        actor: n.actor,
-        message: n.message,
-        date: n.date,
-        email: n.email || userEmail, // fallback
-      }));
-
-      setNotifications(formatted);
-    } catch (err) {
-      console.error("Failed to load notifications:", err);
-    }
+  const handleNotificationClick = (notif: MyNotification) => {
+    setSelectedNotification(notif);
   }
 
-  loadNotifications();
-}, []);
+  React.useEffect(() => {
+    async function loadNotifications() {
+      try {
+        // 1️⃣ Load current user from localStorage
+        const storedUser = localStorage.getItem("currentUser");
+        if (!storedUser) return;
+        const parsedUser = JSON.parse(storedUser);
+        const userEmail = parsedUser.Email;
+
+        // 2️⃣ Fetch tickets from API and pass email as query param
+        const res = await fetch(`/api/tickets?email=${encodeURIComponent(userEmail)}`);
+        const data = await res.json();
+
+        if (!data.success || !Array.isArray(data.notifications)) {
+          console.error("tickets API: unexpected payload", data);
+          return;
+        }
+
+        // 3️⃣ Map notifications to MyNotification type
+        const formatted: MyNotification[] = data.notifications.map((n: any) => ({
+          ticketNumber: n.ticketNumber,
+          action: n.action,
+          actor: n.actor,
+          message: n.message,
+          date: n.date,
+          email: n.email || userEmail, // fallback
+        }));
+
+        setNotifications(formatted);
+      } catch (err) {
+        console.error("Failed to load notifications:", err);
+      }
+    }
+
+    loadNotifications();
+  }, []);
 
 
   // New concern form state
@@ -289,7 +289,7 @@ React.useEffect(() => {
 
   React.useEffect(() => {
     fetchInbox();
-
+    
     async function loadConcerns() {
       try {
         // 1️⃣ Load current user info
@@ -298,14 +298,13 @@ React.useEffect(() => {
 
         const parsedUser = JSON.parse(storedUser);
         const userEmail = parsedUser.Email;
-
-        setNewConcern((prev) => ({
-          ...prev,
-          FullName: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
-          department: parsedUser.department || "",
-          Email: parsedUser.Email,
-          priority: "Medium",
-        }));
+setNewConcern((prev) => ({
+  ...prev,
+  FullName: `${parsedUser.Firstname} ${parsedUser.Lastname}`,
+  department: parsedUser.Department || "",
+  Email: parsedUser.Email,
+  priority: "Medium",
+}));
 
         // 2️⃣ Load all concerns from API
         const res = await fetch("/api/euconcern");
@@ -396,7 +395,7 @@ React.useEffect(() => {
     }
   };
 
-  
+
 
   // Open a concern by ConcernNumber (fetch full details)
   const handleOpenConcern = async (concernNumber: string) => {
@@ -412,6 +411,7 @@ React.useEffect(() => {
       const mapped = mapBackendToConcernItem(data.data);
       setSelectedConcern(mapped);
       setIsModalOpen(true);
+      
     } catch (err) {
       console.error("Failed to load concern:", err);
       alert("Error loading concern details.");
@@ -498,7 +498,7 @@ React.useEffect(() => {
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [closedTickets, setClosedTickets] = useState<Ticket[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-
+    
   // ----------------------------
   // FETCH API /api/tickets (GET)
   // ----------------------------
@@ -535,6 +535,10 @@ React.useEffect(() => {
   }
 
 
+
+
+
+
   const filteredTickets = useMemo(() => {
     if (!selectedDate) return tickets
     return tickets.filter((t) => {
@@ -559,12 +563,6 @@ React.useEffect(() => {
     });
   }, [concerns, selectedDate]);
 
-
-  // Fetch tickets on component mount
-  useEffect(() => {
-    fetchTickets()
-  }, [])
-
   // Load tickets once
   useEffect(() => {
     fetchTickets();
@@ -581,7 +579,7 @@ React.useEffect(() => {
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-
+    
     const payload = {
       Fullname: newConcern.FullName,
       department: newConcern.department,
@@ -608,7 +606,6 @@ React.useEffect(() => {
 
       if (res.ok) {
         setSubmitMessage({ type: "success", message: data.message || "Concern created" });
-
         // If backend returns the created object or ConcernNumber, append it to local state
         // Attempt to create a new ConcernItem from backend data if available
         const newConcernItem: ConcernItem = mapBackendToConcernItem({
@@ -624,12 +621,14 @@ React.useEffect(() => {
           readstatus: payload.readstatus,
           Email: payload.Email,
           ConcernNumber: data?.data?.ConcernNumber ?? data?.data?.ConcernNumber ?? undefined,
+          createdAt: data?.data?.createdAt ?? new Date().toISOString(), 
         });
 
         setConcerns((prev) => [...prev, newConcernItem]);
-
+        
         setNewConcern(initialConcernState);
         setValidationErrors({});
+        window.location.reload();
       } else {
         setSubmitMessage({ type: "error", message: data.message || "Failed to create concern." });
       }
@@ -836,32 +835,19 @@ React.useEffect(() => {
                   </div>
 
 
-                  {/* Department Select (Hardcoded) */}
-                  <div className="flex flex-col space-y-1.5">
-                    <Label className={getErrorClass("department")}>Department *</Label>
-                    <Select
-                      value={newConcern.department}
-                      onValueChange={(val) => setNewConcern({ ...newConcern, department: val })}
-                    >
-                      <SelectTrigger className={`w-full ${getErrorClass("department")}`}>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Sales Department">Sales Department</SelectItem>
-                        <SelectItem value="IT Department">IT Department</SelectItem>
-                        <SelectItem value="HR Department">HR Department</SelectItem>
-                        <SelectItem value="Accounting Department">Accounting Department</SelectItem>
-                        <SelectItem value="Procurement Department">Procurement Department</SelectItem>
-                        <SelectItem value="Marketing Department">Marketing Department</SelectItem>
-                        <SelectItem value="Ecommerce Department">Ecommerce Department</SelectItem>
-                        <SelectItem value="CSR Department">CSR Department</SelectItem>
-                        <SelectItem value="Admin Department">Admin Department</SelectItem>
-                        <SelectItem value="Warehouse Department">Warehouse Department</SelectItem>
-                        <SelectItem value="Logistic Department">Logistic Department</SelectItem>
-                        <SelectItem value="Engineering Department">Engineering Department</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+<div className="flex flex-col space-y-1.5">
+  <Label className={validationErrors.department ? "text-red-600 dark:text-red-400" : ""}>
+    Department *
+  </Label>
+
+  <Input
+    placeholder="Requester's department"
+    value={newConcern.department}
+    className={getErrorClass("department")}
+    readOnly
+  />
+</div>
+
                   {/* Request Type (Hardcoded) */}
                   <div className="flex flex-col space-y-1.5">
                     <Label className={getErrorClass("requestType")}>Request Type *</Label>
@@ -993,83 +979,80 @@ React.useEffect(() => {
             </div>
           )}
           {currentPage === "inbox" && (
-  <div className="max-w-4xl mx-auto w-full">
-    <div className="flex justify-between items-center mb-4">
-      <h2 className="text-2xl font-bold text-foreground">Inbox</h2>
-      {/* tooltip ... */}
-    </div>
+            <div className="max-w-4xl mx-auto w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold text-foreground">Inbox</h2>
+                {/* tooltip ... */}
+              </div>
 
 
 
-    <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm divide-y max-h-96 overflow-y-auto">
-      {notifications.length === 0 ? (
-        <div className="p-4 text-sm text-muted-foreground">No notifications.</div>
-      ) : (
-        notifications.map((notif) => {
-          const notifDate = new Date(notif.date);
-          return (
-            <div
-              key={notif.ticketNumber}
-              className="flex items-start gap-3 p-4 cursor-pointer hover:bg-muted/50"
-              onClick={() => handleNotificationClick(notif)}
-            >
-              <div
-                className={`w-3 h-3 rounded-full mt-1 ${
-                  notif.action === "created"
-                    ? "bg-green-500"
-                    : notif.action === "updated"
-                    ? "bg-blue-500"
-                    : "bg-purple-500"
-                }`}
-              ></div>
+              <div className="rounded-xl border border-border bg-card text-card-foreground shadow-sm divide-y max-h-96 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-4 text-sm text-muted-foreground">No notifications.</div>
+                ) : (
+                  notifications.map((notif) => {
+                    const notifDate = new Date(notif.date);
+                    return (
+                      <div
+                        key={notif.ticketNumber}
+                        className="flex items-start gap-3 p-4 cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleNotificationClick(notif)}
+                      >
+                        <div
+                          className={`w-3 h-3 rounded-full mt-1 ${notif.action === "created"
+                              ? "bg-green-500"
+                              : notif.action === "updated"
+                                ? "bg-blue-500"
+                                : "bg-purple-500"
+                            }`}
+                        ></div>
 
-             <div className="flex-1">
-  <div className="font-semibold text-foreground">
-    Ticket Update
-  </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-foreground">
+                            Ticket Update
+                          </div>
 
-  <div className="text-sm text-muted-foreground mt-0.5">
-    Ticket <span className="font-medium text-foreground">#{notif.ticketNumber} </span> 
-    has been  <span className="font-medium">{notif.message} </span> 
-    by <span className="font-medium">{notif.actor} </span>.
-  </div>
- 
-  <div className="text-xs text-muted-foreground mt-1">
-    {notifDate.toLocaleString()}
-  </div>
-</div>
+                          <div className="text-sm text-muted-foreground mt-0.5">
+                            Ticket <span className="font-medium text-foreground">#{notif.ticketNumber} </span>
+                            has been  <span className="font-medium">{notif.message} </span>
+                            by <span className="font-medium">{notif.actor} </span>.
+                          </div>
 
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {notifDate.toLocaleString()}
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {selectedNotification && (
+                <Dialog open={!!selectedNotification} onOpenChange={() => setSelectedNotification(null)}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Ticket #{selectedNotification.ticketNumber}</DialogTitle>
+                    </DialogHeader>
+                    <div className="p-4">{selectedNotification.message}</div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline">Close</Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
             </div>
-          );
-        })
-      )}
-    </div>
-
-    {selectedNotification && (
-      <Dialog open={!!selectedNotification} onOpenChange={() => setSelectedNotification(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ticket #{selectedNotification.ticketNumber}</DialogTitle>
-          </DialogHeader>
-          <div className="p-4">{selectedNotification.message}</div>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">Close</Button>
-            </DialogClose>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    )}
-  </div>
-)}
-
-
-
+          )}
 
           {/* OPEN TICKETS */}
           {currentPage === "openTickets" && (
+            
             <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
-
+              
               {/* BAGONG HEADING AT INFO ICON */}
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-2xl font-bold text-foreground">Open Tickets</h2>
@@ -1108,54 +1091,70 @@ React.useEffect(() => {
                   </div>
                 </details>
               </div>
-              <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
-                {/* Gumamit ng w-full at table-fixed para maiwasan ang horizontal scrollbar at masigurado ang column widths */}
-                <table className="w-full text-sm text-foreground text-center table-fixed">
-                  <thead className="bg-gray-100 dark:bg-gray-800">
-                    <tr className="h-12">
-                      {/* Binigyan ng sapat na width, hindi mag-ttrucante */}
-                      <th className="px-4 py-3 font-semibold w-[30%]">Concern ID</th>
-                      <th className="px-4 py-3 font-semibold w-[30%]">Concern</th>
-                      {/* Itong column lang ang may fixed width at mag-ttrucante */}
-                      <th className="px-4 py-3 font-semibold w-[45%]">Remarks</th>
-                      {/* Maliit na width lang para sa status */}
-                      <th className="px-4 py-3 font-semibold w-[25%]">Read Status</th>
-                    </tr>
-                  </thead>
+<div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+  <table className="w-full text-xs  text-foreground text-center table-fixed">
+    <thead className="bg-gray-100 dark:bg-gray-800">
+      <tr className="h-12">
+        <th className="px-4 py-3 font-semibold w-[30%]">Date Created</th>
+        <th className="px-4 py-3 font-semibold w-[30%]">Concern</th>
+        <th className="px-4 py-3 font-semibold w-[45%]">Remarks</th>
+        <th className="px-4 py-3 font-semibold w-[25%]">Read Status</th>
+      </tr>
+    </thead>
 
-                  <tbody className="text-center">
-                    {filteredConcerns.map((item) => (
-                      <tr
-                        key={item.ConcernNumber}
-                        className="border-t border-border h-12 hover:bg-accent/60 hover:text-accent-foreground cursor-pointer transition"
-                        onClick={() => item.ConcernNumber && handleOpenConcern(item.ConcernNumber)}
-                      >
-                        <td className="px-4 py-2 font-normal text-foreground">
-                          {item.ConcernNumber || "No ID"}
-                        </td>
-                        <td className="px-4 py-2 font-normal text-foreground">
-                          {item.type || "No type"}
-                        </td>
-                        <td className="px-4 py-2 font-normal text-foreground truncate whitespace-nowrap overflow-hidden">
-                          {item.remarks || "No remarks"}
-                        </td>
-                        <td className="px-4 py-2 font-normal">
-                          <span
-                            className={`px-2 py-1 text-xs rounded-full font-semibold ${item.readstatus?.toLowerCase() === "read"
-                              ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-                              }`}
-                          >
-                            {item.readstatus || "No Read Status"}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+    <tbody className="text-center">
+  {(filteredConcerns.slice(
+    (currentPageNumber - 1) * itemsPerPage,
+    currentPageNumber * itemsPerPage
+  )).map((item, index) => (
+    <tr
+      key={
+        item.ConcernNumber ?? (item.createdAt ? item.createdAt.toString() : `temp-${index}`)
+      }
+      className="border-t border-border h-12 hover:bg-accent/60 hover:text-accent-foreground cursor-pointer transition"
+      onClick={() =>
+        item.ConcernNumber && handleOpenConcern(item.ConcernNumber)
+      }
+    >
+      <td className="px-4 py-2 font-normal text-foreground">
+        {item.createdAt
+          ? new Date(item.createdAt).toLocaleString("en-US", {
+              month: "short",
+              day: "2-digit",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })
+          : "No Date"}
+      </td>
 
+      <td className="px-4 py-2 font-normal text-foreground">
+        {item.type || "No type"}
+      </td>
 
-                </table>
-              </div>
+      <td className="px-4 py-2 font-normal text-foreground truncate whitespace-nowrap overflow-hidden">
+        {item.remarks || "No remarks"}
+      </td>
+
+      <td className="px-4 py-2 font-normal">
+        <span
+          className={`px-2 py-1 text-xs rounded-full font-semibold ${
+            item.readstatus?.toLowerCase() === "read"
+              ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+              : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+          }`}
+        >
+          {item.readstatus || "No Read Status"}
+        </span>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
+  </table>
+</div>
+
 
               {/* Pagination (unchanged) */}
               <div className="flex justify-center items-center gap-3 p-4">
@@ -1417,10 +1416,10 @@ React.useEffect(() => {
                 <p className="text-center mt-4 text-foreground">No closed tickets found.</p>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
-                  <table className="w-full text-sm text-foreground text-center">
+                  <table className="w-full text-xs text-foreground text-center">
                     <thead className="bg-gray-100 dark:bg-gray-800">
                       <tr className="h-12">
-                         <th className="px-4 font-semibold">Ticket No.</th>
+                        <th className="px-4 font-semibold">Ticket No.</th>
                         <th className="px-4 font-semibold">Request Type</th>
                         <th className="px-4 font-semibold max-w-xs">Group</th>
                         <th className="px-4 font-semibold">Technician</th>
@@ -1498,7 +1497,7 @@ React.useEffect(() => {
 
               <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
                 {/* Removed table-fixed and min-w-full to allow columns to size naturally */}
-                <table className="w-full text-sm text-foreground text-center">
+                <table className="w-full text-xs text-foreground text-center">
                   <thead className="bg-gray-100 dark:bg-gray-800">
                     <tr className="h-12">
                       {/* Removed width classes from most headers */}

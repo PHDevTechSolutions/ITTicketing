@@ -158,10 +158,10 @@ const initialNewTicketState: TicketForm = {
 
 // Define REQUIRED_FIELDS here (excluding ticketNumber and dateSched)
 const REQUIRED_FIELDS: (keyof TicketForm)[] = [
-    "Fullname", "department", "type", "priority", "requesttype", "mode", "site", "group", "remarks", "processedBy","dateSched", "technicianname", "status"
+    "Fullname", "department", "type", "priority", "requesttype", "mode", "site", "group", "remarks", "processedBy", "dateSched", "technicianname", "status"
 ];
 
- 
+
 // 🔄 Helper function for fetching lists and pre-filling FullName
 const useFetchList = (apiPath: string, fallbackData: string[]) => {
     const [list, setList] = React.useState<Item[]>([])
@@ -235,7 +235,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
         fetchConcerns();
     }, []);
 
-    
+
 
 
     // ⚙️ States for dynamic lists 
@@ -413,100 +413,101 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
     };
 
     const handleUpdateMode = async () => {
-    if (!selectedMail) return;
+        if (!selectedMail) return;
 
-    // Check if mode already "Yes"
-    if (selectedMail.mode?.toLowerCase() === "yes") {
-        return;
-    }
-
-    try {
-        const res = await fetch(`/api/euconcern/${selectedMail.ConcernNumber}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                mode: "Yes", // update mode to "Yes"
-            }),
-        });
-
-        if (!res.ok) {
-            console.error("Failed to update mode");
+        // Check if mode already "Yes"
+        if (selectedMail.mode?.toLowerCase() === "yes") {
             return;
         }
 
-        const data = await res.json();
-        console.log("Mode updated:", data);
+        try {
+            const res = await fetch(`/api/euconcern/${selectedMail.ConcernNumber}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    mode: "Yes", // update mode to "Yes"
+                }),
+            });
 
-        // Update frontend state after successful DB update
-        setSelectedMail({ ...selectedMail, mode: "Yes" });
-    } catch (error) {
-        console.error(error);
-    }
-};
+            if (!res.ok) {
+                console.error("Failed to update mode");
+                return;
+            }
+
+            const data = await res.json();
+            console.log("Mode updated:", data);
+
+            // Update frontend state after successful DB update
+            setSelectedMail({ ...selectedMail, mode: "Yes" });
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
 
 
 
 
     const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+        e.preventDefault();
 
-    // 1️⃣ Form Validation
-    if (!validateForm(ticketForm)) {
-        toast.error("Please fill out all required fields marked in red.");
-        return;
-    }
-
-    try {
-        // 2️⃣ CREATE TICKET
-        await createTicket(ticketForm);
-        console.log("🧾 Ticket submitted:", ticketForm);
-        toast.success("Ticket successfully created from concern!");
-
-        // 3️⃣ POST TO INBOX
-        try {
-            const inboxRes = await fetch("/api/inbox", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ConcernNumber: selectedMail?.ConcernNumber,
-                    remarks: "Technician assigned to your request. Please expect an update soon."
-                }),
-            });
-
-            if (!inboxRes.ok) {
-                const text = await inboxRes.text();
-                console.error("Failed to post to inbox:", text);
-                toast.warning("Ticket created but failed to notify inbox.");
-            } else {
-                const inboxData = await inboxRes.json();
-                console.log("Inbox created:", inboxData);
-            }
-        } catch (err) {
-            console.error("Inbox API error:", err);
-            toast.warning("Ticket created but failed to notify inbox.");
+        // 1️⃣ Form Validation
+        if (!validateForm(ticketForm)) {
+            toast.error("Please fill out all required fields marked in red.");
+            return;
         }
 
-        // 4️⃣ UPDATE CONCERN MODE
-        await handleUpdateMode(); // ⭐ Tawagin dito para i-set mode = "Yes"
+        try {
+            // 2️⃣ CREATE TICKET
+            await createTicket(ticketForm);
+            console.log("🧾 Ticket submitted:", ticketForm);
+            toast.success("Ticket successfully created from concern!");
 
-        // 5️⃣ Cleanup UI
-        setTicketForm(initialNewTicketState);
-        setIsAddDialogOpen(false);
-        setValidationErrors({});
+            // 3️⃣ POST TO INBOX
+            try {
+                const inboxRes = await fetch("/api/inbox", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        ConcernNumber: selectedMail?.ConcernNumber,
+                        remarks: "Technician assigned to your request. Please expect an update soon."
+                    }),
+                });
 
-        // 6️⃣ Page Refresh
-        window.location.reload();
+                if (!inboxRes.ok) {
+                    const text = await inboxRes.text();
+                    console.error("Failed to post to inbox:", text);
+                    toast.warning("Ticket created but failed to notify inbox.");
+                } else {
+                    const inboxData = await inboxRes.json();
+                    console.log("Inbox created:", inboxData);
+                }
+            } catch (err) {
+                console.error("Inbox API error:", err);
+                toast.warning("Ticket created but failed to notify inbox.");
+            }
 
-    } catch (error) {
-        console.error(error);
-        toast.error("Failed to submit ticket.");
-    }
-};
+            // 4️⃣ UPDATE CONCERN MODE
+            await handleUpdateMode(); // ⭐ Tawagin dito para i-set mode = "Yes"
+
+            // 5️⃣ Cleanup UI
+            setTicketForm(initialNewTicketState);
+            setIsAddDialogOpen(false);
+            setValidationErrors({});
+
+            // 6️⃣ Page Refresh
+            window.location.reload();
+
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to submit ticket.");
+        }
+    };
 
 
-    
 
+
+const [showSidebar, setShowSidebar] = React.useState(false);
 
     const handleManualSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -538,10 +539,28 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
     return (
         <>
             <AppSidebar />
-            <Sidebar
-                collapsible="none"
-                className="overflow-y-auto h-screen md:flex w-[22%] bg-white border-r"
-            >
+{/* Floating Hamburger Button */}
+<Button
+  className="fixed bottom-10 right-4 z-50 md:hidden bg-green-600 hover:bg-green-700 text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg"
+  onClick={() => setShowSidebar(true)}
+>
+  ☰
+</Button>
+
+{/* Sidebar */}
+<Sidebar
+  collapsible="none"
+  className={`
+    overflow-y-auto h-screen
+    bg-white border-r z-40
+    transform transition-transform duration-300
+    md:flex md:w-[21%] md:translate-x-0
+    fixed top-0 left-0
+    ${showSidebar ? "w-4/5 translate-x-0" : "-translate-x-full"} 
+    md:static md:translate-x-0
+  `}
+>
+
                 {/* 🧭 Header */}
                 <SidebarHeader className="gap-3.5 border-b p-4 bg-gray-50">
                     <div className="flex w-full items-center justify-between">
@@ -562,6 +581,11 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                             >
                                 + Ticket
                             </Button>
+<div className="flex justify-end p-4 md:hidden">
+  <Button onClick={() => setShowSidebar(false)} variant="outline">
+    ✕
+  </Button>
+</div>
                         </div>
                     </div>
                     <SidebarInput placeholder="Search concerns..." />
@@ -575,7 +599,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                 <button
                                     key={mail.ConcernNumber || mail.subject + mail.date} // ✅ use ConcernNumber kung available
                                     onClick={() => openDialog(mail)}
-                                    className={`transition-all flex flex-col gap-2 border-b p-4 text-sm text-left w-full last:border-b-0 ${getBgColor(mail.priority)}`}
+                                    className={`transition-all flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 ${getBgColor(mail.priority)}`}
                                 >
                                     {/* Header: Name + Department + Date */}
                                     <div className="flex w-full items-center gap-2">
@@ -619,99 +643,115 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
 
                     </SidebarGroup>
                 </SidebarContent>
+
+                
             </Sidebar>
 
-            {/* 🪟 Concern Details Dialog */}
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-md">
-                    {selectedMail && (
-                        <>
-                            <DialogHeader>
-                                <DialogTitle>{selectedMail.subject}</DialogTitle>
-                                <DialogDescription>
-                                    Concern details from **{selectedMail.name}**
-                                </DialogDescription>
-                            </DialogHeader>
 
-                            <div className="mt-4 space-y-3 text-sm">
-                                <div>
-                                    <strong>Name:</strong> {selectedMail.name}
-                                </div>
-                                <div>
-                                    <strong>Email:</strong> {selectedMail.Email}
-                                </div>
-                                <div>
-                                    <strong>Request Type:</strong> {selectedMail.requesttype1}
-                                </div>
-                                <div>
-                                    <strong>Request Type:</strong> {selectedMail.ConcernNumber}
-                                </div>
-                                <div>
-                                    <strong>Date Created:</strong>{" "}
-                                    {new Date(selectedMail.createdAt).toLocaleString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                        hour: "numeric",
-                                        minute: "2-digit",
-                                        hour12: true,
-                                    })}
-                                </div>
-                                <div>
-                                    <strong>Site:</strong> {selectedMail.site}
-                                </div>
+{/* 🪟 Concern Details Dialog */}
+<Dialog open={isDialogOpen}>
+  <DialogContent
+    className="sm:max-w-md [&>button]:hidden"
 
-                                <div className="hidden">
-                                    <label className="font-semibold">Read Status:</label>
-                                    <input
-                                        type="text"
-                                        value={selectedMail?.readstatus || ""}
-                                        onChange={(e) =>
-                                            setSelectedMail({
-                                                ...selectedMail!,
-                                                readstatus: e.target.value
-                                            })
-                                        }
-                                        className="w-full border px-2 py-1 rounded"
-                                    />
-                                </div>
+    // ❌ bawal magsara pag click sa labas
+    onInteractOutside={(e) => e.preventDefault()}
 
+    // ❌ bawal magsara pag ESC
+    onEscapeKeyDown={(e) => e.preventDefault()}
+  >
+    {selectedMail && (
+      <>
+        <DialogHeader>
+          <DialogTitle>{selectedMail.subject}</DialogTitle>
+          <DialogDescription>
+            Concern details from <strong>{selectedMail.name}</strong>
+          </DialogDescription>
+        </DialogHeader>
 
+        <div className="mt-4 space-y-3 text-xs">
+          <div>
+            <strong>Name:</strong> {selectedMail.name}
+          </div>
 
+          <div>
+            <strong>Email:</strong> {selectedMail.Email}
+          </div>
 
-                                <div>
-                                    <strong>Priority:</strong>{" "}
-                                    <Badge className={getPriorityColor(selectedMail.priority)}>
-                                        {selectedMail.priority}
-                                    </Badge>
-                                </div>
+          <div>
+            <strong>Request Type:</strong> {selectedMail.requesttype1}
+          </div>
 
-                                <div className="pt-2 border-t mt-2">
-                                    <strong>Remarks:</strong>
-                                    <p className="mt-1 text-gray-700">{selectedMail.teaser}</p>
-                                </div>
-                            </div>
+          <div>
+            <strong>Concern Number:</strong> {selectedMail.ConcernNumber}
+          </div>
 
+          <div>
+            <strong>Date Created:</strong>{" "}
+            {new Date(selectedMail.createdAt).toLocaleString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+              hour: "numeric",
+              minute: "2-digit",
+              hour12: true,
+            })}
+          </div>
 
-                            <div className="mt-6 flex justify-end gap-2">
+          <div>
+            <strong>Site:</strong> {selectedMail.site}
+          </div>
 
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        handleUpdate();      // tawagin muna ang update function
-                                        setIsDialogOpen(false); // saka isara ang dialog
-                                    }}
-                                >
-                                    Close
-                                </Button>
+          {/* hidden readstatus (for update) */}
+          <div className="hidden">
+            <label className="font-semibold">Read Status:</label>
+            <input
+              type="text"
+              value={selectedMail.readstatus || ""}
+              onChange={(e) =>
+                setSelectedMail({
+                  ...selectedMail,
+                  readstatus: e.target.value,
+                })
+              }
+              className="w-full border px-2 py-1 rounded"
+            />
+          </div>
 
+          <div>
+            <strong>Priority:</strong>{" "}
+            <Badge className={getPriorityColor(selectedMail.priority)}>
+              {selectedMail.priority}
+            </Badge>
+          </div>
 
-                                <Button onClick={openAddDialog}>Create Ticket</Button>
-                            </div>
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
+          <div className="pt-2 border-t mt-2">
+            <strong>Remarks:</strong>
+            <p className="mt-1 text-gray-700">{selectedMail.teaser}</p>
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          {/* ✅ Close button LANG ang pwedeng magsara */}
+          <Button
+            variant="outline"
+            onClick={() => {
+              handleUpdate();          // ❗ HINDI TINANGGAL
+              setIsDialogOpen(false);
+            }}
+            
+          >
+            Close
+          </Button>
+
+          <Button onClick={openAddDialog}>
+            Create Ticket
+          </Button> 
+        </div>
+      </>
+    )}
+  </DialogContent>
+</Dialog>
+
 
             {/* 🎫 Create Ticket Dialog (from Concern/Email) */}
             <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -723,7 +763,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-3 mt-4 text-sm">
+                    <form onSubmit={handleSubmit} className="space-y-3 mt-4 text-xs">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {/* Row 1 */}
                             <div className="flex flex-col space-y-1.5 hidden">
@@ -737,7 +777,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                 <Input value={ticketForm.Fullname} readOnly className={getErrorClass("Fullname")} />
                             </div>
 
-                            
+
                             <div className="flex flex-col space-y-1.5">
                                 <Label className={getErrorClass("Email")}>Email</Label>
                                 <Input value={ticketForm.Email} readOnly className={getErrorClass("Email")} />
@@ -750,41 +790,41 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                                 <Input value={ticketForm.department} readOnly className={getErrorClass("department")} />
                             </div>
 
-{/* Row 2 */}
-<div className="flex flex-col space-y-1.5">
-  <Label className={getErrorClass("requesttype")}>Request Type</Label>
-  <Input
-    value={selectedMail?.requesttype1 ?? ""}
-    readOnly
-    className={getErrorClass("requesttype")}
-  />
-</div>
+                            {/* Row 2 */}
+                            <div className="flex flex-col space-y-1.5">
+                                <Label className={getErrorClass("requesttype")}>Request Type</Label>
+                                <Input
+                                    value={selectedMail?.requesttype1 ?? ""}
+                                    readOnly
+                                    className={getErrorClass("requesttype")}
+                                />
+                            </div>
 
 
-{/* Row 2 */}
-<div className="flex flex-col space-y-1.5">
-  <Label className={getErrorClass("type")}>Type Of Concern</Label>
-  <Input
-    value={selectedMail?.subject ?? ""}
-    readOnly
-    className={getErrorClass("type")}
-  />
-</div>
+                            {/* Row 2 */}
+                            <div className="flex flex-col space-y-1.5">
+                                <Label className={getErrorClass("type")}>Type Of Concern</Label>
+                                <Input
+                                    value={selectedMail?.subject ?? ""}
+                                    readOnly
+                                    className={getErrorClass("type")}
+                                />
+                            </div>
 
 
-                           
 
-                           {/* Mode (Read-only) */}
-{/* Mode (Read-only, White BG) */}
-<div className="flex flex-col space-y-1.5">
-  <Label>Mode</Label>
-  <input
-    type="text"
-    value="Web Form"
-    readOnly
-    className="w-full rounded-md border border-input bg-white px-3 py-2 text-sm text-foreground cursor-default"
-  />
-</div>
+
+                            {/* Mode (Read-only) */}
+                            {/* Mode (Read-only, White BG) */}
+                            <div className="flex flex-col space-y-1.5">
+                                <Label>Mode</Label>
+                                <input
+                                    type="text"
+                                    value="Web Form"
+                                    readOnly
+                                    className="w-full rounded-md border border-input bg-white px-3 py-2 text-xs text-foreground cursor-default"
+                                />
+                            </div>
 
 
 
@@ -853,17 +893,17 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                             </div>
 
                             {/* Row 4 */}
-<div className="flex flex-col space-y-1.5">
-  <Label>Date Scheduled (Required)</Label>
-  <Input
-    type="date"
-    value={ticketForm.dateSched}
-    min={new Date().toISOString().split("T")[0]} // hindi pwedeng past date
-    onChange={(e) =>
-      setTicketForm({ ...ticketForm, dateSched: e.target.value })
-    }
-  />
-</div>
+                            <div className="flex flex-col space-y-1.5">
+                                <Label>Date Scheduled (Required)</Label>
+                                <Input
+                                    type="date"
+                                    value={ticketForm.dateSched}
+                                    min={new Date().toISOString().split("T")[0]} // hindi pwedeng past date
+                                    onChange={(e) =>
+                                        setTicketForm({ ...ticketForm, dateSched: e.target.value })
+                                    }
+                                />
+                            </div>
 
 
                             {/* Priority (Required + Red Border) */}
@@ -949,7 +989,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                     </DialogHeader>
 
                     {/* Manual Entry Form */}
-                    <form onSubmit={handleManualSubmit} className="space-y-3 mt-4 text-sm">
+                    <form onSubmit={handleManualSubmit} className="space-y-3 mt-4 text-xs">
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {/* Manual Ticket Number Input (Hidden) */}
                             <div className="flex flex-col space-y-1.5 hidden">
@@ -1103,15 +1143,15 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                             </div>
 
                             {/* Date Sched Input (Optional) */}
-<div className="flex flex-col space-y-1.5">
-  <Label>Date Scheduled (Required)</Label>
-  <Input
-    type="date"
-    value={newTicket.dateSched}
-    onChange={(e) => setNewTicket({ ...newTicket, dateSched: e.target.value })}
-    min={new Date().toISOString().split("T")[0]} // <-- only future and today
-  />
-</div>
+                            <div className="flex flex-col space-y-1.5">
+                                <Label>Date Scheduled (Required)</Label>
+                                <Input
+                                    type="date"
+                                    value={newTicket.dateSched}
+                                    onChange={(e) => setNewTicket({ ...newTicket, dateSched: e.target.value })}
+                                    min={new Date().toISOString().split("T")[0]} // <-- only future and today
+                                />
+                            </div>
 
                             {/* Priority Select (Required + Red Border) */}
                             <div className="flex flex-col space-y-1.5">

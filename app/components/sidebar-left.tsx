@@ -47,7 +47,7 @@ interface CurrentUser {
   Lastname: string
   Username: string
   Email: string
-  Role: string
+  Department: string
   ReferenceID: string
   createdAt: string
 }
@@ -91,7 +91,7 @@ export function SidebarLeft({
     Lastname: "",
     Username: "",
     Email: "",
-    Role: "",
+    Department: "",
     ReferenceID: "",
     createdAt: new Date().toISOString(),
   })
@@ -100,7 +100,7 @@ export function SidebarLeft({
   const [isProfileLoading, setIsProfileLoading] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
   const [openLogout, setOpenLogout] = useState(false)
-
+  const [newPassword, setNewPassword] = useState("");
   const [notifications, setNotifications] = useState<NotificationType[]>([])
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
@@ -136,6 +136,26 @@ export function SidebarLeft({
     localStorage.removeItem("currentUser")
     window.location.href = "/dsi-login"
   }
+
+      const handlePasswordUpdate = async () => {
+    if (!currentUser.ReferenceID || !newPassword) return alert("Missing info");
+
+    try {
+      const res = await fetch(`/api/user/${currentUser.ReferenceID}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed");
+      setCurrentUser((prev) => ({ ...prev, Password: newPassword }));
+      alert("Password updated successfully!");
+      setNewPassword("");
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed: " + err.message);
+    }
+  };
 
 
   // --------------------
@@ -177,7 +197,7 @@ export function SidebarLeft({
       {/* PROFILE + NOTIFICATIONS + LOGOUT */}
       {/* -------------------- */}
       <div className="mr-auto flex items-center gap-3 px-4 py-2 border-t border-gray-200">
-        
+          
 
         {/* PROFILE */}
         <Dialog
@@ -226,8 +246,8 @@ export function SidebarLeft({
                     <p className="font-medium">{currentUser.Email}</p>
                   </div>
                   <div>
-                    <Label>Role</Label>
-                    <p className="font-medium">{currentUser.Role}</p>
+                    <Label>Department</Label>
+                    <p className="font-medium">{currentUser.Department}</p>
                   </div>
                   <div>
                     <Label>Reference ID</Label>
@@ -237,11 +257,24 @@ export function SidebarLeft({
                     <Label>Joined</Label>
                     <p className="font-medium">{formatDate(currentUser.createdAt)}</p>
                   </div>
+                                    <div>
+                                      <Label className="text-gray-500">New Password:</Label>
+                                      <input
+                                        type="password"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        placeholder="Enter new password"
+                                      />
+                                    </div>
                 </>
               )}
             </div>
 
             <DialogFooter className="flex justify-center">
+                            <Button variant="outline" onClick={handlePasswordUpdate}>
+                              Update Password
+                            </Button>
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
               </DialogClose>

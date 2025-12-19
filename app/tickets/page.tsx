@@ -710,7 +710,7 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
           ) : isRowView ? (
             /* ------------ LIST VIEW ------------- */
             <div className="bg-white border rounded-lg overflow-x-auto">
-              <table className="min-w-full text-sm">
+              <table className="min-w-full text-xs">
                 <thead className="bg-gray-700 text-white sticky top-0">
                   <tr>
                     <th className="p-3 text-left">Employee</th>

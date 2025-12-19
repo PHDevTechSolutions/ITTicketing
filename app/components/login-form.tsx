@@ -16,44 +16,50 @@ export function LoginForm({ className, ...props }: React.ComponentProps<"div">) 
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  e.preventDefault()
 
-    if (!email || !password) {
-      toast.error("All fields are required")
-      return
-    }
-
-    setLoading(true)
-    try {
-      const res = await fetch("/api/itlogin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ Email: email, Password: password }),
-      })
-
-      const result = await res.json()
-      console.log("Login API result:", result)
-
-     if (res.ok && result.success) {
-  if (result.ReferenceID) {
-    // Store ReferenceID instead of email
-    localStorage.setItem("refID", result.ReferenceID)
-    localStorage.setItem("currentUser", JSON.stringify(result));
+  if (!email || !password) {
+    toast.error("All fields are required")
+    return
   }
 
-  toast.success(result.message)
-  setTimeout(() => router.push("/dashboard"), 1000)
-} else {
-  toast.error(result.message || "Login failed")
+  setLoading(true)
+  try {
+    const res = await fetch("/api/itlogin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ Email: email, Password: password }),
+    })
+
+    const result = await res.json()
+    console.log("Login API result:", result)
+
+    if (res.ok && result.success) {
+      // Block "enduser" role
+      if (result.Role?.toLowerCase() === "enduser") {
+        toast.error("End users cannot log in here")
+        return
+      }
+
+      // Save info for allowed roles
+      if (result.ReferenceID) {
+        localStorage.setItem("refID", result.ReferenceID)
+        localStorage.setItem("currentUser", JSON.stringify(result))
+      }
+
+      toast.success(result.message)
+      setTimeout(() => router.push("/dashboard"), 1000)
+    } else {
+      toast.error(result.message || "Login failed")
+    }
+  } catch (err) {
+    console.error(err)
+    toast.error("Server error")
+  } finally {
+    setLoading(false)
+  }
 }
 
-    } catch (err) {
-      console.error(err)
-      toast.error("Server error")
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
