@@ -498,10 +498,10 @@ export default function Page() {
 
             <div className="flex flex-wrap items-center gap-3">
 
-              <div className="relative w-45">
+              <div className="relative w-35">
                 <Input
                   type="search"
-                  placeholder="Search..."
+                  placeholder="Search Depart.."
                   className="pl-4 h-10 pr-10 rounded-lg bg-white border-gray-300"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -509,7 +509,7 @@ export default function Page() {
                 <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
               <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[140px] h-10 bg-white border-gray-300">
+                <SelectTrigger className="w-[120px] h-10 bg-white border-gray-300">
                   <SelectValue placeholder="Filter by" />
                 </SelectTrigger>
                 <SelectContent>
