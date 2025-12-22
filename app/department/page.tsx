@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 // Assuming you have these components configured
 import { AppSidebar } from "../components/sidebar";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
@@ -31,6 +32,14 @@ interface CurrentUser {
 }
 
 export default function DepartmentsPage() {
+   const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/login"); // Redirect kung walang login
+    }
+  }, []);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState<string | null>(null);
   const [departments, setDepartments] = useState<Department[]>([]);

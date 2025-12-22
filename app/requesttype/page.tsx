@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 // Assuming you have these components configured
 import { AppSidebar } from "../components/sidebar";
 import {
@@ -58,6 +59,14 @@ interface CurrentUser {
 
 // --- Main Component ---
 export default function RequestTypesPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/login"); // Redirect kung walang login
+    }
+  }, []);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState<string | null>(null);
 

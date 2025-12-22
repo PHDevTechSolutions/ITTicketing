@@ -231,7 +231,7 @@ export function SignupForm1({
 
               <FieldDescription className="text-center mt-1">
                 Already have an account?{" "}
-                <Link href="/login" className="underline">
+                <Link href="/dsi-login" className="underline">
                   Sign in
                 </Link>
               </FieldDescription>

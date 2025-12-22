@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 // I-assume na ito ang tamang path para sa iyong sidebar
 import { AppSidebar } from "../components/sidebar";
+import { useRouter } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -72,6 +73,14 @@ const formatDate = (date: Date) =>
 
 // --- Main Component ---
 export default function ModePage() {
+   const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/login"); // Redirect kung walang login
+    }
+  }, []);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState<string | null>(null);
 

@@ -57,7 +57,13 @@ interface CurrentUser {
 // Removed NewTicket interface and related dummy states/handlers as they are not needed for ticket display.
 
 export default function Page() {
-  const router = useRouter()
+    const router = useRouter()
+  useEffect(() => {
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/login"); // Redirect kung walang login
+    }
+  }, []);
 
   const [isRowView, setIsRowView] = useState(false)
   const [selectedConcern, setSelectedConcern] = useState<ITConcern | null>(null)
@@ -498,21 +504,21 @@ export default function Page() {
 
             <div className="flex flex-wrap items-center gap-3">
 
-              <div className="relative w-40">
+              <div className="relative w-55">
                 <Input
                   type="search"
-                  placeholder="Search Depart.."
-                  className="pl-4 h-10 pr-10 rounded-lg bg-white border-gray-300"
+                  placeholder="Search Department"
+                  className="pl-4 h-9 pr-10 rounded-lg bg-white text-xs border-gray-300"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
                 <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
               </div>
               <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[120px] h-10 bg-white border-gray-300">
+                <SelectTrigger className="w-[120px] h-10 text-xs bg-white border-gray-300">
                   <SelectValue placeholder="Filter by" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="text-xs">
                   <SelectItem value="all">All Fields</SelectItem>
                   <SelectItem value="department">Department</SelectItem>
                 </SelectContent>

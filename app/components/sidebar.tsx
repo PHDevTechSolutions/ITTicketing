@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { GalleryVerticalEnd, User, LogOut, Loader2, ChevronRight, Bell } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "../components/mode-toggle";
 import {
   Dialog,
   DialogTrigger,
@@ -421,6 +422,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
         {/* Logout */}
         <Dialog open={openLogout} onOpenChange={setOpenLogout}>
+          
           <DialogTrigger asChild>
             <Button
               variant="secondary"
@@ -445,6 +447,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        
       </div>
 
       <SidebarRail />

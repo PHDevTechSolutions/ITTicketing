@@ -25,7 +25,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
+import { useRouter } from "next/navigation";
 // --- Interface para sa Group (MongoDB Structure) ---
 interface Group {
   _id: string; // Pinalitan ang 'id' ng '_id' para tumugma sa MongoDB
@@ -51,6 +51,14 @@ const formatDate = (date: Date) =>
 
 // --- Main Component ---
 export default function GroupPage() {
+   const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/login"); // Redirect kung walang login
+    }
+  }, []);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState<string | null>(null);
 

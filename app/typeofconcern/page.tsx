@@ -37,7 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
+import { useRouter } from "next/navigation";
 // Interfaces
 interface ConcernType {
   _id: string;
@@ -57,6 +57,14 @@ interface CurrentUser {
 
 // --- Main Component ---
 export default function ConcernTypesPage() { 
+    const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/login"); // Redirect kung walang login
+    }
+  }, []);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState<string | null>(null);
 

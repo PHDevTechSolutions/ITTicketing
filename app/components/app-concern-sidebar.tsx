@@ -21,6 +21,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+
 import {
     Dialog,
     DialogContent,
@@ -669,39 +670,56 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
       {/* Scrollable Mail List */}
       <div className="overflow-y-auto max-h-[calc(90vh-160px)] bg-gray-50">
         <SidebarContent>
-          <SidebarGroup className="px-4 py-2">
-            <SidebarGroupContent className="flex flex-col gap-3">
-              {filteredMails.map((mail) => (
-                <button
-                  key={mail.ConcernNumber || mail.subject + mail.date}
-                  onClick={() => openDialog(mail)}
-                  className={`flex flex-col gap-2 p-4 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow text-left`}
-                >
-                  <div className="flex justify-between items-center gap-2">
-                    <span className="font-semibold text-gray-900">{mail.name}</span>
-                    <span className="text-xs text-gray-500">
-                      {new Date(mail.createdAt).toLocaleString("en-US", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-gray-800">{mail.subject}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}>
-                      {mail.priority}
-                    </span>
-                  </div>
-                  <span className="text-xs text-gray-600 line-clamp-2">{mail.teaser}</span>
-                </button>
-              ))}
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </SidebarContent>
+  <SidebarGroup className="px-0">
+    <SidebarGroupContent>
+      {filteredMails.length === 0 ? (
+        /* 🟡 EMPTY STATE */
+        <div className="p-6 text-center text-sm text-gray-500">
+          No concerns found.
+        </div>
+      ) : (
+        filteredMails.map((mail) => (
+          <button
+            key={mail.ConcernNumber || mail.subject + mail.date}
+            onClick={() => openDialog(mail)}
+            className={`transition-all flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 ${getBgColor(mail.priority)}`}
+          >
+            {/* Header */}
+            <div className="flex w-full items-center gap-2">
+              <span className="font-semibold text-gray-900">{mail.name}</span>
+              <span className="px-4 py-2">
+                {new Date(mail.createdAt).toLocaleString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </span>
+            </div>
+
+            {/* Subject + Priority */}
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-800">{mail.subject}</span>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}
+              >
+                {mail.priority}
+              </span>
+            </div>
+
+            {/* Teaser */}
+            <span className="line-clamp-2 text-xs text-gray-700">
+              {mail.teaser}
+            </span>
+          </button>
+        ))
+      )}
+    </SidebarGroupContent>
+  </SidebarGroup>
+</SidebarContent>
+
       </div>
     </DialogContent>
   </Dialog>
@@ -710,40 +728,53 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
 <SidebarContent>
   <SidebarGroup className="px-0">
     <SidebarGroupContent>
-      {filteredMails.map((mail) => (
-        <button
-          key={mail.ConcernNumber || mail.subject + mail.date}
-          onClick={() => openDialog(mail)}
-          className={`transition-all flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 ${getBgColor(mail.priority)}`}
-        >
-          <div className="flex w-full items-center gap-2">
-            <span className="font-semibold text-gray-900">{mail.name}</span>
-            <span className="px-4 py-2">
-              {new Date(mail.createdAt).toLocaleString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              })}
+      {filteredMails.length === 0 ? (
+        /* 🟡 EMPTY STATE */
+        <div className="p-6 text-center text-sm text-gray-500">
+          No concerns found.
+        </div>
+      ) : (
+        filteredMails.map((mail) => (
+          <button
+            key={mail.ConcernNumber || mail.subject + mail.date}
+            onClick={() => openDialog(mail)}
+            className={`transition-all flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 ${getBgColor(mail.priority)}`}
+          >
+            {/* Header */}
+            <div className="flex w-full items-center gap-2">
+              <span className="font-semibold text-gray-900">{mail.name}</span>
+              <span className="px-4 py-2">
+                {new Date(mail.createdAt).toLocaleString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </span>
+            </div>
+
+            {/* Subject + Priority */}
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-gray-800">{mail.subject}</span>
+              <span
+                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}
+              >
+                {mail.priority}
+              </span>
+            </div>
+
+            {/* Teaser */}
+            <span className="line-clamp-2 text-xs text-gray-700">
+              {mail.teaser}
             </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-800">{mail.subject}</span>
-            <span
-              className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}
-            >
-              {mail.priority}
-            </span>
-          </div>
-          <span className="line-clamp-2 text-xs text-gray-700">{mail.teaser}</span>
-        </button>
-      ))}
+          </button>
+        ))
+      )}
     </SidebarGroupContent>
   </SidebarGroup>
 </SidebarContent>
-
 
             </Sidebar>
 

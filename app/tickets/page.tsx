@@ -3,6 +3,7 @@ import * as XLSX from "xlsx"
 import { saveAs } from "file-saver"
 import { useEffect, useState, useMemo } from "react";
 import { AppSidebar } from "../components/sidebar";
+import { useRouter } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -248,6 +249,14 @@ function ConcernCard({
 // MAIN PAGE
 // ----------------------------
 export default function ITConcernsPage() {
+  const router = useRouter();
+
+    useEffect(() => {
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/login"); // Redirect kung walang login
+    }
+  }, []);
   const [isRowView, setIsRowView] = useState(true);
   const [selectedConcern, setSelectedConcern] = useState<ITConcern | null>(null);
   const [status, setStatus] = useState<ITConcern["status"]>("Pending");
@@ -611,18 +620,18 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 text-xs">
               <Button onClick={handleDownloadExcel}>
   Download
 </Button>
 
 
 
-              <div className="relative w-46">
+              <div className="relative w-50">
                 <Input
                   type="search"
-                  placeholder="Search Employe.."
-                  className=" h-10 pr-10 rounded-lg bg-white border-gray-300 focus-visible:ring-2 focus-visible:ring-gray-500"
+                  placeholder="Search Employee name"
+                  className=" h-10 pr-10 text-xs rounded-lg bg-white border-gray-300 focus-visible:ring-2 focus-visible:ring-gray-500"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -634,7 +643,7 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
                 value={departmentFilter}
                 onValueChange={setDepartmentFilter}
               >
-                <SelectTrigger className="w-[140px] h-10 bg-white border-gray-300 focus:ring-gray-500">
+                <SelectTrigger className="w-[140px] h-10 text-xs bg-white border-gray-300 focus:ring-gray-500">
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
                 <SelectContent>
@@ -658,7 +667,7 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
 
               {/* EXISTING STATUS/PRIORITY FILTER */}
               <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[100px] h-10 bg-white border-gray-300 focus:ring-gray-500">
+                <SelectTrigger className="w-[80px] text-xs h-10 bg-white border-gray-300 focus:ring-gray-500">
                   <SelectValue placeholder="Filter by Status/Priority" />
                 </SelectTrigger>
                 <SelectContent>

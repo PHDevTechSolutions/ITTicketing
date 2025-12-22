@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AppSidebar } from "../components/sidebar"
+import { redirect } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -201,6 +202,12 @@ function DataTable({ data, title }: DataTableProps) {
 // ----------------------
 export default function DashboardPage() {
   const router = useRouter()
+  useEffect(() => {
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/login"); // Redirect kung walang login
+    }
+  }, []);
 
   // profile related
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
@@ -416,7 +423,10 @@ export default function DashboardPage() {
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Overview</BreadcrumbPage>
+                  <BreadcrumbPage className="bg-white">
+                    Overview
+                  </BreadcrumbPage>
+
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -427,7 +437,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold text-gray-900">Welcome, {displayName.length > 3 ? displayName : "IT User"}</h1>
             {/* Ipinapakita ang buong petsa at araw */}
-            <div className="text-sm text-gray-500">{new Date().toLocaleDateString("en-US", { dateStyle: "full" })}</div>
+            <div className="text-xs text-gray-500 ">{new Date().toLocaleDateString("en-US", { dateStyle: "full" })}</div>
           </div>
 
           {/* SECTION GRID: 3 columns sa medium screens para lumaki ang table */}
@@ -464,12 +474,24 @@ export default function DashboardPage() {
                   <DataTable data={tableData} title={tableTitle} />
                 )
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 py-20">
-                  <svg className="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 py-20 px-4 sm:px-8">
+                  <svg
+                    className="w-12 h-12 sm:w-16 sm:h-16 mb-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
-                  <h2 className="text-xl font-semibold">No Data Selected</h2>
-                  <p className="text-sm">Click any card on the left to view detailed analytics.</p>
+                  <h2 className="text-lg sm:text-xl font-semibold text-center">No Data Selected</h2>
+                  <p className="text-xs sm:text-sm text-center mt-2">
+                    Click any card on the left to view detailed analytics.
+                  </p>
                 </div>
               )}
             </Card>

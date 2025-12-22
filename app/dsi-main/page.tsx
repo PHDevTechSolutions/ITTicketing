@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useState, useEffect, useMemo } from "react";
 import { Send, X } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { SidebarLeft } from "../components/sidebar-left";
 import { SidebarRight } from "../components/sidebar-right";
 import {
@@ -161,6 +162,14 @@ interface Ticket {
 }
 
 export default function Page() {
+   const router = useRouter();
+
+  useEffect(() => {
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/dsi-login"); // Redirect kung walang login
+    }
+  }, []);
   const [readInbox, setReadInbox] = React.useState<string[]>([]);
   const [currentPage, setCurrentPage] = React.useState<PageType>("openTickets");
   const [concerns, setConcerns] = React.useState<ConcernItem[]>([]);
@@ -1460,90 +1469,106 @@ setNewConcern((prev) => ({
           )}
 
           {currentPage === "pendingConcerns" && (
-            <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
-              {/* BAGONG HEADING AT INFO ICON CONTAINER */}
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-foreground">Pending Concerns</h2>
+  <div className="max-w-6xl mx-auto w-full h-[560px] overflow-y-auto">
 
-                {/* TOOLTIP/INFO ICON BLOCK */}
-                <details className="relative group">
-                  <summary
-                    className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
-                     hover:bg-primary/20 transition-all outline-none select-none list-none"
-                  >
-                    {/* Info Icon */}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
-                      viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round"
-                        d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z" />
-                    </svg>
-                  </summary>
+    {/* HEADER */}
+    <div className="flex justify-between items-center mb-4">
+      <h2 className="text-2xl font-bold text-foreground">Pending Concerns</h2>
 
-                  {/* TOOLTIP/DETAILS CONTENT */}
-                  <div
-                    className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
-                     shadow-2xl bg-white dark:bg-gray-900 text-sm 
-                     text-gray-700 dark:text-gray-300 leading-relaxed z-10 
-                     animate-in fade-in slide-in-from-top-2 duration-300"
-                    style={{ minWidth: '200px' }}
-                  >
-                    <p>
-                      Here you can see your pending or ongoing concerns. You can check which technician is assigned and who is processing your concern.
-                    </p>
-                  </div>
-                </details>
-              </div>
+      <details className="relative group">
+        <summary
+          className="cursor-pointer text-primary dark:text-blue-300 rounded-full p-2 
+          hover:bg-primary/20 transition-all outline-none select-none list-none"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none"
+            viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round"
+              d="M13 16h-1v-4h-1m1-4h.01M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 
+              2 6.477 2 12s4.477 10 10 10z" />
+          </svg>
+        </summary>
 
+        <div
+          className="absolute right-0 mt-2 w-80 p-4 rounded-xl border border-border 
+          shadow-2xl bg-white dark:bg-gray-900 text-sm 
+          text-gray-700 dark:text-gray-300 leading-relaxed z-10"
+        >
+          Here you can see your pending or ongoing concerns.
+        </div>
+      </details>
+    </div>
 
-              <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
-                {/* Removed table-fixed and min-w-full to allow columns to size naturally */}
-                <table className="w-full text-xs text-foreground text-center">
-                  <thead className="bg-gray-100 dark:bg-gray-800">
-                    <tr className="h-12">
-                      {/* Removed width classes from most headers */}
-                      <th className="px-4 font-semibold">Ticket No.</th>
-                      <th className="px-4 font-semibold">Request Type</th>
-                      {/* ADDED max-w-xs to constrain the Group column */}
-                      <th className="px-4 font-semibold max-w-xs">Group</th>
-                      <th className="px-4 font-semibold">Technician</th>
-                      <th className="px-4 font-semibold">Type of Concern</th>
-                      <th className="px-4 font-semibold">Status</th>
-                      <th className="px-4 font-semibold">Date Scheduled</th>
-                      <th className="px-4 font-semibold">Processed by</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTickets.map((t) => (
-                      <tr
-                        key={t.id}
-                        className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12"
-                      >
-                        <td className="px-4 py-3">{t.ticketNumber}</td>
-                        <td className="px-4 py-3">{t.requesttype}</td>
-                        <td className="px-4 py-3 max-w-xs truncate whitespace-nowrap overflow-hidden">{t.group}</td>
-                        <td className="px-4 py-3">{t.technicianname}</td>
-                        <td className="px-4 py-3">{t.type}</td>
-                        <td className="px-4 py-3">{t.status}</td>
-                        <td className="px-4 py-3">
-                          <span className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
-                            {new Date(t.dateSched + "T00:00:00").toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "2-digit",
-                            })}
-                          </span>
-                        </td>
+    {/* ✅ CONDITIONAL CONTENT */}
+    {loadingTickets ? (
+      <p className="text-center mt-10 text-foreground">
+        Loading tickets...
+      </p>
+    ) : filteredTickets.length === 0 ? (
+      <p className="text-center mt-10 text-foreground">
+        No pending concerns found.
+      </p>
+    ) : (
+      <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+        <table className="w-full text-xs text-foreground text-center">
+          <thead className="bg-gray-100 dark:bg-gray-800">
+            <tr className="h-12">
+              <th className="px-4 font-semibold">Ticket No.</th>
+              <th className="px-4 font-semibold">Request Type</th>
+              <th className="px-4 font-semibold max-w-xs">Group</th>
+              <th className="px-4 font-semibold">Technician</th>
+              <th className="px-4 font-semibold">Type of Concern</th>
+              <th className="px-4 font-semibold">Status</th>
+              <th className="px-4 font-semibold">Date Scheduled</th>
+              <th className="px-4 font-semibold">Processed by</th>
+            </tr>
+          </thead>
 
-                        <td className="px-4 py-3">{t.processedBy}</td>
-                      </tr>
-                    ))}
-                  </tbody>
+         <tbody>
+  {loadingTickets ? (
+    <tr>
+      <td colSpan={8} className="py-6 text-center text-foreground">
+        Loading tickets...
+      </td>
+    </tr>
+  ) : filteredTickets.length === 0 ? (
+    <tr>
+      <td colSpan={8} className="py-6 text-center text-foreground">
+        No pending concerns found.
+      </td>
+    </tr>
+  ) : (
+    filteredTickets.map((t) => (
+      <tr
+        key={t.id}
+        className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12"
+      >
+        <td className="px-4 py-3">{t.ticketNumber}</td>
+        <td className="px-4 py-3">{t.requesttype}</td>
+        <td className="px-4 py-3 max-w-xs truncate">{t.group}</td>
+        <td className="px-4 py-3">{t.technicianname}</td>
+        <td className="px-4 py-3">{t.type}</td>
+        <td className="px-4 py-3">{t.status}</td>
+        <td className="px-4 py-3">
+          <span className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
+            {new Date(t.dateSched + "T00:00:00").toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "2-digit",
+            })}
+          </span>
+        </td>
+        <td className="px-4 py-3">{t.processedBy}</td>
+      </tr>
+    ))
+  )}
+</tbody>
 
+        </table>
+      </div>
+    )}
+  </div>
+)}
 
-                </table>
-              </div>
-            </div>
-          )}
         </div>
       </SidebarInset>
       <SidebarRight
