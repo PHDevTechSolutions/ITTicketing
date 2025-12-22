@@ -621,7 +621,7 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
               <div className="relative w-46">
                 <Input
                   type="search"
-                  placeholder="Search Employee Name"
+                  placeholder="Search Employe.."
                   className="pl-4 h-10 pr-10 rounded-lg bg-white border-gray-300 focus-visible:ring-2 focus-visible:ring-gray-500"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -634,7 +634,7 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
                 value={departmentFilter}
                 onValueChange={setDepartmentFilter}
               >
-                <SelectTrigger className="w-[150px] h-10 bg-white border-gray-300 focus:ring-gray-500">
+                <SelectTrigger className="w-[140px] h-10 bg-white border-gray-300 focus:ring-gray-500">
                   <SelectValue placeholder="Department" />
                 </SelectTrigger>
                 <SelectContent>
@@ -658,7 +658,7 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
 
               {/* EXISTING STATUS/PRIORITY FILTER */}
               <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[160px] h-10 bg-white border-gray-300 focus:ring-gray-500">
+                <SelectTrigger className="w-[120px] h-10 bg-white border-gray-300 focus:ring-gray-500">
                   <SelectValue placeholder="Filter by Status/Priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -684,7 +684,7 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
                 value={String(itemsPerPage)}
                 onValueChange={(value) => setItemsPerPage(Number(value))}
               >
-                <SelectTrigger className="w-[100px] h-10">
+                <SelectTrigger className="w-[80px] h-10">
                   <SelectValue placeholder="Items" />
                 </SelectTrigger>
 
