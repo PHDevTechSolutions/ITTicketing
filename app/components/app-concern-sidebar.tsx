@@ -29,6 +29,7 @@ import {
     DialogDescription,
     DialogFooter,
     DialogClose,
+    DialogTrigger,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -302,7 +303,7 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
     const [originalReadStatus, setOriginalReadStatus] = useState<string>(
         selectedMail?.readstatus || ""
     );
-
+    const [isMobileDialogOpen, setIsMobileDialogOpen] = React.useState(false);
     // Filter mails based on toggle
     const displayedMails = showUnreadOnly
         ? mailsWithReadStatus.filter(mail => !mail.read)
@@ -466,6 +467,8 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
         }
     };
 
+    
+
 
 
 
@@ -566,22 +569,21 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
         <>
             <AppSidebar />
             {/* Floating Hamburger Button */}
-            <div className="fixed bottom-10 right-4 z-50 md:hidden flex items-center justify-center">
-                <button
-                    className="relative bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg transition-colors"
-                    onClick={() => setShowSidebar(true)}
-                >
-                    {/* Icon para sa Concern/Message */}
-                    <MessageSquareMore size={28} />
-
-                    {/* Unread Count Badge */}
-                    {unreadCount > 0 && (
-                        <span className="absolute top-0 right-0 flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold border-2 border-white transform translate-x-1/4 -translate-y-1/4">
-                            {unreadCount}
-                        </span>
-                    )}
-                </button>
-            </div>
+{/* Floating Hamburger Button */}
+{/* 🔘 Floating Hamburger Button (Mobile Only: md:hidden) */}
+<div className="fixed bottom-10 right-4 z-50 md:hidden">
+  <button
+    className="relative bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg transition-transform active:scale-90"
+    onClick={() => setIsMobileDialogOpen(true)}
+  > 
+    <MessageSquareMore size={28} />
+    {unreadCount > 0 && (
+      <span className="absolute top-0 right-0 h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold border-2 border-white transform translate-x-1/4 -translate-y-1/4 flex items-center justify-center">
+        {unreadCount}
+      </span>
+    )}
+  </button>
+</div>
 
 
             {/* Sidebar */}
@@ -598,42 +600,114 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
   `}
             >
 
-                {/* 🧭 Header */}
-              <SidebarHeader className=" border-b p-3 bg-gray-50">
-  <div className="flex w-full items-center justify-between">
-    <div className="text-foreground text-base font-semibold">
-      {activeItem?.title}
-    </div>
-    <div className="flex items-center">
-      {/* ➕ Add Ticket button */}
-      <Button
-        size="sm"
-        className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1"
-        onClick={() => {
-          setValidationErrors({}); // Clear errors
-          setIsManualAddDialogOpen(true);
-        }}
-      >
-        + Ticket
-      </Button>
+ {/* --- Desktop Header --- */}
+    <div className="hidden md:block">
+      <SidebarHeader className="border-b p-3 bg-gray-50">
+        <div className="flex w-full items-center justify-between">
+          <div className="text-foreground text-base font-semibold">
+            {activeItem?.title}
+          </div>
+          <div className="flex items-center">
+            <Button
+              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1"
+              onClick={() => {
+                setValidationErrors({});
+                setIsManualAddDialogOpen(true);
+              }}
+            >
+              + Ticket
+            </Button>
+          </div>
+        </div>
 
-      {/* Close button for mobile */}
-      <div className="flex justify-end p-4 md:hidden">
-        <Button onClick={() => setShowSidebar(false)} variant="outline">
-          ✕
-        </Button>
+        <SidebarInput
+          placeholder="Search Employee name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </SidebarHeader>
+    </div>
+
+    {/* --- Mobile Dialog --- */}
+<div className="md:hidden">
+  <Dialog open={isMobileDialogOpen} onOpenChange={setIsMobileDialogOpen}>
+    <DialogContent className="max-w-md w-full max-h-[90vh] p-0 rounded-lg overflow-hidden">
+      {/* Header */}
+<DialogHeader className="bg-gray-50 p-4 flex items-center justify-between border-b">
+  {/* Left-aligned Title */}
+  <DialogTitle
+    className="text-base font-semibold text-gray-900 text-xl truncate max-w-[70%]"
+  >
+    {activeItem?.title}
+  </DialogTitle>
+
+  {/* Right-aligned Button */}
+  <Button
+    size="sm"
+    className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1 flex-shrink-0"
+    onClick={() => {
+      setValidationErrors({});
+      setIsManualAddDialogOpen(true);
+    }}
+  >
+    + Ticket
+  </Button>
+</DialogHeader>
+
+
+
+      {/* Search Input */}
+      <div className="p-4 border-b bg-white">
+        <SidebarInput
+          placeholder="Search Employee name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
-    </div>
-  </div>
 
-  {/* Search Input */}
-  <SidebarInput
-    placeholder="Search Employee name..."
-    value={searchTerm}
-    onChange={(e) => setSearchTerm(e.target.value)}
-  />
-</SidebarHeader>
-                <SidebarContent>
+      {/* Scrollable Mail List */}
+      <div className="overflow-y-auto max-h-[calc(90vh-160px)] bg-gray-50">
+        <SidebarContent>
+          <SidebarGroup className="px-4 py-2">
+            <SidebarGroupContent className="flex flex-col gap-3">
+              {filteredMails.map((mail) => (
+                <button
+                  key={mail.ConcernNumber || mail.subject + mail.date}
+                  onClick={() => openDialog(mail)}
+                  className={`flex flex-col gap-2 p-4 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow text-left`}
+                >
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="font-semibold text-gray-900">{mail.name}</span>
+                    <span className="text-xs text-gray-500">
+                      {new Date(mail.createdAt).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium text-gray-800">{mail.subject}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}>
+                      {mail.priority}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-600 line-clamp-2">{mail.teaser}</span>
+                </button>
+              ))}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      </div>
+    </DialogContent>
+  </Dialog>
+</div>
+
+<SidebarContent>
   <SidebarGroup className="px-0">
     <SidebarGroupContent>
       {filteredMails.map((mail) => (
@@ -778,476 +852,458 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
                 </DialogContent>
             </Dialog>
 
+<Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+    <DialogContent className="sm:max-w-3xl max-h-[95vh] flex flex-col p-0"> 
+        {/* p-0 para ma-control natin ang padding sa loob ng scroll area */}
+        
+        <DialogHeader className="p-6 pb-2">
+            <DialogTitle>Create New Ticket</DialogTitle>
+            <DialogDescription>
+                Review and finalize the ticket details based on the end user concern. 
+                Required fields are marked with a <span className="text-red-500 font-bold underline">RED BORDER</span> if left empty.
+            </DialogDescription>
+        </DialogHeader>
 
-            {/* 🎫 Create Ticket Dialog (from Concern/Email) */}
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader>
-                        <DialogTitle>Create New Ticket</DialogTitle>
-                        <DialogDescription>
-                            Review and finalize the ticket details based on the end user concern. Required fields are marked with a **RED BORDER** if left empty.
-                        </DialogDescription>
-                    </DialogHeader>
+        {/* --- Scrollable Area Start --- */}
+        <div className="flex-1 overflow-y-auto px-6 py-2">
+            <form id="ticket-form" onSubmit={handleSubmit} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    {/* Ticket Number (Hidden) */}
+                    <div className="hidden">
+                        <Label>Ticket Number</Label>
+                        <Input value={ticketForm.ticketNumber} readOnly />
+                    </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-3 mt-4 text-xs">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {/* Row 1 */}
-                            <div className="flex flex-col space-y-1.5 hidden">
-                                <Label>Ticket Number</Label>
-                                <Input value={ticketForm.ticketNumber} readOnly />
-                            </div>
+                    {/* Full Name */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("Fullname")}>Full Name</Label>
+                        <Input value={ticketForm.Fullname} readOnly className={getErrorClass("Fullname")} />
+                    </div>
 
-                            {/* Full Name (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("Fullname")}>Full Name</Label>
-                                <Input value={ticketForm.Fullname} readOnly className={getErrorClass("Fullname")} />
-                            </div>
+                    {/* Email */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("Email")}>Email</Label>
+                        <Input value={ticketForm.Email} readOnly className={getErrorClass("Email")} />
+                    </div>
 
+                    {/* Department */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("department")}>Department</Label>
+                        <Input value={ticketForm.department} readOnly className={getErrorClass("department")} />
+                    </div>
 
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("Email")}>Email</Label>
-                                <Input value={ticketForm.Email} readOnly className={getErrorClass("Email")} />
-                            </div>
+                    {/* Request Type */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("requesttype")}>Request Type</Label>
+                        <Input
+                            value={selectedMail?.requesttype1 ?? ""}
+                            readOnly
+                            className={getErrorClass("requesttype")}
+                        />
+                    </div>
 
-                            {/* Department (Required + Red Border) */}
+                    {/* Type Of Concern */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("type")}>Type Of Concern</Label>
+                        <Input
+                            value={selectedMail?.subject ?? ""}
+                            readOnly
+                            className={getErrorClass("type")}
+                        />
+                    </div>
 
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("department")}>Department</Label>
-                                <Input value={ticketForm.department} readOnly className={getErrorClass("department")} />
-                            </div>
+                    {/* Mode */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label>Mode</Label>
+                        <input
+                            type="text"
+                            value="Web Form"
+                            readOnly
+                            className="w-full rounded-md border border-input bg-white px-3 py-2 text-xs text-foreground cursor-default"
+                        />
+                    </div>
 
-                            {/* Row 2 */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("requesttype")}>Request Type</Label>
-                                <Input
-                                    value={selectedMail?.requesttype1 ?? ""}
-                                    readOnly
-                                    className={getErrorClass("requesttype")}
-                                />
-                            </div>
+                    {/* Group */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("group")}>Group</Label>
+                        <Select
+                            value={ticketForm.group}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, group: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("group")}`}>
+                                <SelectValue placeholder="Select Group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {groups.map((group) => (
+                                    <SelectItem key={group.name} value={group.name}>{group.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
+                    {/* Technician Name */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("technicianname")}>Technician Name</Label>
+                        <Select
+                            value={ticketForm.technicianname}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, technicianname: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("technicianname")}`}>
+                                <SelectValue placeholder="Select name" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {technicians.map((technician) => (
+                                    <SelectItem key={technician.name} value={technician.name}>{technician.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                            {/* Row 2 */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("type")}>Type Of Concern</Label>
-                                <Input
-                                    value={selectedMail?.subject ?? ""}
-                                    readOnly
-                                    className={getErrorClass("type")}
-                                />
-                            </div>
+                    {/* Site */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("site")}>Site</Label>
+                        <Select
+                            value={ticketForm.site}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, site: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("site")}`}>
+                                <SelectValue placeholder="Select site" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sites.map(site => <SelectItem key={site.name} value={site.name}>{site.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
+                    {/* Date Scheduled */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label>Date Scheduled (Required)</Label>
+                        <Input
+                            type="date"
+                            value={ticketForm.dateSched}
+                            min={new Date().toISOString().split("T")[0]}
+                            onChange={(e) => setTicketForm({ ...ticketForm, dateSched: e.target.value })}
+                        />
+                    </div>
 
+                    {/* Priority */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("priority")}>Priority</Label>
+                        <Select
+                            value={ticketForm.priority}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, priority: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
+                                <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {priorities.map(prio => <SelectItem key={prio.name} value={prio.name}>{prio.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
+                    {/* Status */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("status")}>Status</Label>
+                        <Select
+                            value={ticketForm.status}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, status: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("status")}`}>
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {status.map(Stat => <SelectItem key={Stat.name} value={Stat.name}>{Stat.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
 
-                            {/* Mode (Read-only) */}
-                            {/* Mode (Read-only, White BG) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label>Mode</Label>
-                                <input
-                                    type="text"
-                                    value="Web Form"
-                                    readOnly
-                                    className="w-full rounded-md border border-input bg-white px-3 py-2 text-xs text-foreground cursor-default"
-                                />
-                            </div>
+                {/* Remarks (Full Width) */}
+                <div className="flex flex-col space-y-1.5 mt-2">
+                    <Label className={getErrorClass("remarks")}>Remarks</Label>
+                    <Textarea
+                        placeholder="Enter remarks or description..."
+                        value={ticketForm.remarks}
+                        className={`min-h-[100px] ${getErrorClass("remarks")}`}
+                        onChange={(e) => setTicketForm({ ...ticketForm, remarks: e.target.value })}
+                    />
+                </div>
 
+                {/* Processed By (Full Width) */}
+                <div className="flex flex-col space-y-1.5 pb-4">
+                    <Label className={getErrorClass("processedBy")}>Processed By</Label>
+                    <Input
+                        placeholder="Name of processor"
+                        value={ticketForm.processedBy}
+                        className={getErrorClass("processedBy")}
+                        onChange={(e) => setTicketForm({ ...ticketForm, processedBy: e.target.value })}
+                    />
+                </div>
+            </form>
+        </div>
+        {/* --- Scrollable Area End --- */}
 
+        <DialogFooter className="p-6 pt-4 border-t bg-gray-50/50">
+            <DialogClose asChild>
+                <Button type="button" variant="outline">
+                    Cancel
+                </Button>
+            </DialogClose>
+            {/* Ikabit ang submit sa form id kung nasa labas ang button, 
+                pero dito dahil nasa loob ng <DialogContent> pwedeng simple type="submit" form="ticket-form" */}
+            <Button type="submit" form="ticket-form">Submit Ticket</Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
+{/* ➕ Add New Ticket Dialog (Manual Entry) */}
+<Dialog open={isManualAddDialogOpen} onOpenChange={setIsManualAddDialogOpen}>
+    <DialogContent className="sm:max-w-3xl max-h-[95vh] flex flex-col p-0">
+        {/* Header - Fixed at the top */}
+        <DialogHeader className="p-6 pb-2">
+            <DialogTitle>Add New Ticket Manually</DialogTitle>
+            <DialogDescription>
+                Enter the details for a new support ticket. Required fields are marked with a <span className="text-red-500 font-bold underline">RED BORDER</span> if left empty.
+            </DialogDescription>
+        </DialogHeader>
 
-                            {/* Row 3 */}
-                            {/* Group (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("group")}>Group</Label>
-                                <Select
-                                    value={ticketForm.group}
-                                    onValueChange={(value) =>
-                                        setTicketForm({ ...ticketForm, group: value })
-                                    }
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("group")}`}>
-                                        <SelectValue placeholder="Select Group" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {groups.map((group) => (
-                                            <SelectItem key={group.name} value={group.name}>
-                                                {group.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+        {/* --- Scrollable Area Start --- */}
+        <div className="flex-1 overflow-y-auto px-6 py-2">
+            <form id="manual-ticket-form" onSubmit={handleManualSubmit} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    {/* Manual Ticket Number Input (Hidden) */}
+                    <div className="hidden">
+                        <Label>Ticket Number</Label>
+                        <Input
+                            placeholder="e.g. 1"
+                            value={newTicket.ticketNumber}
+                            onChange={(e) => setNewTicket({ ...newTicket, ticketNumber: e.target.value })}
+                        />
+                    </div>
 
-                            {/* Technician Name (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("technicianname")}>Technician Name</Label>
-                                <Select
-                                    value={ticketForm.technicianname}
-                                    onValueChange={(value) => setTicketForm({ ...ticketForm, technicianname: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("technicianname")}`}>
-                                        <SelectValue placeholder="Select name" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {technicians.map((technician) => (
-                                            <SelectItem
-                                                key={technician.name}
-                                                value={technician.name}
-                                            >
-                                                {technician.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                    {/* Full Name Input */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("Fullname")}>Full Name</Label>
+                        <Input
+                            placeholder="Requester's Full Name"
+                            value={newTicket.Fullname}
+                            className={getErrorClass("Fullname")}
+                            onChange={(e) => setNewTicket({ ...newTicket, Fullname: e.target.value })}
+                        />
+                    </div>
 
-                            {/* Site (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("site")}>Site</Label>
-                                <Select
-                                    value={ticketForm.site}
-                                    onValueChange={(value) =>
-                                        setTicketForm({ ...ticketForm, site: value })
-                                    }
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("site")}`}>
-                                        <SelectValue placeholder="Select site" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {sites.map(site => <SelectItem key={site.name} value={site.name}>{site.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                    {/* Department Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("department")}>Department</Label>
+                        <Select
+                            value={newTicket.department}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, department: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("department")}`}>
+                                <SelectValue placeholder="Select department" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {departments.map((dept) => (
+                                    <SelectItem key={dept.name} value={dept.name}>{dept.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                            {/* Row 4 */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label>Date Scheduled (Required)</Label>
-                                <Input
-                                    type="date"
-                                    value={ticketForm.dateSched}
-                                    min={new Date().toISOString().split("T")[0]} // hindi pwedeng past date
-                                    onChange={(e) =>
-                                        setTicketForm({ ...ticketForm, dateSched: e.target.value })
-                                    }
-                                />
-                            </div>
+                    {/* Request Type Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("requesttype")}>Request Type</Label>
+                        <Select
+                            value={newTicket.requesttype}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, requesttype: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("requesttype")}`}>
+                                <SelectValue placeholder="Select request type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {requestTypes.map(type => (
+                                    <SelectItem key={type.name} value={type.name}>{type.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
+                    {/* Type of Concern Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("type")}>Type of Concern</Label>
+                        <Select
+                            value={newTicket.type}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, type: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("type")}`}>
+                                <SelectValue placeholder="Select concern type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {concernTypes.map(concern => (
+                                    <SelectItem key={concern.name} value={concern.name}>{concern.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                            {/* Priority (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("priority")}>Priority</Label>
-                                <Select
-                                    value={ticketForm.priority}
-                                    onValueChange={(value) => setTicketForm({ ...ticketForm, priority: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
-                                        <SelectValue placeholder="Select priority" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {priorities.map(prio => <SelectItem key={prio.name} value={prio.name}>{prio.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            {/* Status Select (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("status")}>Status</Label>
-                                <Select
-                                    value={ticketForm.status}
-                                    onValueChange={(value) => setTicketForm({ ...ticketForm, status: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("status")}`}>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger><SelectContent>
-                                        {status.map(Stat => <SelectItem key={Stat.name} value={Stat.name}>{Stat.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div></div>
-                        </div>
+                    {/* Mode Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("mode")}>Mode</Label>
+                        <Select
+                            value={newTicket.mode}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, mode: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("mode")}`}>
+                                <SelectValue placeholder="Select Mode" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {modes.map((mode) => (
+                                    <SelectItem key={mode.name} value={mode.name}>{mode.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                        {/* Remarks (Full Width, Required + Red Border) */}
-                        <div className="flex flex-col space-y-1.5">
-                            <Label className={getErrorClass("remarks")}>Remarks</Label>
-                            <Textarea
-                                placeholder="Enter remarks or description..."
-                                value={ticketForm.remarks}
-                                className={getErrorClass("remarks")}
-                                onChange={(e) =>
-                                    setTicketForm({ ...ticketForm, remarks: e.target.value })
-                                }
-                            />
-                        </div>
+                    {/* Group Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("group")}>Group</Label>
+                        <Select
+                            value={newTicket.group}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, group: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("group")}`}>
+                                <SelectValue placeholder="Select Group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {groups.map((group) => (
+                                    <SelectItem key={group.name} value={group.name}>{group.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                        {/* Processed By (Full Width, Required + Red Border) */}
-                        <div className="flex flex-col space-y-1.5">
-                            <Label className={getErrorClass("processedBy")}>Processed By</Label>
-                            <Input
-                                placeholder="Name of processor"
-                                value={ticketForm.processedBy} // Pre-filled with FullName
-                                className={getErrorClass("processedBy")}
-                                onChange={(e) =>
-                                    setTicketForm({ ...ticketForm, processedBy: e.target.value })
-                                }
-                            />
-                        </div>
+                    {/* Technician Name */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("technicianname")}>Technician Name</Label>
+                        <Select
+                            value={newTicket.technicianname}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, technicianname: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("technicianname")}`}>
+                                <SelectValue placeholder="Select name" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {technicians.map((technician) => (
+                                    <SelectItem key={technician.name} value={technician.name}>{technician.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
+                    {/* Site Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("site")}>Site</Label>
+                        <Select
+                            value={newTicket.site}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, site: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("site")}`}>
+                                <SelectValue placeholder="Select site" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {sites.map(site => (
+                                    <SelectItem key={site.name} value={site.name}>{site.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                        <DialogFooter className="pt-4">
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </DialogClose>
-                            {/* Submission Button */}
-                            <Button type="submit">Submit Ticket</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+                    {/* Date Sched Input */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label>Date Scheduled (Required)</Label>
+                        <Input
+                            type="date"
+                            value={newTicket.dateSched}
+                            onChange={(e) => setNewTicket({ ...newTicket, dateSched: e.target.value })}
+                            min={new Date().toISOString().split("T")[0]}
+                        />
+                    </div>
 
-            {/* ➕ Add New Ticket Dialog (Manual Entry) */}
-            <Dialog open={isManualAddDialogOpen} onOpenChange={setIsManualAddDialogOpen}>
-                <DialogContent className="sm:max-w-3xl">
-                    <DialogHeader>
-                        <DialogTitle>Add New Ticket Manually</DialogTitle>
-                        <DialogDescription>
-                            Enter the details for a new support ticket. Required fields are marked with a **RED BORDER** if left empty.
-                        </DialogDescription>
-                    </DialogHeader>
+                    {/* Priority Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("priority")}>Priority</Label>
+                        <Select
+                            value={newTicket.priority}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, priority: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
+                                <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {priorities.map(prio => (
+                                    <SelectItem key={prio.name} value={prio.name}>{prio.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                    {/* Manual Entry Form */}
-                    <form onSubmit={handleManualSubmit} className="space-y-3 mt-4 text-xs">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                            {/* Manual Ticket Number Input (Hidden) */}
-                            <div className="flex flex-col space-y-1.5 hidden">
-                                <Label>Ticket Number</Label>
-                                <Input
-                                    placeholder="e.g. 1"
-                                    value={newTicket.ticketNumber}
-                                    onChange={(e) => setNewTicket({ ...newTicket, ticketNumber: e.target.value })}
-                                />
-                            </div>
+                    {/* Status Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={getErrorClass("status")}>Status</Label>
+                        <Select
+                            value={newTicket.status}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, status: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("status")}`}>
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {status.map(Stat => (
+                                    <SelectItem key={Stat.name} value={Stat.name}>{Stat.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
 
-                            {/* Full Name Input (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("Fullname")}>Full Name</Label>
-                                <Input
-                                    placeholder="Requester's Full Name"
-                                    value={newTicket.Fullname}
-                                    className={getErrorClass("Fullname")}
-                                    onChange={(e) => setNewTicket({ ...newTicket, Fullname: e.target.value })}
-                                />
-                            </div>
+                {/* Remarks (Full Width) */}
+                <div className="flex flex-col space-y-1.5 mt-2">
+                    <Label className={getErrorClass("remarks")}>Remarks</Label>
+                    <Textarea
+                        placeholder="Enter remarks or description..."
+                        value={newTicket.remarks}
+                        className={`min-h-[100px] ${getErrorClass("remarks")}`}
+                        onChange={(e) => setNewTicket({ ...newTicket, remarks: e.target.value })}
+                    />
+                </div>
 
-                            {/* Department Select (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("department")}>Department</Label>
-                                <Select
-                                    value={newTicket.department}
-                                    onValueChange={(value) => setNewTicket({ ...newTicket, department: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("department")}`}>
-                                        <SelectValue placeholder="Select department" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {departments.map((dept) => (
-                                            <SelectItem key={dept.name} value={dept.name}>
-                                                {dept.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                {/* Processed By (Full Width) */}
+                <div className="flex flex-col space-y-1.5 pb-4">
+                    <Label className={getErrorClass("processedBy")}>Processed By</Label>
+                    <Input
+                        placeholder="Name of processor"
+                        value={newTicket.processedBy}
+                        className={getErrorClass("processedBy")}
+                        onChange={(e) => setNewTicket({ ...newTicket, processedBy: e.target.value })}
+                    />
+                </div>
+            </form>
+        </div>
+        {/* --- Scrollable Area End --- */}
 
-                            {/* Request Type Select (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("requesttype")}>Request Type</Label>
-                                <Select
-                                    value={newTicket.requesttype}
-                                    onValueChange={(value) => setNewTicket({ ...newTicket, requesttype: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("requesttype")}`}>
-                                        <SelectValue placeholder="Select request type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {requestTypes.map(type => <SelectItem key={type.name} value={type.name}>{type.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Type of Concern Select (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("type")}>Type of Concern</Label>
-                                <Select
-                                    value={newTicket.type}
-                                    onValueChange={(value) => setNewTicket({ ...newTicket, type: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("type")}`}>
-                                        <SelectValue placeholder="Select concern type" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {concernTypes.map(concern => <SelectItem key={concern.name} value={concern.name}>{concern.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Mode Select (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("mode")}>Mode</Label>
-                                <Select
-                                    value={newTicket.mode}
-                                    onValueChange={(value) => setNewTicket({ ...newTicket, mode: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("mode")}`}>
-                                        <SelectValue placeholder="Select Mode" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {modes.map((mode) => (
-                                            <SelectItem key={mode.name} value={mode.name}>
-                                                {mode.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Group Select (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("group")}>Group</Label>
-                                <Select
-                                    value={newTicket.group}
-                                    onValueChange={(value) => setNewTicket({ ...newTicket, group: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("group")}`}>
-                                        <SelectValue placeholder="Select Group" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {groups.map((group) => (
-                                            <SelectItem key={group.name} value={group.name}>
-                                                {group.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            {/* Technician Name (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("technicianname")}>Technician Name</Label>
-                                <Select
-                                    value={newTicket.technicianname}
-                                    onValueChange={(value) => setNewTicket({ ...newTicket, technicianname: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("technicianname")}`}>
-                                        <SelectValue placeholder="Select name" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {technicians.map((technician) => (
-                                            <SelectItem
-                                                key={technician.name}
-                                                value={technician.name}
-                                            >
-                                                {technician.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Site Select (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("site")}>Site</Label>
-                                <Select
-                                    value={newTicket.site}
-                                    onValueChange={(value) => setNewTicket({ ...newTicket, site: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("site")}`}>
-                                        <SelectValue placeholder="Select site" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {sites.map(site => <SelectItem key={site.name} value={site.name}>{site.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Date Sched Input (Optional) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label>Date Scheduled (Required)</Label>
-                                <Input
-                                    type="date"
-                                    value={newTicket.dateSched}
-                                    onChange={(e) => setNewTicket({ ...newTicket, dateSched: e.target.value })}
-                                    min={new Date().toISOString().split("T")[0]} // <-- only future and today
-                                />
-                            </div>
-
-                            {/* Priority Select (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("priority")}>Priority</Label>
-                                <Select
-                                    value={newTicket.priority}
-                                    onValueChange={(value) => setNewTicket({ ...newTicket, priority: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
-                                        <SelectValue placeholder="Select priority" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {priorities.map(prio => <SelectItem key={prio.name} value={prio.name}>{prio.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Status Select (Required + Red Border) */}
-                            <div className="flex flex-col space-y-1.5">
-                                <Label className={getErrorClass("status")}>Status</Label>
-                                <Select
-                                    value={newTicket.status}
-                                    onValueChange={(value) => setNewTicket({ ...newTicket, status: value })}
-                                >
-                                    <SelectTrigger className={`w-full ${getErrorClass("status")}`}>
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {status.map(Stat => <SelectItem key={Stat.name} value={Stat.name}>{Stat.name}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div></div>
-                        </div>
-
-                        {/* Remarks (Full Width, Required + Red Border) */}
-                        <div className="flex flex-col space-y-1.5">
-                            <Label className={getErrorClass("remarks")}>Remarks</Label>
-                            <Textarea
-                                placeholder="Enter remarks or description..."
-                                value={newTicket.remarks}
-                                className={getErrorClass("remarks")}
-                                onChange={(e) => setNewTicket({ ...newTicket, remarks: e.target.value })}
-                            />
-                        </div>
-
-                        {/* Processed By (Full Width, Required + Red Border) */}
-                        <div className="flex flex-col space-y-1.5">
-                            <Label className={getErrorClass("processedBy")}>Processed By</Label>
-                            <Input
-                                placeholder="Name of processor"
-                                value={newTicket.processedBy}
-                                className={getErrorClass("processedBy")}
-                                onChange={(e) => setNewTicket({ ...newTicket, processedBy: e.target.value })}
-                            />
-                        </div>
-
-                        <DialogFooter className="pt-4">
-                            <DialogClose asChild>
-                                <Button type="button" variant="outline">
-                                    Cancel
-                                </Button>
-                            </DialogClose>
-                            {/* Submission Button */}
-                            <Button type="submit">Submit Ticket</Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
+        {/* Footer - Fixed at the bottom */}
+        <DialogFooter className="p-6 pt-4 border-t bg-gray-50/50">
+            <DialogClose asChild>
+                <Button type="button" variant="outline">
+                    Cancel
+                </Button>
+            </DialogClose>
+            <Button type="submit" form="manual-ticket-form">Submit Ticket</Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
         </>
     )
 }
