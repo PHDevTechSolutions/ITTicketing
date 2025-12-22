@@ -498,7 +498,7 @@ export default function Page() {
 
             <div className="flex flex-wrap items-center gap-3">
 
-              <div className="relative w-51">
+              <div className="relative w-45">
                 <Input
                   type="search"
                   placeholder="Search..."

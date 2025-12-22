@@ -618,7 +618,7 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
 
 
 
-              <div className="relative w-56">
+              <div className="relative w-46">
                 <Input
                   type="search"
                   placeholder="Search Employee Name"
