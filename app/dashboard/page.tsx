@@ -424,7 +424,7 @@ export default function DashboardPage() {
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
                   <BreadcrumbPage className="bg-white">
-                    Overview
+                    Dashboard
                   </BreadcrumbPage>
 
                 </BreadcrumbItem>
@@ -433,70 +433,84 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <main className="p-6 bg-gray-50 min-h-[calc(100vh-4rem)]">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Welcome, {displayName.length > 3 ? displayName : "IT User"}</h1>
-            {/* Ipinapakita ang buong petsa at araw */}
-            <div className="text-xs text-gray-500 ">{new Date().toLocaleDateString("en-US", { dateStyle: "full" })}</div>
+       <main className="p-4 md:p-6 bg-gray-50 min-h-[calc(100vh-4rem)]">
+  {/* HEADER: Welcome + Date */}
+  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4 md:mb-6">
+    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
+      Welcome, {displayName.length > 3 ? displayName : "IT User"}
+    </h1>
+    <div className="text-[11px] sm:text-xs text-gray-500">
+      {new Date().toLocaleDateString("en-US", { dateStyle: "full" })}
+    </div>
+  </div>
+
+  {/* MAIN SECTION: GRID 1/3 stats, 2/3 table */}
+  <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+    
+    {/* LEFT: Stats Column */}
+    <div className="flex flex-col gap-3 md:gap-4 md:col-span-1">
+      
+      {/* Primary Stats */}
+      <div className="flex flex-col gap-3 md:gap-4">
+        {primaryStats.map((stat) => (
+          <StatCard
+            key={stat.link}
+            {...stat}
+            onClick={handleStatClick}
+            isSelected={selectedStat?.link === stat.link}
+          />
+        ))}
+      </div>
+
+      {/* Secondary Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+        {secondaryStats.map((stat) => (
+          <StatCard
+            key={stat.link}
+            {...stat}
+            onClick={handleStatClick}
+            isSelected={selectedStat?.link === stat.link}
+          />
+        ))}
+      </div>
+    </div>
+
+    {/* RIGHT: Table / Data Display */}
+    <Card className="shadow-lg overflow-hidden h-[420px] md:h-[510px] flex flex-col md:col-span-2">
+      {selectedStat ? (
+        loadingTickets ? (
+          /* LOADING STATE */
+          <div className="p-6 md:p-8 text-center">
+            <Loader2 className="mx-auto h-6 w-6 md:h-8 md:w-8 animate-spin text-gray-500" />
+            <p className="mt-2 text-xs md:text-sm text-gray-600">Loading tickets...</p>
           </div>
+        ) : (
+          /* DATA TABLE */
+          <DataTable data={tableData} title={tableTitle} />
+        )
+      ) : (
+        /* EMPTY STATE */
+        <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12 md:py-20 px-4 sm:px-8">
+          <svg className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mb-3 md:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
+          </svg>
+          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-center">
+            No Data Selected
+          </h2>
+          <p className="text-[11px] sm:text-xs md:text-sm text-center mt-2">
+            Click any card on the left to view detailed analytics.
+          </p>
+        </div>
+      )}
+    </Card>
+  </section>
+</main>
 
-          {/* SECTION GRID: 3 columns sa medium screens para lumaki ang table */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-
-            {/* Stats Column (1/3 width sa medium screens) */}
-            {/* Inalis ang fixed h-[600px] para hayaang mag-stack ang StatCards */}
-            <div className="flex flex-col gap-4 md:col-span-1">
-
-              {/* Primary Stats - Nakasalansan (stack) */}
-              <div className="flex flex-col gap-4">
-                {primaryStats.map((stat) => (
-                  <StatCard key={stat.link} {...stat} onClick={handleStatClick} isSelected={selectedStat?.link === stat.link} />
-                ))}
-              </div>
-
-              {/* Secondary Stats - Magkatabi (grid) sa small screens pataas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {secondaryStats.map((stat) => (
-                  <StatCard key={stat.link} {...stat} onClick={handleStatClick} isSelected={selectedStat?.link === stat.link} />
-                ))}
-              </div>
-            </div>
-
-            {/* Center: Table or default (2/3 width sa medium screens) */}
-            <Card className="shadow-lg overflow-hidden h-[510px] flex flex-col md:col-span-2">
-              {selectedStat ? (
-                loadingTickets ? (
-                  <div className="p-8 text-center">
-                    <Loader2 className="mx-auto h-8 w-8 animate-spin text-gray-500" />
-                    <p className="mt-2 text-gray-600">Loading tickets...</p>
-                  </div>
-                ) : (
-                  <DataTable data={tableData} title={tableTitle} />
-                )
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 py-20 px-4 sm:px-8">
-                  <svg
-                    className="w-12 h-12 sm:w-16 sm:h-16 mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                  <h2 className="text-lg sm:text-xl font-semibold text-center">No Data Selected</h2>
-                  <p className="text-xs sm:text-sm text-center mt-2">
-                    Click any card on the left to view detailed analytics.
-                  </p>
-                </div>
-              )}
-            </Card>
-          </section>
-        </main>
       </SidebarInset>
     </SidebarProvider>
   )

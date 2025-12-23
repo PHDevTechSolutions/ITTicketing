@@ -543,7 +543,7 @@ setNewConcern((prev) => ({
     }
   }
 
-
+  
 
 
 
@@ -968,18 +968,6 @@ setNewConcern((prev) => ({
 
                 {/* Form Footer */}
                 <DialogFooter className="pt-4 flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setNewConcern(initialConcernState)
-                      setValidationErrors({})
-                      setSubmitMessage(null)
-                    }}
-
-                  >
-                    <X className="size-4 mr-2" /> Clear Form
-                  </Button>
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? "Submitting..." : (<><Send className="size-4 mr-2" /> Submit Concern</>)}
                   </Button>
@@ -1165,33 +1153,6 @@ setNewConcern((prev) => ({
 </div>
 
 
-              {/* Pagination (unchanged) */}
-              <div className="flex justify-center items-center gap-3 p-4">
-                <button
-                  onClick={goToPrevPage}
-                  disabled={currentPageNumber === 1}
-                  className="px-4 py-2 text-sm rounded-full border border-border
-           bg-background hover:bg-accent hover:text-accent-foreground 
-           disabled:opacity-40 disabled:hover:bg-background transition"
-                >
-                  ← Previous
-                </button>
-
-                <span className="text-sm font-semibold px-4 py-2 rounded-full 
-             bg-muted text-muted-foreground border border-border">
-                  Page {currentPageNumber} of {totalPages}
-                </span>
-
-                <button
-                  onClick={goToNextPage}
-                  disabled={currentPageNumber === totalPages}
-                  className="px-4 py-2 text-sm rounded-full border border-border 
-           bg-background hover:bg-accent hover:text-accent-foreground
-           disabled:opacity-40 disabled:hover:bg-background transition"
-                >
-                  Next →
-                </button>
-              </div>
 
               {/* MODAL (FIXED DROPDOWNS) */}
               {isModalOpen && selectedConcern && (
@@ -1549,11 +1510,11 @@ setNewConcern((prev) => ({
         <td className="px-4 py-3">{t.type}</td>
         <td className="px-4 py-3">{t.status}</td>
         <td className="px-4 py-3">
-          <span className="inline-block px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
+          <span className="inline-block px-3 py-1  rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
             {new Date(t.dateSched + "T00:00:00").toLocaleDateString("en-US", {
               year: "numeric",
               month: "long",
-              day: "2-digit",
+              day: "2-digit", 
             })}
           </span>
         </td>

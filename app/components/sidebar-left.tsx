@@ -212,7 +212,7 @@ export function SidebarLeft({
               variant="ghost"
               size="icon"
               title="Profile"
-              className="text-gray-600 hover:bg-gray-100"
+              className="text-white-600 hover:bg-gray-300"
             >
               <User className="h-5 w-5" />
             </Button>
@@ -234,31 +234,31 @@ export function SidebarLeft({
               ) : (
                 <>
                   <div>
-                    <Label>Full Name</Label>
+                    <Label className="mb-1">Full Name:</Label>
                     <p className="font-medium">{currentUser.Firstname} {currentUser.Lastname}</p>
                   </div>
                   <div>
-                    <Label>Username</Label>
+                    <Label className="mb-1">Username:</Label>
                     <p className="font-medium">{currentUser.Username}</p>
                   </div>
                   <div>
-                    <Label>Email</Label>
+                    <Label className="mb-1">Email:</Label>
                     <p className="font-medium">{currentUser.Email}</p>
                   </div>
                   <div>
-                    <Label>Department</Label>
+                    <Label className="mb-1">Department:</Label>
                     <p className="font-medium">{currentUser.Department}</p>
                   </div>
                   <div>
-                    <Label>Reference ID</Label>
+                    <Label className="mb-1">Reference ID:</Label>
                     <p className="font-medium">{currentUser.ReferenceID}</p>
                   </div>
                   <div>
-                    <Label>Joined</Label>
+                    <Label className="mb-1">Joined:</Label>
                     <p className="font-medium">{formatDate(currentUser.createdAt)}</p>
                   </div>
                                     <div>
-                                      <Label className="text-gray-500">New Password:</Label>
+                                      <Label className="text-white-500 mb-2">New Password:</Label>
                                       <input
                                         type="password"
                                         value={newPassword}
@@ -272,12 +272,12 @@ export function SidebarLeft({
             </div>
 
             <DialogFooter className="flex justify-center">
-                            <Button variant="outline" onClick={handlePasswordUpdate}>
-                              Update Password
-                            </Button>
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
               </DialogClose>
+                                          <Button variant="outline" onClick={handlePasswordUpdate}>
+                              Update Password
+                            </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -288,7 +288,7 @@ export function SidebarLeft({
             <Button
               variant="secondary"
               size="icon"
-              className="bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-800 dark:hover:bg-red-700 dark:text-red-300"
+              className="bg-white-100 hover:bg-red-200 text-red-700 dark:bg-white-800 dark:hover:bg-red-700 dark:text-red-300"
               title="Logout"
             >
               <LogOut className="h-5 w-5" />

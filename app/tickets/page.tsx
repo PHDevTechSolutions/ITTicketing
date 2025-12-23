@@ -620,95 +620,87 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-xs">
-              <Button onClick={handleDownloadExcel}>
-  Download
-</Button>
+<div className="flex flex-wrap items-center gap-2 md:gap-3 text-[11px] md:text-xs">
+  {/* Download Button */}
+  <Button className="h-8 md:h-10 px-3 md:px-4 text-[11px] md:text-xs" onClick={handleDownloadExcel}>
+    Download
+  </Button>
 
+  {/* Search */}
+  <div className="relative w-[160px] md:w-50">
+    <Input
+      type="search"
+      placeholder="Search Employee"
+      className="h-8 md:h-10 pr-8 md:pr-10 text-[11px] md:text-xs rounded-lg bg-white border-gray-300
+                 focus-visible:ring-2 focus-visible:ring-gray-500"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+    />
+    <Search className="h-3 w-3 md:h-4 md:w-4 absolute right-2 md:right-3 top-1/2 -translate-y-1/2 text-gray-400" />
+  </div>
 
+  {/* Department Filter */}
+  <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+    <SelectTrigger className="w-[120px] md:w-[140px] h-8 md:h-10 text-[11px] md:text-xs bg-white border-gray-300">
+      <SelectValue placeholder="Department" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="all">All Departments</SelectItem>
+      <Separator />
+      <SelectItem value="Sales Department">Sales</SelectItem>
+      <SelectItem value="IT Department">IT</SelectItem>
+      <SelectItem value="HR Department">HR</SelectItem>
+      <SelectItem value="Accounting Department">Accounting</SelectItem>
+      <SelectItem value="Procurement Department">Procurement</SelectItem>
+      <SelectItem value="Marketing Department">Marketing</SelectItem>
+      <SelectItem value="Ecommerce Department">Ecommerce</SelectItem>
+      <SelectItem value="CSR Department">CSR</SelectItem>
+      <SelectItem value="Admin Department">Admin</SelectItem>
+      <SelectItem value="Warehouse Department">Warehouse</SelectItem>
+      <SelectItem value="Logistic Department">Logistic</SelectItem>
+      <SelectItem value="Engineering Department">Engineering</SelectItem>
+    </SelectContent>
+  </Select>
 
-              <div className="relative w-50">
-                <Input
-                  type="search"
-                  placeholder="Search Employee name"
-                  className=" h-10 pr-10 text-xs rounded-lg bg-white border-gray-300 focus-visible:ring-2 focus-visible:ring-gray-500"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              </div>
+  {/* Status / Priority */}
+  <Select value={filterBy} onValueChange={setFilterBy}>
+    <SelectTrigger className="w-[70px] md:w-[80px] h-8 md:h-10 text-[11px] md:text-xs bg-white border-gray-300">
+      <SelectValue placeholder="Filter" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="all">All</SelectItem>
+      <Separator />
+      <SelectItem value="status-pending">Pending</SelectItem>
+      <SelectItem value="status-ongoing">Ongoing</SelectItem>
+      <SelectItem value="status-finished">Finished</SelectItem>
+      <Separator />
+      <SelectItem value="priority-critical">Critical</SelectItem>
+      <SelectItem value="priority-high">High</SelectItem>
+      <SelectItem value="priority-medium">Medium</SelectItem>
+      <SelectItem value="priority-low">Low</SelectItem>
+    </SelectContent>
+  </Select>
 
-              {/* NEW DEPARTMENT FILTER */}
-              <Select
-                value={departmentFilter}
-                onValueChange={setDepartmentFilter}
-              >
-                <SelectTrigger className="w-[140px] h-10 text-xs bg-white border-gray-300 focus:ring-gray-500">
-                  <SelectValue placeholder="Department" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Departments</SelectItem>
-                  <Separator />
-                  <SelectItem value="Sales Department">Sales Department</SelectItem>
-                  <SelectItem value="IT Department">IT Department</SelectItem>
-                  <SelectItem value="HR Department">HR Department</SelectItem>
-                  <SelectItem value="Accounting Department">Accounting Department</SelectItem>
-                  <SelectItem value="Procurement Department">Procurement Department</SelectItem>
-                  <SelectItem value="Marketing Department">Marketing Department</SelectItem>
-                  <SelectItem value="Ecommerce Department">Ecommerce Department</SelectItem>
-                  <SelectItem value="CSR Department">CSR Department</SelectItem>
-                  <SelectItem value="Admin Department">Admin Department</SelectItem>
-                  <SelectItem value="Warehouse Department">Warehouse Department</SelectItem>
-                  <SelectItem value="Logistic Department">Logistic Department</SelectItem>
-                  <SelectItem value="Engineering Department">Engineering Department</SelectItem>
-                </SelectContent>
-              </Select>
-              {/* END NEW DEPARTMENT FILTER */}
+  {/* Items Per Page */}
+  <Select
+    value={String(itemsPerPage)}
+    onValueChange={(value) => setItemsPerPage(Number(value))}
+  >
+    <SelectTrigger className="w-[55px] md:w-[60px] h-8 md:h-10 text-[11px] md:text-xs">
+      <SelectValue placeholder="Items" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="8">8</SelectItem>
+      <SelectItem value="25">25</SelectItem>
+      <SelectItem value="50">50</SelectItem>
+      <Separator />
+      <SelectItem value="100">100</SelectItem>
+      <SelectItem value="500">500</SelectItem>
+      <SelectItem value="1000">1000</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
 
-              {/* EXISTING STATUS/PRIORITY FILTER */}
-              <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[80px] text-xs h-10 bg-white border-gray-300 focus:ring-gray-500">
-                  <SelectValue placeholder="Filter by Status/Priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <Separator />
-                  <SelectItem value="status-pending">Status: Pending</SelectItem>
-                  <SelectItem value="status-ongoing">Status: Ongoing</SelectItem>
-                  <SelectItem value="status-finished">
-                    Status: Finished
-                  </SelectItem>
-                  <Separator />
-                  <SelectItem value="priority-critical">
-                    Priority: Critical
-                  </SelectItem>
-                  <SelectItem value="priority-high">Priority: High</SelectItem>
-                  <SelectItem value="priority-medium">
-                    Priority: Medium
-                  </SelectItem>
-                  <SelectItem value="priority-low">Priority: Low</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select
-                value={String(itemsPerPage)}
-                onValueChange={(value) => setItemsPerPage(Number(value))}
-              >
-                <SelectTrigger className="w-[60px] h-10">
-                  <SelectValue placeholder="Items" />
-                </SelectTrigger>
-
-                <SelectContent>
-                  <SelectItem value="8">8</SelectItem>
-                  <SelectItem value="25">25</SelectItem>
-                  <SelectItem value="50">50</SelectItem>
-                  <Separator />
-                  <SelectItem value="100">100</SelectItem>
-                  <SelectItem value="500">500</SelectItem>
-                  <SelectItem value="1000">1000</SelectItem>
-                </SelectContent>
-              </Select>
-
-            </div>
           </div>
 
           {/* LIST OR GRID (Unchanged) */}
@@ -719,60 +711,64 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
           ) : isRowView ? (
             /* ------------ LIST VIEW ------------- */
             <div className="bg-white border rounded-lg overflow-x-auto">
-              <table className="min-w-full text-xs">
-                <thead className="bg-gray-700 text-white sticky top-0">
-                  <tr>
-                    <th className="p-3 text-left">Employee</th>
-                    <th className="p-3 text-left">Department</th>
-                    <th className="p-3 text-left">Date Scheduled</th>
-                    <th className="p-3 text-left">Site</th>
-                    <th className="p-3 text-left">Remarks</th>
-                    <th className="p-3 text-left">Priority</th>
-                    <th className="p-3 text-left">Update Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {concernsForPage.map((c) => (
-                    <tr
-                      key={c.id}
-                      onClick={() => openDialog(c)}
-                      className={`${getPriorityBg(
-                        c.priority
-                      )} cursor-pointer transition-colors border-b last:border-b-0`}
-                    >
-                      <td className="p-3">{c.Fullname}</td>
-                      <td className="p-3">{c.department}</td>
-                      <td className="p-3">
-                        {c.dateSched}
-                      </td>
-                      <td className="p-3">{c.site}</td>
-                      <td className="p-3 truncate max-w-xs">{c.remarks}</td>
-                      <td className="p-3 text-center">{c.priority}</td>
-                      <td className="p-3 text-center">
-                        <span
-                          className={`px-3 py-1 rounded text-xs font-bold ${getStatusBadgeColors(
-                            c.status
-                          )}`}
-                        >
-                          {c.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+  <table className="min-w-full text-[11px] md:text-xs">
+    <thead className="bg-gray-700 text-white sticky top-0">
+      <tr>
+        <th className="p-2 md:p-3 text-left whitespace-nowrap">Employee</th>
+        <th className="p-2 md:p-3 text-left whitespace-nowrap">Department</th>
+        <th className="p-2 md:p-3 text-left whitespace-nowrap">Date</th>
+        <th className="p-2 md:p-3 text-left whitespace-nowrap">Site</th>
+        <th className="p-2 md:p-3 text-left whitespace-nowrap">Remarks</th>
+        <th className="p-2 md:p-3 text-left whitespace-nowrap">Priority</th>
+        <th className="p-2 md:p-3 text-left whitespace-nowrap">Status</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {concernsForPage.map((c) => (
+        <tr
+          key={c.id}
+          onClick={() => openDialog(c)}
+          className={`${getPriorityBg(
+            c.priority
+          )} cursor-pointer transition-colors border-b last:border-b-0`}
+        >
+          <td className="p-2 md:p-3 whitespace-nowrap">{c.Fullname}</td>
+          <td className="p-2 md:p-3 whitespace-nowrap">{c.department}</td>
+          <td className="p-2 md:p-3 whitespace-nowrap">{c.dateSched}</td>
+          <td className="p-2 md:p-3 whitespace-nowrap">{c.site}</td>
+          <td className="p-2 md:p-3 truncate max-w-[120px] md:max-w-xs">
+            {c.remarks}
+          </td>
+          <td className="p-2 md:p-3 text-center whitespace-nowrap">
+            {c.priority}
+          </td>
+          <td className="p-2 md:p-3 text-center whitespace-nowrap">
+            <span
+              className={`px-2 md:px-3 py-0.5 md:py-1 rounded text-[10px] md:text-xs font-bold ${getStatusBadgeColors(
+                c.status
+              )}`}
+            >
+              {c.status}
+            </span>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
           ) : (
             /* ------------ GRID VIEW ------------- */
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {concernsForPage.map((concern) => (
-                <ConcernCard
-                  key={concern.id}
-                  concern={concern}
-                  onClick={openDialog}
-                />
-              ))}
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
+  {concernsForPage.map((concern) => (
+    <ConcernCard
+      key={concern.id}
+      concern={concern}
+      onClick={openDialog}
+    />
+  ))}
+</div>
           )}
 
           {/* PAGINATION */}
@@ -835,137 +831,123 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
             </div>
           )}
 
-          <Dialog
-            open={!!selectedConcern}
-            onOpenChange={(open) => {
-              if (!open) {
-                setSelectedConcern(null);
-                setIsDeleteConfirmOpen(false);
-              }
-            }}
-          >
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Ticket #{selectedConcern?.id}</DialogTitle>
-              </DialogHeader>
+        <Dialog
+  open={!!selectedConcern}
+  onOpenChange={(open) => {
+    if (!open) {
+      setSelectedConcern(null);
+      setIsDeleteConfirmOpen(false);
+    }
+  }}
+>
+  <DialogContent className="w-full sm:max-w-[400px] md:max-w-[500px] max-h-[90vh] overflow-y-auto">
+    <DialogHeader>
+      <DialogTitle>Ticket #{selectedConcern?.id}</DialogTitle>
+    </DialogHeader>
 
-              {selectedConcern && (
-                <div className="space-y-3 py-2 text-sm">
-                  <p>
-                    <strong>Employee:</strong> {selectedConcern.Fullname}
-                  </p>{" "}
-                  {/* Changed from Fullname to employeeName as that's used in the card/table, but Fullname is still available from the interface */}
-                  <p>
-                    <strong>Department:</strong> {selectedConcern.department}
-                  </p>
-                  <p>
-                    <strong>Date Scheduled:</strong>{" "}
-                    {selectedConcern.dateSched
-                      ? new Date(selectedConcern.dateSched).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "2-digit",
-                      })
-                      : "N/A"}
-                  </p>
+    {selectedConcern && (
+      <div className="space-y-3 py-2 text-[11px] sm:text-sm md:text-sm">
+        <p>
+          <strong>Employee:</strong> {selectedConcern.Fullname}
+        </p>
+        <p>
+          <strong>Department:</strong> {selectedConcern.department}
+        </p>
+        <p>
+          <strong>Date Scheduled:</strong>{" "}
+          {selectedConcern.dateSched
+            ? new Date(selectedConcern.dateSched).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "2-digit",
+              })
+            : "N/A"}
+        </p>
+        <p>
+          <strong>Type:</strong> {selectedConcern.type}
+        </p>
+        <p>
+          <strong>Request Type:</strong> {selectedConcern.requesttype}
+        </p>
+        <p>
+          <strong>Mode:</strong> {selectedConcern.mode}
+        </p>
+        <p>
+          <strong>Site:</strong> {selectedConcern.site}
+        </p>
+        <p>
+          <strong>Group:</strong> {selectedConcern.group}
+        </p>
+        <p>
+          <strong>Technician:</strong> {selectedConcern.technicianname}
+        </p>
+        <p>
+          <strong>Processed By:</strong> {selectedConcern.processedBy}
+        </p>
+        <p>
+          <strong>Priority:</strong> {selectedConcern.priority}
+        </p>
+        <p>
+          <strong>Date Created:</strong>{" "}
+          {selectedConcern.createdAt
+            ? new Date(selectedConcern.createdAt).toLocaleString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "2-digit",
+                hour: "numeric",
+                minute: "2-digit",
+                hour12: true,
+              })
+            : "N/A"}
+        </p>
 
-                  {/* ADDED: dateSched (from interface) */}
-                  <p>
-                    <strong>Type:</strong> {selectedConcern.type}
-                  </p>
-                  <p>
-                    <strong>Request Type:</strong> {selectedConcern.requesttype}
-                  </p>{" "}
-                  {/* ADDED: requesttype (from interface) */}
-                  <p>
-                    <strong>Mode:</strong> {selectedConcern.mode}
-                  </p>{" "}
+        <div>
+          <strong className="block mb-1">Remarks:</strong>
+          <div className="p-2 sm:p-3 bg-gray-50 border rounded-md italic whitespace-pre-wrap text-[11px] sm:text-sm">
+            {selectedConcern.remarks}
+          </div>
+        </div>
 
-                  {/* ADDED: mode (from interface) */}
-                  <p>
-                    <strong>Site:</strong> {selectedConcern.site}
-                  </p>{" "}
-                  {/* ADDED: site (from interface) */}
-                  <p>
-                    <strong>Group:</strong> {selectedConcern.group}
-                  </p>{" "}
-                  {/* ADDED: group (from interface) */}
-                  <p>
-                    <strong>Technician:</strong> {selectedConcern.technicianname}
-                  </p>{" "}
-                  {/* ADDED: technicianname (from interface) */}
-                  <p>
-                    <strong>Processed By:</strong> {selectedConcern.processedBy}
-                  </p>{" "}
-                  {/* ADDED: processedBy (from interface) */}
-                  <p>
-                    <strong>Priority:</strong> {selectedConcern.priority}
-                  </p>
-                  <p>
-                    <strong>Date Created:</strong>{" "}
-                    {selectedConcern.createdAt
-                      ? new Date(selectedConcern.createdAt).toLocaleString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "2-digit",
-                        hour: "numeric",
-                        minute: "2-digit",
-                        hour12: true,
-                      })
-                      : "N/A"}
-                  </p>
+        <Label htmlFor="ticket-status" className="block pt-2 text-[11px] sm:text-sm">
+          Update Status
+        </Label>
+        <Select
+          value={status}
+          onValueChange={(v: ITConcern["status"]) => setStatus(v)}
+        >
+          <SelectTrigger id="ticket-status" className="text-[11px] sm:text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="text-[11px] sm:text-sm">
+            <SelectItem value="Pending">Pending</SelectItem>
+            <SelectItem value="Ongoing">Ongoing</SelectItem>
+            <SelectItem value="Finished">Finished</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    )}
+
+    <DialogFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mt-4">
 
 
-
-                  <div>
-                    <strong className="block mb-1">Remarks:</strong>
-                    <div className="p-3 bg-gray-50 border rounded-md italic whitespace-pre-wrap">
-                      {selectedConcern.remarks}
-                    </div>
-                  </div>
-
-                  <Label htmlFor="ticket-status" className="block pt-2">
-                    Update Status
-                  </Label>
-                  <Select
-                    value={status}
-                    onValueChange={(v: ITConcern["status"]) => setStatus(v)} // Fixed: Using ITConcern["status"] for clarity, though IncomingTicketData["status"] is also correct.
-                  >
-                    <SelectTrigger id="ticket-status">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Pending">Pending</SelectItem>
-                      <SelectItem value="Ongoing">Ongoing</SelectItem>
-                      <SelectItem value="Finished">Finished</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <DialogFooter className="flex justify-between items-center">
-                <Button
-                  variant="destructive"
-                  onClick={() => setIsDeleteConfirmOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Trash2 className="h-4 w-4" /> Delete Ticket
-                </Button>
-
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleUpdate}
-                    disabled={selectedConcern?.status === status}
-                  >
-                    Update Status
-                  </Button>
-                  <DialogClose asChild>
-                    <Button variant="outline">Close</Button>
-                  </DialogClose>
-                </div>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+      <div className="flex gap-2 w-full text-sx sm:w-auto">
+              <Button
+        variant="destructive"
+        onClick={() => setIsDeleteConfirmOpen(true)}
+        className="flex items-center gap-2  sm:w-auto"
+      >
+        <Trash2 className="h-4 w-4" />
+      </Button>
+        <Button onClick={handleUpdate} disabled={selectedConcern?.status === status}>
+          Update Status
+        </Button>
+        <DialogClose asChild>
+          <Button variant="outline">Close</Button>
+        </DialogClose>
+      </div>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 
           {/* 🗑️ DELETE CONFIRMATION DIALOG (Unchanged) */}
           <Dialog

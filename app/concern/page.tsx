@@ -336,63 +336,76 @@ export default function Page() {
     // --- LIST (ROW) VIEW ---
     if (isRowView) {
       return (
-        <div className="w-full bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden transition-all duration-500">
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-xs">
-              <thead className="bg-gray-700 text-white font-semibold">
-                <tr>
-                  <th className="p-3">Employee</th>
-                  <th className="p-3">Department</th>
-                  <th className="p-3">Type</th>
-                  <th className="p-3">Remarks</th>
-                  <th className="p-3">Date</th>
-                  <th className="p-3">Priority</th>
-                  <th className="p-3 text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentItems.map((c) => (
-                  <tr
-                    key={c.id}
-                    // Pass isRowView=true to get the lighter row background
-                    className={`border-b cursor-pointer ${getRowBg(
-                      c.priority,
-                      true
-                    )}`}
-                    onClick={() => openDialog(c)}
-                  >
-                    <td className="p-3 font-medium">{c.Fullname}</td>
-                    <td className="p-3 text-gray-600">{c.department}</td>
-                    <td className="p-3">{c.type}</td>
-                    <td className="p-3 italic text-gray-500 truncate max-w-[250px]">
-                      {c.remarks}
-                    </td>
-                    <td className="p-3">
-                      {new Date(c.createdAt).toLocaleString("en-US", {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true,
-                      })}
-                    </td>
-                    <td className="p-3 font-semibold">{c.priority}</td>
-                    <td className="p-3 text-center">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusBadgeColors(
-                          c.status
-                        )}`}
-                      >
-                        {c.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <div className="w-full bg-white shadow-xl rounded-lg border border-gray-200 
+                overflow-hidden transition-all duration-500">
+  <div className="overflow-x-auto">
+    <table className="min-w-full text-left text-[11px] md:text-xs">
+      <thead className="bg-gray-700 text-white font-semibold">
+        <tr>
+          <th className="p-2 md:p-3 whitespace-nowrap">Employee</th>
+          <th className="p-2 md:p-3 whitespace-nowrap">Department</th>
+          <th className="p-2 md:p-3 whitespace-nowrap">Type</th>
+          <th className="p-2 md:p-3 whitespace-nowrap">Remarks</th>
+          <th className="p-2 md:p-3 whitespace-nowrap">Date</th>
+          <th className="p-2 md:p-3 whitespace-nowrap">Priority</th>
+          <th className="p-2 md:p-3 text-center whitespace-nowrap">Status</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {currentItems.map((c) => (
+          <tr
+            key={c.id}
+            className={`border-b cursor-pointer ${getRowBg(
+              c.priority,
+              true
+            )}`}
+            onClick={() => openDialog(c)}
+          >
+            <td className="p-2 md:p-3 font-medium whitespace-nowrap">
+              {c.Fullname}
+            </td>
+            <td className="p-2 md:p-3 text-gray-600 whitespace-nowrap">
+              {c.department}
+            </td>
+            <td className="p-2 md:p-3 whitespace-nowrap">{c.type}</td>
+
+            <td className="p-2 md:p-3 italic text-gray-500 
+                           truncate max-w-[140px] md:max-w-[250px]">
+              {c.remarks}
+            </td>
+
+            <td className="p-2 md:p-3 whitespace-nowrap">
+              {new Date(c.createdAt).toLocaleString("en-US", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              })}
+            </td>
+
+            <td className="p-2 md:p-3 font-semibold whitespace-nowrap">
+              {c.priority}
+            </td>
+
+            <td className="p-2 md:p-3 text-center whitespace-nowrap">
+              <span
+                className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full 
+                            text-[10px] md:text-xs font-bold uppercase 
+                            ${getStatusBadgeColors(c.status)}`}
+              >
+                {c.status}
+              </span>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</div>
+
       )
     }
 
@@ -502,28 +515,34 @@ export default function Page() {
 
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+<div className="flex flex-wrap items-center gap-2 md:gap-3">
+  {/* Search */}
+  <div className="relative w-[160px] md:w-55">
+    <Input
+      type="search"
+      placeholder="Search Department"
+      className="pl-3 md:pl-4 h-8 md:h-9 pr-8 md:pr-10 rounded-lg bg-white 
+                 text-[11px] md:text-xs border-gray-300"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+    />
+    <Search className="h-3 w-3 md:h-4 md:w-4 absolute right-2 md:right-3 
+                       top-1/2 -translate-y-1/2 text-gray-400" />
+  </div>
 
-              <div className="relative w-55">
-                <Input
-                  type="search"
-                  placeholder="Search Department"
-                  className="pl-4 h-9 pr-10 rounded-lg bg-white text-xs border-gray-300"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              </div>
-              <Select value={filterBy} onValueChange={setFilterBy}>
-                <SelectTrigger className="w-[120px] h-10 text-xs bg-white border-gray-300">
-                  <SelectValue placeholder="Filter by" />
-                </SelectTrigger>
-                <SelectContent className="text-xs">
-                  <SelectItem value="all">All Fields</SelectItem>
-                  <SelectItem value="department">Department</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+  {/* Filter */}
+  <Select value={filterBy} onValueChange={setFilterBy}>
+    <SelectTrigger className="w-[100px] md:w-[120px] h-8 md:h-10 
+                              text-[11px] md:text-xs bg-white border-gray-300">
+      <SelectValue placeholder="Filter by" />
+    </SelectTrigger>
+    <SelectContent className="text-[11px] md:text-xs">
+      <SelectItem value="all">All Fields</SelectItem>
+      <SelectItem value="department">Department</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
+
           </div>
 
           {/* LIST or GRID (Calling the renderContent function) */}

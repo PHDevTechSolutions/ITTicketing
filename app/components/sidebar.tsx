@@ -127,9 +127,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     year: "numeric",
     month: "short",
     day: "2-digit",
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true, // AM / PM
   });
 
   const fetchProfile = () => {
@@ -310,7 +307,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                       </p>
                       <div className="flex justify-between text-xs text-gray-400 mt-1">
                         <span>Ticket #{notif.ticketNumber}</span>
-                        <span>{formatDate(notif.date)}</span>
+                        <span>{notif.date}</span>
                       </div>
                       <span
                         className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium ${
@@ -396,7 +393,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                     <p className="font-medium text-gray-800">{formatDate(currentUser.createdAt)}</p>
                   </div>
                   <div>
-                    <Label className="text-gray-500">New Password:</Label>
+                    <Label className="text-gray-500 mb-1">New Password:</Label>
                     <input
                       type="password"
                       value={newPassword}
@@ -410,12 +407,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
             </div>
 
             <DialogFooter className="flex justify-center gap-2">
-              <Button variant="outline" onClick={handlePasswordUpdate}>
-                Update Password
-              </Button>
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
               </DialogClose>
+                            <Button variant="outline" onClick={handlePasswordUpdate}>
+                Update Password
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
