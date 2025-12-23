@@ -170,6 +170,7 @@ export default function Page() {
       router.push("/dsi-login"); // Redirect kung walang login
     }
   }, []);
+  
   const [readInbox, setReadInbox] = React.useState<string[]>([]);
   const [currentPage, setCurrentPage] = React.useState<PageType>("openTickets");
   const [concerns, setConcerns] = React.useState<ConcernItem[]>([]);
@@ -706,74 +707,101 @@ setNewConcern((prev) => ({
 
         <div className="flex flex-1 flex-col gap-4 p-4">
           {currentPage === "home" && (
-            <div className="max-w-4xl mx-auto space-y-6">
+          <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 px-2 sm:px-0">
 
-              {/* Welcome Header */}
-              <div className="rounded-xl bg-background dark:bg-background-dark p-6 shadow-lg border border-border dark:border-border-dark">
-                <h1 className="text-2xl font-bold text-foreground dark:text-foreground-dark">Welcome!</h1>
-                <p className="text-muted-foreground dark:text-muted-foreground-dark text-sm mt-1">
-                  Submit new concerns and easily track the status of your previous requests.
-                </p>
-              </div>
+  {/* Welcome Header */}
+  <div className="rounded-xl bg-background p-4 sm:p-6 shadow-lg border">
+    <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+      Welcome!
+    </h1>
+    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+      Submit new concerns and easily track the status of your previous requests.
+    </p>
+  </div>
 
-              {/* Main CTA - Create Concern */}
-              <div className="rounded-xl bg-primary/10 dark:bg-primary/20 border border-primary/20 p-6 shadow-md">
-                <h2 className="text-lg font-semibold text-primary dark:text-primary-dark">Need assistance?</h2>
-                <p className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-1">
-                  Create a new concern and our team will assist you shortly.
-                </p>
+  {/* Main CTA - Create Concern */}
+  <div className="rounded-xl bg-primary/10 border border-primary/20 p-4 sm:p-6 shadow-md">
+    <h2 className="text-base sm:text-lg font-semibold text-primary">
+      Need assistance?
+    </h2>
+    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+      Create a new concern and our team will assist you shortly.
+    </p>
 
-                <Button
-                  className="mt-4"
-                  onClick={() => handlePageChange("createConcern")}
-                >
-                  <Send className="size-5 mr-2" />
-                  Create New Concern
-                </Button>
-              </div>
+    <Button
+      className="mt-3 sm:mt-4 h-9 sm:h-10 text-xs sm:text-sm"
+      onClick={() => handlePageChange("createConcern")}
+    >
+      <Send className="size-4 sm:size-5 mr-2" />
+      Create New Concern
+    </Button>
+  </div>
 
-              {/* Recent Concerns */}
-              <div className="rounded-xl bg-background dark:bg-background-dark p-6 shadow-lg border border-border dark:border-border-dark">
-                <h2 className="text-lg font-semibold text-foreground dark:text-foreground-dark">My Recent Concerns</h2>
-                <p className="text-sm text-muted-foreground dark:text-muted-foreground-dark mt-1">Here are your latest submissions:</p>
+  {/* Recent Concerns */}
+  <div className="rounded-xl bg-background p-4 sm:p-6 shadow-lg border">
+    <h2 className="text-base sm:text-lg font-semibold text-foreground">
+      My Recent Concerns
+    </h2>
+    <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+      Here are your latest submissions:
+    </p>
 
-                <div className="mt-4 space-y-3">
-                  <div className="p-4 border rounded-lg bg-muted dark:bg-muted-dark">
-                    <p className="font-medium text-foreground dark:text-foreground-dark">No recent concerns found.</p>
-                    <p className="text-xs text-muted-foreground dark:text-muted-foreground-dark">Your submitted concerns will appear here.</p>
-                  </div>
-                </div>
-              </div>
+    <div className="mt-3 sm:mt-4 space-y-2 sm:space-y-3">
+      <div className="p-3 sm:p-4 border rounded-lg bg-muted">
+        <p className="text-sm sm:text-base font-medium text-foreground">
+          No recent concerns found.
+        </p>
+        <p className="text-[11px] sm:text-xs text-muted-foreground">
+          Your submitted concerns will appear here.
+        </p>
+      </div>
+    </div>
+  </div>
 
-              {/* Quick Links */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <button
-                  onClick={() => handlePageChange("openTickets")}
-                  className="p-4 bg-background dark:bg-background-dark border rounded-xl shadow hover:bg-accent hover:text-accent-foreground text-left"
-                >
-                  <p className="font-semibold text-foreground dark:text-foreground-dark">Track My Concerns</p>
-                  <p className="text-xs text-muted-foreground dark:text-muted-foreground-dark">View all your submitted tickets</p>
-                </button>
+  {/* Quick Links */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+    <button
+      onClick={() => handlePageChange("openTickets")}
+      className="p-3 sm:p-4 bg-background border rounded-xl shadow 
+                 hover:bg-accent hover:text-accent-foreground text-left transition"
+    >
+      <p className="text-sm sm:text-base font-semibold text-foreground">
+        Track My Concerns
+      </p>
+      <p className="text-[11px] sm:text-xs text-muted-foreground">
+        View all your submitted tickets
+      </p>
+    </button>
 
-                <button
-                  onClick={() => handlePageChange("inbox")}
-                  className="p-4 bg-background dark:bg-background-dark border rounded-xl shadow hover:bg-accent hover:text-accent-foreground text-left"
-                >
-                  <p className="font-semibold text-foreground dark:text-foreground-dark">Inbox</p>
-                  <p className="text-xs text-muted-foreground dark:text-muted-foreground-dark">Receive updates and messages</p>
-                </button>
+    <button
+      onClick={() => handlePageChange("inbox")}
+      className="p-3 sm:p-4 bg-background border rounded-xl shadow 
+                 hover:bg-accent hover:text-accent-foreground text-left transition"
+    >
+      <p className="text-sm sm:text-base font-semibold text-foreground">
+        Inbox
+      </p>
+      <p className="text-[11px] sm:text-xs text-muted-foreground">
+        Receive updates and messages
+      </p>
+    </button>
 
-                <button
-                  onClick={() => handlePageChange("pendingConcerns")}
-                  className="p-4 bg-background dark:bg-background-dark border rounded-xl shadow hover:bg-accent hover:text-accent-foreground text-left"
-                >
-                  <p className="font-semibold text-foreground dark:text-foreground-dark">Pending Concerns</p>
-                  <p className="text-xs text-muted-foreground dark:text-muted-foreground-dark">Check concerns that are still in progress</p>
-                </button>
+    <button
+      onClick={() => handlePageChange("pendingConcerns")}
+      className="p-3 sm:p-4 bg-background border rounded-xl shadow 
+                 hover:bg-accent hover:text-accent-foreground text-left transition sm:col-span-2"
+    >
+      <p className="text-sm sm:text-base font-semibold text-foreground">
+        Pending Concerns
+      </p>
+      <p className="text-[11px] sm:text-xs text-muted-foreground">
+        Check concerns that are still in progress
+      </p>
+    </button>
+  </div>
 
-              </div>
+</div>
 
-            </div>
           )}
           {currentPage === "createConcern" && (
             <div className="max-w-5xl mx-auto p-6 bg-card text-card-foreground rounded-xl shadow-2xl border border-border">
@@ -957,8 +985,8 @@ setNewConcern((prev) => ({
                 </div>
                 {/* Remarks */}
                 <div className="flex flex-col space-y-1.5">
-                  <Label className={validationErrors.remarks ? "text-red-600 dark:text-red-400" : ""}>Remarks *</Label>
-                  <Textarea
+                  <Label className={validationErrors.remarks ? "text-red-600 dark:text-red-400 " : ""}>Remarks *</Label>
+                  <Textarea 
                     placeholder="Enter remarks..."
                     value={newConcern.remarks}
                     className={getErrorClass("remarks")}
@@ -991,37 +1019,59 @@ setNewConcern((prev) => ({
                   notifications.map((notif) => {
                     const notifDate = new Date(notif.date);
                     return (
-                      <div
-                        key={notif.ticketNumber}
-                        className="flex items-start gap-3 p-4 cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleNotificationClick(notif)}
-                      >
-                        <div
-                          className={`w-3 h-3 rounded-full mt-1 ${notif.action === "created"
-                              ? "bg-green-500"
-                              : notif.action === "updated"
-                                ? "bg-blue-500"
-                                : "bg-purple-500"
-                            }`}
-                        ></div>
+                     <div
+  key={notif.ticketNumber}
+  className="flex items-start gap-2 md:gap-3 
+             p-2.5 md:p-4 
+             cursor-pointer 
+             hover:bg-muted/50 
+             transition"
+  onClick={() => handleNotificationClick(notif)}
+>
+  {/* Status Dot */}
+  <div
+    className={`w-2.5 h-2.5 md:w-3 md:h-3 
+                rounded-full mt-1 shrink-0 ${
+      notif.action === "created"
+        ? "bg-green-500"
+        : notif.action === "updated"
+        ? "bg-blue-500"
+        : "bg-purple-500"
+    }`}
+  />
 
-                        <div className="flex-1">
-                          <div className="font-semibold text-foreground">
-                            Ticket Update
-                          </div>
+  {/* Content */}
+  <div className="flex-1 min-w-0">
+    <div className="font-semibold text-[13px] md:text-sm text-foreground">
+      Ticket Update
+    </div>
 
-                          <div className="text-sm text-muted-foreground mt-0.5">
-                            Ticket <span className="font-medium text-foreground">#{notif.ticketNumber} </span>
-                            has been  <span className="font-medium">{notif.message} </span>
-                            by <span className="font-medium">{notif.actor} </span>.
-                          </div>
+    <div
+      className="text-[11px] md:text-sm 
+                 text-muted-foreground 
+                 mt-0.5 
+                 leading-snug 
+                 truncate"
+    >
+      Ticket{" "}
+      <span className="font-medium text-foreground">
+        #{notif.ticketNumber}
+      </span>{" "}
+      has been{" "}
+      <span className="font-medium">
+        {notif.message}
+      </span>{" "}
+      by{" "}
+      <span className="font-medium">
+        {notif.actor}
+      </span>.
+    </div>
 
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {notifDate.toLocaleString()}
-                          </div>
-                        </div>
-
-                      </div>
+    <div className="text-[10px] md:text-xs text-muted-foreground mt-1 whitespace-nowrap">
+      {notifDate.toLocaleString()}
+    </div>
+  </div>
+</div>
                     );
                   })
                 )}
@@ -1089,68 +1139,88 @@ setNewConcern((prev) => ({
                 </details>
               </div>
 <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
-  <table className="w-full text-xs  text-foreground text-center table-fixed">
+  <table className="w-full text-[11px] md:text-xs text-foreground text-center table-fixed">
     <thead className="bg-gray-100 dark:bg-gray-800">
-      <tr className="h-12">
-        <th className="px-4 py-3 font-semibold w-[30%]">Date Created</th>
-        <th className="px-4 py-3 font-semibold w-[30%]">Concern</th>
-        <th className="px-4 py-3 font-semibold w-[45%]">Remarks</th>
-        <th className="px-4 py-3 font-semibold w-[25%]">Read Status</th>
+      <tr className="h-9 md:h-12">
+        <th className="px-2 md:px-4 py-2 md:py-3 font-semibold w-[28%] whitespace-nowrap">
+          Date Created
+        </th>
+        <th className="px-2 md:px-4 py-2 md:py-3 font-semibold w-[22%] whitespace-nowrap">
+          Concern
+        </th>
+        <th className="px-2 md:px-4 py-2 md:py-3 font-semibold w-[35%]">
+          Remarks
+        </th>
+        <th className="px-2 md:px-4 py-2 md:py-3 font-semibold w-[15%] whitespace-nowrap">
+          Read Status
+        </th>
       </tr>
     </thead>
 
     <tbody className="text-center">
-  {(filteredConcerns.slice(
-    (currentPageNumber - 1) * itemsPerPage,
-    currentPageNumber * itemsPerPage
-  )).map((item, index) => (
-    <tr
-      key={
-        item.ConcernNumber ?? (item.createdAt ? item.createdAt.toString() : `temp-${index}`)
-      }
-      className="border-t border-border h-12 hover:bg-accent/60 hover:text-accent-foreground cursor-pointer transition"
-      onClick={() =>
-        item.ConcernNumber && handleOpenConcern(item.ConcernNumber)
-      }
-    >
-      <td className="px-4 py-2 font-normal text-foreground">
-        {item.createdAt
-          ? new Date(item.createdAt).toLocaleString("en-US", {
-              month: "short",
-              day: "2-digit",
-              year: "numeric",
-              hour: "numeric",
-              minute: "2-digit",
-              hour12: true,
-            })
-          : "No Date"}
-      </td>
+      {filteredConcerns
+        .slice(
+          (currentPageNumber - 1) * itemsPerPage,
+          currentPageNumber * itemsPerPage
+        )
+        .map((item, index) => (
+          <tr
+            key={
+              item.ConcernNumber ??
+              (item.createdAt
+                ? item.createdAt.toString()
+                : `temp-${index}`)
+            }
+            className="border-t border-border h-9 md:h-12 
+                       hover:bg-accent/60 hover:text-accent-foreground 
+                       cursor-pointer transition"
+            onClick={() =>
+              item.ConcernNumber && handleOpenConcern(item.ConcernNumber)
+            }
+          >
+            <td className="px-2 md:px-4 py-1 md:py-2 whitespace-nowrap">
+              {item.createdAt
+                ? new Date(item.createdAt).toLocaleString("en-US", {
+                    month: "short",
+                    day: "2-digit",
+                    year: "numeric",
+                    hour: "numeric",
+                    minute: "2-digit",
+                    hour12: true,
+                  })
+                : "No Date"}
+            </td>
 
-      <td className="px-4 py-2 font-normal text-foreground">
-        {item.type || "No type"}
-      </td>
+            <td className="px-2 md:px-4 py-1 md:py-2 whitespace-nowrap">
+              {item.type || "No type"}
+            </td>
 
-      <td className="px-4 py-2 font-normal text-foreground truncate whitespace-nowrap overflow-hidden">
-        {item.remarks || "No remarks"}
-      </td>
+            <td
+              className="px-2 md:px-4 py-1 md:py-2 
+                         truncate whitespace-nowrap overflow-hidden"
+            >
+              {item.remarks || "No remarks"}
+            </td>
 
-      <td className="px-4 py-2 font-normal">
-        <span
-          className={`px-2 py-1 text-xs rounded-full font-semibold ${
-            item.readstatus?.toLowerCase() === "read"
-              ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
-              : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
-          }`}
-        >
-          {item.readstatus || "No Read Status"}
-        </span>
-      </td>
-    </tr>
-  ))}
-</tbody>
-
+            <td className="px-2 md:px-4 py-1 md:py-2">
+              <span
+                className={`inline-block px-2 py-0.5 md:py-1 
+                            text-[10px] md:text-xs 
+                            rounded-full font-semibold whitespace-nowrap ${
+                  item.readstatus?.toLowerCase() === "read"
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300"
+                    : "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300"
+                }`}
+              >
+                {item.readstatus || "No Read Status"}
+              </span>
+            </td>
+          </tr>
+        ))}
+    </tbody>
   </table>
 </div>
+
 
 
 
@@ -1385,46 +1455,91 @@ setNewConcern((prev) => ({
               ) : filteredClosedTickets.length === 0 ? (
                 <p className="text-center mt-4 text-foreground">No closed tickets found.</p>
               ) : (
-                <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
-                  <table className="w-full text-xs text-foreground text-center">
-                    <thead className="bg-gray-100 dark:bg-gray-800">
-                      <tr className="h-12">
-                        <th className="px-4 font-semibold">Ticket No.</th>
-                        <th className="px-4 font-semibold">Request Type</th>
-                        <th className="px-4 font-semibold max-w-xs">Group</th>
-                        <th className="px-4 font-semibold">Technician</th>
-                        <th className="px-4 font-semibold">Type of Concern</th>
-                        <th className="px-4 font-semibold">Status</th>
-                        <th className="px-4 font-semibold">Date Created</th>
-                        <th className="px-4 font-semibold">Processed by</th>
-                      </tr>
-                    </thead>
+<div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+  <table className="w-full text-[11px] md:text-xs text-foreground text-center">
+    <thead className="bg-gray-100 dark:bg-gray-800">
+      <tr className="h-9 md:h-12">
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Ticket No.
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Request Type
+        </th>
+        <th className="px-2 md:px-4 font-semibold max-w-[120px] md:max-w-xs">
+          Group
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Technician
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Type of Concern
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Status
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Date Created
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Processed by
+        </th>
+      </tr>
+    </thead>
 
-                    <tbody>
-                      {filteredClosedTickets.map((ticket) => (
-                        <tr key={ticket.id} className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12">
-                          <td className="px-4 py-3">{ticket.ticketNumber}</td>
-                          <td className="px-4 py-3">{ticket.requesttype}</td>
-                          <td className="px-4 py-3 max-w-xs truncate whitespace-nowrap overflow-hidden">{ticket.group}</td>
-                          <td className="px-4 py-3">{ticket.technicianname}</td>
-                          <td className="px-4 py-3">{ticket.type}</td>
-                          <td className="px-4 py-3">{ticket.status}</td>
-                          <td className="px-4 py-3">
-                            {new Date(ticket.createdAt).toLocaleString("en-US", {
-                              year: "numeric",
-                              month: "2-digit",
-                              day: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: true,
-                            })}
-                          </td>
-                          <td className="px-4 py-3">{ticket.processedBy}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+    <tbody>
+      {filteredClosedTickets.map((ticket) => (
+        <tr
+          key={ticket.id}
+          className="border-t border-border hover:bg-gray-50 
+                     dark:hover:bg-gray-700 transition 
+                     h-9 md:h-12"
+        >
+          <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+            {ticket.ticketNumber}
+          </td>
+
+          <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+            {ticket.requesttype}
+          </td>
+
+          <td className="px-2 md:px-4 py-1 md:py-3 
+                         max-w-[120px] md:max-w-xs 
+                         truncate whitespace-nowrap overflow-hidden">
+            {ticket.group}
+          </td>
+
+          <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+            {ticket.technicianname}
+          </td>
+
+          <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+            {ticket.type}
+          </td>
+
+          <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+            {ticket.status}
+          </td>
+
+          <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+            {new Date(ticket.createdAt).toLocaleString("en-US", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            })}
+          </td>
+
+          <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+            {ticket.processedBy}
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
               )}
             </div>
           )}
@@ -1469,63 +1584,114 @@ setNewConcern((prev) => ({
         No pending concerns found.
       </p>
     ) : (
-      <div className="overflow-x-auto rounded-lg border border-border shadow-sm">
-        <table className="w-full text-xs text-foreground text-center">
-          <thead className="bg-gray-100 dark:bg-gray-800">
-            <tr className="h-12">
-              <th className="px-4 font-semibold">Ticket No.</th>
-              <th className="px-4 font-semibold">Request Type</th>
-              <th className="px-4 font-semibold max-w-xs">Group</th>
-              <th className="px-4 font-semibold">Technician</th>
-              <th className="px-4 font-semibold">Type of Concern</th>
-              <th className="px-4 font-semibold">Status</th>
-              <th className="px-4 font-semibold">Date Scheduled</th>
-              <th className="px-4 font-semibold">Processed by</th>
-            </tr>
-          </thead>
-
-         <tbody>
-  {loadingTickets ? (
-    <tr>
-      <td colSpan={8} className="py-6 text-center text-foreground">
-        Loading tickets...
-      </td>
-    </tr>
-  ) : filteredTickets.length === 0 ? (
-    <tr>
-      <td colSpan={8} className="py-6 text-center text-foreground">
-        No pending concerns found.
-      </td>
-    </tr>
-  ) : (
-    filteredTickets.map((t) => (
-      <tr
-        key={t.id}
-        className="border-t border-border hover:bg-gray-50 dark:hover:bg-gray-700 transition h-12"
-      >
-        <td className="px-4 py-3">{t.ticketNumber}</td>
-        <td className="px-4 py-3">{t.requesttype}</td>
-        <td className="px-4 py-3 max-w-xs truncate">{t.group}</td>
-        <td className="px-4 py-3">{t.technicianname}</td>
-        <td className="px-4 py-3">{t.type}</td>
-        <td className="px-4 py-3">{t.status}</td>
-        <td className="px-4 py-3">
-          <span className="inline-block px-3 py-1  rounded-full bg-blue-100 text-blue-700 text-xs font-medium">
-            {new Date(t.dateSched + "T00:00:00").toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-              day: "2-digit", 
-            })}
-          </span>
-        </td>
-        <td className="px-4 py-3">{t.processedBy}</td>
+<div className="overflow-x-auto rounded-lg border border-border shadow-sm">
+  <table className="w-full text-[11px] md:text-xs text-foreground text-center">
+    <thead className="bg-gray-100 dark:bg-gray-800">
+      <tr className="h-9 md:h-12">
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Ticket No.
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Request Type
+        </th>
+        <th className="px-2 md:px-4 font-semibold max-w-[120px] md:max-w-xs">
+          Group
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Technician
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Type of Concern
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Status
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Date Scheduled
+        </th>
+        <th className="px-2 md:px-4 font-semibold whitespace-nowrap">
+          Processed by
+        </th>
       </tr>
-    ))
-  )}
-</tbody>
+    </thead>
 
-        </table>
-      </div>
+    <tbody>
+      {loadingTickets ? (
+        <tr>
+          <td
+            colSpan={8}
+            className="py-4 md:py-6 text-center text-[11px] md:text-xs text-foreground"
+          >
+            Loading tickets...
+          </td>
+        </tr>
+      ) : filteredTickets.length === 0 ? (
+        <tr>
+          <td
+            colSpan={8}
+            className="py-4 md:py-6 text-center text-[11px] md:text-xs text-foreground"
+          >
+            No pending concerns found.
+          </td>
+        </tr>
+      ) : (
+        filteredTickets.map((t) => (
+          <tr
+            key={t.id}
+            className="border-t border-border hover:bg-gray-50 
+                       dark:hover:bg-gray-700 transition 
+                       h-9 md:h-12"
+          >
+            <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+              {t.ticketNumber}
+            </td>
+
+            <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+              {t.requesttype}
+            </td>
+
+            <td
+              className="px-2 md:px-4 py-1 md:py-3 
+                         max-w-[120px] md:max-w-xs 
+                         truncate whitespace-nowrap"
+            >
+              {t.group}
+            </td>
+
+            <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+              {t.technicianname}
+            </td>
+
+            <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+              {t.type}
+            </td>
+
+            <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+              {t.status}
+            </td>
+
+            <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+              <span className="inline-block px-2 md:px-3 py-0.5 md:py-1 
+                               rounded-full bg-blue-100 text-blue-700 
+                               text-[10px] md:text-xs font-medium">
+                {new Date(t.dateSched + "T00:00:00").toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "2-digit",
+                })}
+              </span>
+            </td>
+
+            <td className="px-2 md:px-4 py-1 md:py-3 whitespace-nowrap">
+              {t.processedBy}
+            </td>
+          </tr>
+        ))
+      )}
+    </tbody>
+  </table>
+</div>
+
     )}
   </div>
 )}
