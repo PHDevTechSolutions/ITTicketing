@@ -225,7 +225,7 @@ export default function TechnicianPage() {
                         <td className="p-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0">
+                              <Button variant="ghost" className="h-2 w-8 p-0">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -275,8 +275,8 @@ export default function TechnicianPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="statName" className="text-right">
-                  Name
+                <Label htmlFor="statName" className="text-right text-lg ml-3">
+                  Name :
                 </Label>
                 <Input
                   id="statName"

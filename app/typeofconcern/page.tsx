@@ -278,7 +278,7 @@ export default function ConcernTypesPage() {
                         <td className="p-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-2 w-8 p-0"><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
@@ -324,7 +324,7 @@ export default function ConcernTypesPage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="concernTypeName" className="text-right">Name</Label>
+                <Label htmlFor="concernTypeName" className="text-right text-lg ml-3">Name :</Label>
                 <Input
                   id="concernTypeName"
                   value={newConcernTypeName} 

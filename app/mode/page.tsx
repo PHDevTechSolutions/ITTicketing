@@ -305,7 +305,7 @@ export default function ModePage() {
                         <td className="p-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-2 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
@@ -352,7 +352,7 @@ export default function ModePage() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="modeName" className="text-right">Name</Label>
+                <Label htmlFor="modeName" className="text-right text-lg ml-3">Name:</Label>
                 <Input
                   id="modeName"
                   value={newModeName}
