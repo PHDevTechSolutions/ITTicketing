@@ -1,8 +1,8 @@
 "use client"
+
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AppSidebar } from "../components/sidebar"
-import { redirect } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -14,10 +14,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import {
-  LogOut,
-  User,
   Users,
   Ticket as TicketIcon,
   Clock,
@@ -26,22 +23,9 @@ import {
   Hash,
   Loader2,
 } from "lucide-react"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-// ----------------------
-// Interfaces / Types
-// ----------------------
+// --- Interfaces ---
 interface CurrentUser {
   _id: string
   Username: string
@@ -50,7 +34,6 @@ interface CurrentUser {
   Firstname: string
   Lastname: string
   ReferenceID: string
-  createdAt: string
 }
 
 interface Ticket {
@@ -63,9 +46,8 @@ interface Ticket {
   remarks?: string
   dateSched?: string
   priority?: string
-  status?: "Pending" | "Ongoing" | "Finished" | "Resolved" | "New" | string
-  createdAt?: string // ISO string
-  processedBy?: string
+  status?: string
+  createdAt?: string 
   group?: string
   technicianname?: string
   requesttype?: string
@@ -75,16 +57,13 @@ interface StatCardProps {
   title: string
   value: number | string
   icon: LucideIcon
-  colorClass?: string
   link: string
   bgColor?: string
   onClick: (link: string, title: string) => void
   isSelected: boolean
 }
 
-// ----------------------
-// Small reusable helpers
-// ----------------------
+// --- Reusable Helpers ---
 const formatDateTime = (iso?: string) => {
   if (!iso) return "N/A"
   try {
@@ -101,94 +80,73 @@ const formatDateTime = (iso?: string) => {
   }
 }
 
-const todayISODate = new Date().toISOString().slice(0, 10) // "YYYY-MM-DD"
-
-// ----------------------
-// StatCard component
-// ----------------------
-function StatCard({ title, value, icon: Icon, colorClass = "text-gray-700", link, bgColor = "bg-white", onClick, isSelected }: StatCardProps) {
-  const baseClasses = `relative overflow-hidden transition-all duration-300 hover:shadow-xl border-none ${bgColor} group cursor-pointer rounded-lg`
-  const selectedClasses = isSelected ? "border-2 border-primary ring-2 ring-primary/50" : ""
+// --- Components ---
+function StatCard({ title, value, icon: Icon, link, onClick, isSelected }: StatCardProps) {
+  const baseClasses = `relative overflow-hidden transition-all duration-300 hover:shadow-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50 group cursor-pointer rounded-lg`
+  const selectedClasses = isSelected ? "ring-2 ring-blue-500 dark:ring-indigo-500 border-transparent shadow-md" : ""
 
   return (
     <Card className={`${baseClasses} ${selectedClasses}`} onClick={() => onClick(link, title)}>
-      <div className="absolute right-0 top-0 opacity-10 group-hover:opacity-20 transition-opacity duration-300">
-        <Icon className="h-24 w-24" />
+      <div className="absolute right-0 top-0 opacity-10 dark:opacity-5 group-hover:opacity-20 transition-opacity duration-300 pointer-events-none">
+        <Icon className="h-20 w-20 dark:text-white" />
       </div>
-
       <CardHeader className="pb-2 z-10">
         <div className="flex flex-col gap-1">
-          <CardTitle className="text-sm font-medium text-gray-700">{title}</CardTitle>
-          <div className="text-xl font-bold">{value}</div>
+          <CardTitle className="text-sm font-medium text-gray-700 dark:text-zinc-400">{title}</CardTitle>
+          <div className="text-2xl font-bold dark:text-zinc-100">{value}</div>
         </div>
       </CardHeader>
     </Card>
   )
 }
 
-// ----------------------
-// DataTable component (Ticket[])
-// ----------------------
-interface DataTableProps {
-  data: Ticket[]
-  title: string
-}
-
-function DataTable({ data, title }: DataTableProps) {
+function DataTable({ data, title }: { data: Ticket[]; title: string }) {
   return (
     <>
-      <CardHeader className="bg-gray-50 border-b flex items-center justify-between">
+      <CardHeader className="bg-gray-50 dark:bg-zinc-900/40 border-b dark:border-zinc-800 flex items-center justify-between py-4">
         <div>
-          <CardTitle className="text-2xl font-semibold text-gray-800">{title}</CardTitle>
-          <p className="text-sm text-gray-500">{data.length} item(s) found</p>
+          <CardTitle className="text-xl font-semibold text-gray-800 dark:text-zinc-100">{title}</CardTitle>
+          <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium uppercase tracking-wider">{data.length} item(s) found</p>
         </div>
       </CardHeader>
-
-      <CardContent className="p-0">
+      <CardContent className="p-0 bg-white dark:bg-black">
         <div className="overflow-x-auto">
           {data.length > 0 ? (
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-100">
-                  <TableHead className="w-[120px] text-xs font-bold">Ticket #</TableHead>
-                  <TableHead className="text-xs font-bold">Employee</TableHead>
-                  <TableHead className="text-xs font-bold">Department</TableHead>
-                  <TableHead className="text-xs font-bold">Type</TableHead>
-                  <TableHead className="text-xs font-bold">Status</TableHead>
-                  <TableHead className="text-xs font-bold text-right">Created</TableHead>
+                <TableRow className="bg-gray-100 dark:bg-zinc-900/60 border-none">
+                  <TableHead className="text-xs font-bold dark:text-zinc-300">Ticket #</TableHead>
+                  <TableHead className="text-xs font-bold dark:text-zinc-300">Employee</TableHead>
+                  <TableHead className="text-xs font-bold dark:text-zinc-300">Type</TableHead>
+                  <TableHead className="text-xs font-bold dark:text-zinc-300">Status</TableHead>
+                  <TableHead className="text-xs font-bold text-right dark:text-zinc-300">Created</TableHead>
                 </TableRow>
               </TableHeader>
-
               <TableBody>
-                {data.map((item) => (
-                  <TableRow key={item.id || item.ticketNumber || Math.random()} className="hover:bg-gray-50 cursor-pointer">
-                    <TableCell className="font-medium text-sm text-primary">{item.ticketNumber ?? item.id}</TableCell>
-                    <TableCell className="text-sm">{item.Fullname ?? item.employeeName ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{item.department ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{item.type ?? item.requesttype ?? "—"}</TableCell>
-                    <TableCell className="text-center">
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-semibold ${item.status === "Pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : item.status === "Ongoing"
-                            ? "bg-indigo-100 text-indigo-700"
-                            : item.status === "Finished" || item.status === "Resolved"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
-                      >
+                {data.map((item, idx) => (
+                  <TableRow key={item.id || item.ticketNumber || idx} className="hover:bg-gray-50 dark:hover:bg-zinc-900/40 border-gray-100 dark:border-zinc-800">
+                    <TableCell className="font-mono text-xs text-indigo-600 dark:text-indigo-400">{item.ticketNumber ?? item.id}</TableCell>
+                    <TableCell className="text-sm dark:text-zinc-300 font-medium">{item.Fullname ?? item.employeeName ?? "—"}</TableCell>
+                    <TableCell className="text-xs dark:text-zinc-400">{item.type ?? item.requesttype ?? "—"}</TableCell>
+                    <TableCell>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        item.status === "Pending" ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500" :
+                        item.status === "Ongoing" ? "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400" :
+                        item.status === "Finished" || item.status === "Resolved" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                        "bg-gray-100 text-gray-700 dark:bg-zinc-800 dark:text-zinc-400"
+                      }`}>
                         {item.status ?? "—"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-sm text-right text-gray-500">{formatDateTime(item.createdAt)}</TableCell>
+                    <TableCell className="text-[11px] text-right text-gray-500 dark:text-zinc-500">{formatDateTime(item.createdAt)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           ) : (
-            <div className="p-12 text-center text-gray-500">
-              <Hash className="mx-auto h-8 w-8 mb-2" />
-              <p>No items found for this category.</p>
+            <div className="p-16 text-center text-gray-400 dark:text-zinc-600">
+              <Hash className="mx-auto h-10 w-10 mb-2 opacity-20" />
+              <p className="text-sm font-medium italic">Empty category</p>
             </div>
           )}
         </div>
@@ -197,320 +155,177 @@ function DataTable({ data, title }: DataTableProps) {
   )
 }
 
-// ----------------------
-// DashboardPage (main)
-// ----------------------
+// --- Main Page ---
 export default function DashboardPage() {
   const router = useRouter()
-  useEffect(() => {
-    const user = localStorage.getItem("currentUser");
-    if (!user) {
-      router.push("/login"); // Redirect kung walang login
-    }
-  }, []);
-
-  // profile related
+  const [mounted, setMounted] = useState(false)
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
-  const [isProfileLoading, setIsProfileLoading] = useState(true)
-  const [profileError, setProfileError] = useState<string | null>(null)
-  const [profilePic, setProfilePic] = useState<string | null>(null)
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [openLogout, setOpenLogout] = useState(false)
-
-  // tickets and UI
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loadingTickets, setLoadingTickets] = useState(true)
-  const [closedTickets, setClosedTickets] = useState<Ticket[]>([])
+  const [concerns, setConcerns] = useState<Ticket[]>([])
   const [selectedStat, setSelectedStat] = useState<{ link: string; title: string } | null>(null)
 
-  // concern and UI
-  const [concerns, setConcerns] = useState<Ticket[]>([])
+  const today = new Date().toISOString().slice(0, 10)
+
+  // 1. Initial hydration fix and auth check
+  useEffect(() => {
+    setMounted(true)
+    const user = localStorage.getItem("currentUser")
+    if (!user) {
+      router.push("/login")
+    } else {
+      fetchProfile()
+      fetchTickets()
+      fetchConcerns()
+    }
+  }, [])
 
   const fetchConcerns = async () => {
     try {
       const res = await fetch("/api/euconcern")
       const json = await res.json()
-
-      if (!res.ok || !json.success) {
-        console.error("Concerns API Error:", json)
-        setConcerns([])
-        return
+      if (res.ok && json.success) {
+        setConcerns(json.data.map((c: any) => ({
+          id: c._id,
+          ticketNumber: c.ConcernNumber,
+          Fullname: c.employeeName,
+          createdAt: c.createdAt,
+          status: "New",
+          requesttype: c.requesttype,
+          type: c.type
+        })))
       }
-
-      const formatted = json.data.map((c: any) => ({
-        id: c.ConcernNumber || c._id || String(Math.random()),
-        ticketNumber: c.ConcernNumber,
-        Fullname: c.employeeName,
-        department: c.department,
-        type: c.type,
-        remarks: c.remarks,
-        createdAt: c.createdAt,
-        priority: c.priority,
-        status: "New",
-        requesttype: c.requesttype,
-      }));
-
-
-      setConcerns(formatted)
-
-    } catch (err) {
-      console.error("Failed to load concerns:", err)
-      setConcerns([])
-    }
+    } catch (err) { console.error(err) }
   }
 
-  // --- Fetch profile (keeps same behavior) ---
   const fetchProfile = async () => {
-    setIsProfileLoading(true)
-    setProfileError(null)
     try {
-      const username = typeof window !== "undefined" ? localStorage.getItem("userId") : null
-      if (!username) {
-        setProfileError("No login session found. Please log in.")
-        setIsProfileLoading(false)
-        return
-      }
+      const username = localStorage.getItem("userId")
+      if (!username) return
       const res = await fetch(`/api/profile/${username}`)
       const data = await res.json()
-      if (res.ok && data.success) {
-        setCurrentUser(data.data)
-      } else {
-        setProfileError(data.message || "Failed to load user profile.")
-      }
-    } catch (error) {
-      console.error("Error fetching profile:", error)
-      setProfileError("Network error while fetching profile.")
-    } finally {
-      setIsProfileLoading(false)
-    }
+      if (res.ok && data.success) setCurrentUser(data.data)
+    } catch (err) { console.error(err) }
   }
 
-  // --- Fetch tickets from API and populate state ---
   const fetchTickets = async () => {
     setLoadingTickets(true)
     try {
       const res = await fetch("/api/tickets")
       const json = await res.json()
-      if (!res.ok || !json.success) {
-        console.error("Tickets API error:", json)
-        setTickets([])
-        setClosedTickets([])
-        return
+      if (res.ok && json.success) {
+        setTickets(json.data.map((t: any) => ({
+          id: t._id,
+          ticketNumber: t.ticketNumber,
+          Fullname: t.employeeName || t.Fullname,
+          department: t.department,
+          status: t.status,
+          createdAt: t.createdAt,
+          type: t.type,
+          requesttype: t.requesttype
+        })))
       }
-
-      // Expect json.data to be array of ticket objects
-      const fetched: Ticket[] = (json.data ?? []).map((t: any) => ({
-        id: t.id ?? t._id ?? t.ticketNumber ?? String(Math.random()),
-        ticketNumber: t.ticketNumber ?? t.TicketNumber ?? undefined,
-        Fullname: t.Fullname ?? t.employeeName ?? t.name ?? undefined,
-        employeeName: t.employeeName ?? t.Fullname ?? undefined,
-        department: t.department ?? t.dept ?? undefined,
-        type: t.type ?? t.requesttype ?? undefined,
-        remarks: t.remarks ?? undefined,
-        dateSched: t.dateSched ?? undefined,
-        priority: t.priority ?? undefined,
-        status: t.status ?? (t.State ?? undefined),
-        createdAt: t.createdAt ?? t.dateCreated ?? t.createdAtString ?? undefined,
-        processedBy: t.processedBy ?? undefined,
-        group: t.group ?? undefined,
-        technicianname: t.technicianname ?? t.technician ?? undefined,
-        requesttype: t.requesttype ?? undefined,
-      }))
-
-      setTickets(fetched)
-
-      // closed tickets derived
-      const closed = fetched.filter((x) => x.status === "Finished" || x.status === "Resolved")
-      setClosedTickets(closed)
-    } catch (error) {
-      console.error("Failed to load tickets:", error)
-      setTickets([])
-      setClosedTickets([])
-    } finally {
-      setLoadingTickets(false)
-    }
+    } catch (err) { console.error(err) }
+    finally { setLoadingTickets(false) }
   }
 
-  // --- Hooks: load profile and tickets on mount ---
-  useEffect(() => {
-    fetchProfile()
-    fetchTickets()
-    fetchConcerns()
-  }, [])
-
-  // --- Derived stats (computed from tickets state) ---
-  const todayConcernsCount = concerns.filter((c) => (c.createdAt ?? "").slice(0, 10) === todayISODate).length
-  const todayTicketsCount = tickets.filter((t) => (t.createdAt ?? "").slice(0, 10) === todayISODate).length
-  const totalPendingCount = tickets.filter((t) => (t.status ?? "").toLowerCase() === "pending").length
-  const ongoingCount = tickets.filter((t) => (t.status ?? "").toLowerCase() === "ongoing").length
-  const finishedCount = tickets.filter((t) => {
-    const s = (t.status ?? "").toLowerCase()
-    return s === "finished" || s === "resolved"
-  }).length
-
-  // Stats config
-  const allStats = [
-    { title: "Today's Concerns", value: todayConcernsCount, icon: Users, colorClass: "text-blue-700", bgColor: "bg-blue-100", link: "/concerns/today" },
-    { title: "Tickets Created Today", value: todayTicketsCount, icon: TicketIcon, colorClass: "text-green-700", bgColor: "bg-green-100", link: "/tickets/today" },
-    { title: "Total Pending Tickets", value: totalPendingCount, icon: Clock, colorClass: "text-yellow-700", bgColor: "bg-yellow-100", link: "/tickets/pending" },
-    { title: "Ongoing Tickets", value: ongoingCount, icon: Clock, colorClass: "text-indigo-700", bgColor: "bg-indigo-100", link: "/tickets/ongoing" },
-    { title: "Finished Tickets", value: finishedCount, icon: CheckCircle, colorClass: "text-teal-700", bgColor: "bg-teal-100", link: "/tickets/finished" },
+  const stats = [
+    { title: "Today's Concerns", value: concerns.filter(c => c.createdAt?.slice(0, 10) === today).length, icon: Users, link: "/concerns/today" },
+    { title: "Tickets Today", value: tickets.filter(t => t.createdAt?.slice(0, 10) === today).length, icon: TicketIcon, link: "/tickets/today" },
+    { title: "Pending", value: tickets.filter(t => t.status?.toLowerCase() === "pending").length, icon: Clock, link: "/tickets/pending" },
+    { title: "Ongoing", value: tickets.filter(t => t.status?.toLowerCase() === "ongoing").length, icon: Clock, link: "/tickets/ongoing" },
+    { title: "Finished", value: tickets.filter(t => ["finished", "resolved"].includes(t.status?.toLowerCase() || "")).length, icon: CheckCircle, link: "/tickets/finished" },
   ]
 
-  // --- getFilteredData now uses tickets state ---
-  const getFilteredData = (link: string): Ticket[] => {
-    switch (link) {
-      case "/concerns/today":
-        return concerns.filter(
-          (c) => (c.createdAt ?? "").slice(0, 10) === todayISODate
-        )
-      case "/tickets/today":
-        return tickets.filter((t) => (t.createdAt ?? "").slice(0, 10) === todayISODate)
-      case "/tickets/pending":
-        return tickets.filter((t) => (t.status ?? "").toLowerCase() === "pending")
-      case "/tickets/ongoing":
-        return tickets.filter((t) => (t.status ?? "").toLowerCase() === "ongoing")
-      case "/tickets/finished":
-        return tickets.filter((t) => {
-          const s = (t.status ?? "").toLowerCase()
-          return s === "finished" || s === "resolved"
+  const handleStatClick = (link: string, title: string) => setSelectedStat({ link, title })
+
+  const tableData = selectedStat ? (
+    selectedStat.link === "/concerns/today" 
+      ? concerns.filter(c => c.createdAt?.slice(0, 10) === today)
+      : tickets.filter(t => {
+          if (selectedStat.link === "/tickets/today") return t.createdAt?.slice(0, 10) === today
+          if (selectedStat.link === "/tickets/pending") return t.status?.toLowerCase() === "pending"
+          if (selectedStat.link === "/tickets/ongoing") return t.status?.toLowerCase() === "ongoing"
+          if (selectedStat.link === "/tickets/finished") return ["finished", "resolved"].includes(t.status?.toLowerCase() || "")
+          return false
         })
-      default:
-        return []
-    }
-  }
+  ) : []
 
-  const tableData = selectedStat ? getFilteredData(selectedStat.link) : []
-  const tableTitle = selectedStat ? selectedStat.title : "Select a Card for Details"
-
-  const primaryStats = allStats.slice(0, 3)
-  const secondaryStats = allStats.slice(3)
+  // Proteksyon sa hydration mismatch
+  if (!mounted) return null
 
   const displayName = currentUser ? `${currentUser.Firstname} ${currentUser.Lastname}` : "IT User"
-
-  // handlers
-  const handleStatClick = (link: string, title: string) => {
-    setSelectedStat({ link, title })
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem("userId")
-    router.push("/login")
-  }
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setProfilePic(reader.result as string)
-      reader.readAsDataURL(file)
-    }
-  }
 
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        {/* Header */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
+      <SidebarInset className="bg-white dark:bg-black">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-md px-6 transition-colors">
           <div className="flex items-center gap-4">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
+            <SidebarTrigger className="dark:text-zinc-400 dark:hover:bg-zinc-900" />
+            <Separator orientation="vertical" className="h-6 dark:bg-zinc-800" />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                  <BreadcrumbLink href="/dashboard" className="dark:text-zinc-500">Dashboard</BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbSeparator className="hidden md:block dark:text-zinc-800" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage className="bg-white">
-                    Dashboard
-                  </BreadcrumbPage>
-
+                  <BreadcrumbPage className="dark:text-zinc-100">Home</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
 
-       <main className="p-4 md:p-6 bg-gray-50 min-h-[calc(100vh-4rem)]">
-  {/* HEADER: Welcome + Date */}
-  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4 md:mb-6">
-    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">
-      Welcome, {displayName.length > 3 ? displayName : "IT User"}
-    </h1>
-    <div className="text-[11px] sm:text-xs text-gray-500">
-      {new Date().toLocaleDateString("en-US", { dateStyle: "full" })}
-    </div>
-  </div>
-
-  {/* MAIN SECTION: GRID 1/3 stats, 2/3 table */}
-  <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
-    
-    {/* LEFT: Stats Column */}
-    <div className="flex flex-col gap-3 md:gap-4 md:col-span-1">
-      
-      {/* Primary Stats */}
-      <div className="flex flex-col gap-3 md:gap-4">
-        {primaryStats.map((stat) => (
-          <StatCard
-            key={stat.link}
-            {...stat}
-            onClick={handleStatClick}
-            isSelected={selectedStat?.link === stat.link}
-          />
-        ))}
-      </div>
-
-      {/* Secondary Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
-        {secondaryStats.map((stat) => (
-          <StatCard
-            key={stat.link}
-            {...stat}
-            onClick={handleStatClick}
-            isSelected={selectedStat?.link === stat.link}
-          />
-        ))}
-      </div>
-    </div>
-
-    {/* RIGHT: Table / Data Display */}
-    <Card className="shadow-lg overflow-hidden h-[420px] md:h-[510px] flex flex-col md:col-span-2">
-      {selectedStat ? (
-        loadingTickets ? (
-          /* LOADING STATE */
-          <div className="p-6 md:p-8 text-center">
-            <Loader2 className="mx-auto h-6 w-6 md:h-8 md:w-8 animate-spin text-gray-500" />
-            <p className="mt-2 text-xs md:text-sm text-gray-600">Loading tickets...</p>
+        <main className="p-4 md:p-8 bg-gray-50 dark:bg-black min-h-[calc(100vh-4rem)] transition-colors">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-zinc-100">
+              Welcome, <span className="text-blue-600 dark:text-indigo-400">{displayName}</span>
+            </h1>
+            <div className="px-3 py-1 bg-white dark:bg-zinc-900 border dark:border-zinc-800 rounded-full text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-[0.2em]">
+              {new Date().toLocaleDateString("en-US", { dateStyle: "full" })}
+            </div>
           </div>
-        ) : (
-          /* DATA TABLE */
-          <DataTable data={tableData} title={tableTitle} />
-        )
-      ) : (
-        /* EMPTY STATE */
-        <div className="flex flex-col items-center justify-center h-full text-gray-400 py-12 md:py-20 px-4 sm:px-8">
-          <svg className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 mb-3 md:mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-          <h2 className="text-base sm:text-lg md:text-xl font-semibold text-center">
-            No Data Selected
-          </h2>
-          <p className="text-[11px] sm:text-xs md:text-sm text-center mt-2">
-            Click any card on the left to view detailed analytics.
-          </p>
-        </div>
-      )}
-    </Card>
-  </section>
-</main>
 
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-4 flex flex-col gap-4">
+              <div className="grid grid-cols-1 gap-4">
+                {stats.slice(0, 3).map((stat) => (
+                  <StatCard key={stat.link} {...stat} onClick={handleStatClick} isSelected={selectedStat?.link === stat.link} />
+                ))}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {stats.slice(3).map((stat) => (
+                  <StatCard key={stat.link} {...stat} onClick={handleStatClick} isSelected={selectedStat?.link === stat.link} />
+                ))}
+              </div>
+            </div>
+
+            <Card className="lg:col-span-8 shadow-xl overflow-hidden h-[540px] flex flex-col border-gray-200 dark:border-zinc-800 dark:bg-black">
+              {selectedStat ? (
+                loadingTickets ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-3">
+                    <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+                    <p className="text-sm font-medium text-gray-400 dark:text-zinc-500">Fetching records...</p>
+                  </div>
+                ) : (
+                  <DataTable data={tableData} title={selectedStat.title} />
+                )
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-zinc-600 p-8">
+                  <div className="w-20 h-20 rounded-2xl bg-gray-50 dark:bg-zinc-900/50 flex items-center justify-center mb-6 border dark:border-zinc-800/50">
+                    <TicketIcon className="w-10 h-10 opacity-30" />
+                  </div>
+                  <h2 className="text-lg font-bold dark:text-zinc-300">No Analytics Selected</h2>
+                  <p className="text-sm text-center mt-2 max-w-[280px] leading-relaxed opacity-70">
+                    Click on one of the cards to the left to see detailed ticket logs and status updates.
+                  </p>
+                </div>
+              )}
+            </Card>
+          </section>
+        </main>
       </SidebarInset>
     </SidebarProvider>
   )

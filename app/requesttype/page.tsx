@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-// Assuming you have these components configured
 import { AppSidebar } from "../components/sidebar";
 import {
   Breadcrumb,
@@ -20,14 +19,13 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { User, LogOut, Plus, Edit, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, Edit, Trash2, MoreHorizontal } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -40,9 +38,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Interfaces (Updated for RequestType and kept CurrentUser)
+// Interfaces
 interface RequestType {
-  _id: string; // Gamitin ang _id para sa MongoDB consistency
+  _id: string;
   name: string;
 }
 
@@ -57,34 +55,29 @@ interface CurrentUser {
   createdAt: string;
 }
 
-// --- Main Component ---
 export default function RequestTypesPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false); // 🔥 Fix for Hydration Error
 
   useEffect(() => {
+    setMounted(true);
     const user = localStorage.getItem("currentUser");
     if (!user) {
-      router.push("/login"); // Redirect kung walang login
+      router.push("/login");
     }
-  }, []);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [profilePic, setProfilePic] = useState<string | null>(null);
+  }, [router]);
 
-  // State para sa Request Types (pinalitan ang 'departments' ng 'requestTypes')
+  // States
   const [requestTypes, setRequestTypes] = useState<RequestType[]>([]);
   const [isRequestTypeDialogOpen, setIsRequestTypeDialogOpen] = useState(false);
-  const [currentRequestType, setCurrentRequestType] =
-    useState<RequestType | null>(null);
+  const [currentRequestType, setCurrentRequestType] = useState<RequestType | null>(null);
   const [newRequestTypeName, setNewRequestTypeName] = useState("");
-
-  // State para sa Profile
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
 
-  // 🧩 FETCH Request Types from API
+  // 🧩 FETCH Functions
   const fetchRequestTypes = async () => {
     try {
-      // 🎯 API path: /api/requesttype (index.ts)
       const res = await fetch("/api/requesttype"); 
       const data = await res.json();
       if (data.success) setRequestTypes(data.data);
@@ -93,7 +86,6 @@ export default function RequestTypesPage() {
     }
   };
 
-  // 🧩 FETCH Profile from API (Kinuha mula sa DepartmentsPage)
   const fetchProfile = async () => {
     try {
       const userId = localStorage.getItem("userId");
@@ -101,12 +93,9 @@ export default function RequestTypesPage() {
         setIsProfileLoading(false);
         return;
       }
-
       const res = await fetch(`/api/profile/${userId}`);
       const data = await res.json();
-
       if (res.ok && data.success) setCurrentUser(data.data);
-      else console.error("Failed to fetch profile:", data.message);
     } catch (error) {
       console.error("Error fetching profile:", error);
     } finally {
@@ -115,18 +104,17 @@ export default function RequestTypesPage() {
   };
 
   useEffect(() => {
-    fetchRequestTypes(); // 🎯 Inilipat mula fetchDepartments
+    fetchRequestTypes();
     fetchProfile();
   }, []);
 
-  // 🧠 SAVE Request Type (CREATE or UPDATE)
+  // 🧠 Handlers
   const handleSaveRequestType = async () => {
     if (!newRequestTypeName.trim())
       return alert("Please enter the Request Type name.");
 
     try {
       const method = currentRequestType ? "PUT" : "POST";
-      // 🎯 API path: /api/requesttype/[id].ts o /api/requesttype/index.ts
       const url = currentRequestType
         ? `/api/requesttype/${currentRequestType._id}`
         : "/api/requesttype";
@@ -139,22 +127,13 @@ export default function RequestTypesPage() {
       const data = await res.json();
 
       if (data.success) {
-        alert(
-          `Request Type ${
-            currentRequestType ? "updated" : "created"
-          } successfully!`
-        );
-        fetchRequestTypes(); // I-refresh ang list
+        alert(`Request Type ${currentRequestType ? "updated" : "created"} successfully!`);
+        fetchRequestTypes();
       } else {
-        alert(
-          data.message ||
-            `Failed to ${
-              currentRequestType ? "update" : "create"
-            } request type.`
-        );
+        alert(data.message || "Failed to save request type.");
       }
     } catch (error) {
-      console.error("Error saving request type:", error);
+      console.error("Error saving:", error);
       alert("Something went wrong.");
     }
 
@@ -163,23 +142,17 @@ export default function RequestTypesPage() {
     setCurrentRequestType(null);
   };
 
-  // 🧠 DELETE Request Type
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Are you sure you want to delete "${name}"?`)) return;
-
     try {
-      // 🎯 API path: /api/requesttype/[id].ts
       const res = await fetch(`/api/requesttype/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
         alert("Request Type deleted successfully!");
-        fetchRequestTypes(); // I-refresh ang list
-      } else {
-        alert(data.message || "Failed to delete request type.");
+        fetchRequestTypes();
       }
     } catch (error) {
-      console.error("Error deleting request type:", error);
-      alert("Something went wrong.");
+      console.error("Error deleting:", error);
     }
   };
 
@@ -195,115 +168,87 @@ export default function RequestTypesPage() {
     setIsRequestTypeDialogOpen(true);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("userId");
-    alert("Logged out! Redirect not implemented.");
-    // window.location.href = "/login";
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setProfilePic(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const formatDate = (date: Date) =>
-    new Date(date).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
+  // 🔥 IMPORTANT: Hydration check
+  if (!mounted) return null;
 
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="dark:bg-zinc-950 transition-colors">
         {/* HEADER */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white dark:bg-zinc-950 dark:border-zinc-800 px-6 shadow-sm">
           <div className="flex items-center gap-4">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
+            <SidebarTrigger className="dark:text-zinc-400" />
+            <Separator orientation="vertical" className="h-6 dark:bg-zinc-800" />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/dashboard" className="text-gray-700">
+                  <BreadcrumbLink href="/dashboard" className="text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200">
                     Dashboard
                   </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator />
+                <BreadcrumbSeparator className="dark:text-zinc-600" />
                 <BreadcrumbItem>
-                  {/* 🎯 Binago ang text */}
-                  <BreadcrumbPage>Request Type</BreadcrumbPage>
+                  <BreadcrumbPage className="dark:text-zinc-100">Request Type</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-
-
         </header>
 
         {/* MAIN */}
-        <main className="p-6 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
-<div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
-  {/* 🎯 Binago ang title */}
-  <h1 className="text-3xl font-extrabold text-gray-700 mb-4 md:mb-0">
-    Request Types List
-  </h1>
-  <Button
-    onClick={handleOpenAdd}
-    className="bg-gray-700 hover:bg-gray-800 text-white"
-  >
-    <Plus className="h-5 w-5 mr-2" /> Request Type
-  </Button>
-</div>
+        <main className="p-6 bg-[#f7f8fa] dark:bg-zinc-950 min-h-[calc(100vh-4rem)]">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-zinc-800">
+            <h1 className="text-3xl font-extrabold text-gray-700 dark:text-zinc-100 mb-4 md:mb-0">
+              Request Types List
+            </h1>
+            <Button
+              onClick={handleOpenAdd}
+              className="bg-gray-700 hover:bg-gray-800 text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-300"
+            >
+              <Plus className="h-5 w-5 mr-2" /> Request Type
+            </Button>
+          </div>
 
-
-          {/* TABLE */}
-          <div className="bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden">
+          {/* TABLE CONTAINER */}
+          <div className="bg-white dark:bg-zinc-900 shadow-xl rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-xs">
-                <thead className="bg-gray-700 text-white font-semibold sticky top-0">
+                <thead className="bg-gray-700 dark:bg-zinc-800 text-white font-semibold sticky top-0">
                   <tr>
-                    {/* 🎯 Binago ang header */}
                     <th className="p-4">Request Type Name</th>
                     <th className="p-4 text-center w-[100px]">Action</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y dark:divide-zinc-800">
                   {requestTypes.length > 0 ? (
-                    // 🎯 Binago ang variable: departments -> requestTypes, dept -> type
                     requestTypes.map((type) => (
                       <tr
                         key={type._id}
-                        className="border-b hover:bg-gray-50 transition-colors"
+                        className="border-b dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors"
                       >
-                        <td className="p-4 font-medium text-gray-800">
+                        <td className="p-4 font-medium text-gray-800 dark:text-zinc-200">
                           {type.name}
                         </td>
                         <td className="p-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-2 w-8 p-0">
+                              <Button variant="ghost" className="h-8 w-8 p-0 dark:text-zinc-400">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              {/* 🎯 Inayos ang onClick para sa handleEdit */}
+                            <DropdownMenuContent align="end" className="dark:bg-zinc-900 dark:border-zinc-800">
+                              <DropdownMenuLabel className="dark:text-zinc-400">Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator className="dark:bg-zinc-800" />
                               <DropdownMenuItem
                                 onClick={() => handleEdit(type)}
-                                className="text-gray-700 hover:bg-gray-100"
+                                className="cursor-pointer dark:text-zinc-300 dark:hover:bg-zinc-800"
                               >
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                               </DropdownMenuItem>
-                              {/* 🎯 Inayos ang onClick para sa handleDelete */}
                               <DropdownMenuItem
                                 onClick={() => handleDelete(type._id, type.name)}
-                                className="text-red-600 hover:bg-red-50"
+                                className="text-red-600 dark:text-red-400 cursor-pointer dark:hover:bg-red-950/30"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
                               </DropdownMenuItem>
@@ -314,8 +259,7 @@ export default function RequestTypesPage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={2} className="p-6 text-center text-gray-500 italic">
-                        {/* 🎯 Binago ang 'No departments' message */}
+                      <td colSpan={2} className="p-6 text-center text-gray-500 dark:text-zinc-500 italic">
                         No request types found. Click "+ Request Type" to add one.
                       </td>
                     </tr>
@@ -326,44 +270,42 @@ export default function RequestTypesPage() {
           </div>
         </main>
 
-        {/* ADD/EDIT DIALOG */}
+        {/* DIALOG */}
         <Dialog
-          open={isRequestTypeDialogOpen} // 🎯 Binago ang state
+          open={isRequestTypeDialogOpen}
           onOpenChange={(open) => {
-            setIsRequestTypeDialogOpen(open); // 🎯 Binago ang state setter
+            setIsRequestTypeDialogOpen(open);
             if (!open) {
-              setCurrentRequestType(null); // 🎯 Binago ang state
-              setNewRequestTypeName(""); // 🎯 Binago ang state
+              setCurrentRequestType(null);
+              setNewRequestTypeName("");
             }
           }}
         >
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] dark:bg-zinc-950 dark:border-zinc-800">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900">
-                {/* 🎯 Binago ang title */}
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-zinc-100">
                 {currentRequestType ? "Edit Request Type" : "Add New Request Type"}
               </DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="requestTypeName" className="text-right text-lg ml-3">
+                <Label htmlFor="requestTypeName" className="text-right text-sm font-medium dark:text-zinc-300">
                   Name :
                 </Label>
                 <Input
                   id="requestTypeName"
-                  value={newRequestTypeName} // 🎯 Binago ang state
-                  onChange={(e) => setNewRequestTypeName(e.target.value)} // 🎯 Binago ang state setter
-                  className="col-span-3"
-                  placeholder="e.g., Incident" // 🎯 Binago ang placeholder
+                  value={newRequestTypeName}
+                  onChange={(e) => setNewRequestTypeName(e.target.value)}
+                  className="col-span-3 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
+                  placeholder="e.g., Incident"
                 />
               </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button variant="outline" className="dark:border-zinc-800 dark:text-zinc-300">Cancel</Button>
               </DialogClose>
-              <Button onClick={handleSaveRequestType} className="bg-gray-700 hover:bg-gray-800">
-                {/* 🎯 Binago ang button text */}
+              <Button onClick={handleSaveRequestType} className="bg-gray-700 hover:bg-gray-800 dark:bg-zinc-100 dark:text-zinc-950">
                 {currentRequestType ? "Save Changes" : "Create Request Type"}
               </Button>
             </DialogFooter>

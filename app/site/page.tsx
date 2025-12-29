@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// I-assume na ito ang tamang path para sa iyong sidebar
-import { AppSidebar } from "../components/sidebar";
 import { useRouter } from "next/navigation";
+import { AppSidebar } from "../components/sidebar";
 import {
   Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList,
   BreadcrumbPage, BreadcrumbSeparator,
@@ -14,12 +13,10 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  User, LogOut, Plus, Edit, Trash2, MoreHorizontal, Loader2 
-} from "lucide-react";
+import { Plus, Edit, Trash2, MoreHorizontal, Loader2 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
-  DialogFooter, DialogTrigger, DialogClose,
+  DialogFooter, DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
@@ -27,13 +24,12 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// --- Interface para sa Site (MongoDB Structure) ---
+// --- Interface para sa Site ---
 interface Site {
-  _id: string; // Pinalitan ang 'id' ng '_id' para tumugma sa MongoDB
+  _id: string;
   name: string;
 }
 
-// 📌 INAYOS: Current User Interface (Tulad ng sa ModePage/GroupPage)
 interface CurrentUser {
     _id: string;
     Username: string;
@@ -45,131 +41,69 @@ interface CurrentUser {
     createdAt: string;
 }
 
-// 📌 INAYOS: formatDate function
-const formatDate = (date: Date) =>
-  new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-
-
-// --- Main Component ---
 export default function SitePage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false); // 🔥 Fix for Hydration Error
 
   useEffect(() => {
+    setMounted(true);
     const user = localStorage.getItem("currentUser");
     if (!user) {
-      router.push("/login"); // Redirect kung walang login
+      router.push("/login");
     }
-  }, []);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [profilePic, setProfilePic] = useState<string | null>(null);
+  }, [router]);
 
-  // 📌 INAYOS: States para sa User Profile
+  // States
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
-
-  // State para sa Sites
   const [sites, setSites] = useState<Site[]>([]);
-  
-  // State para sa Add/Edit Dialog
   const [isSiteDialogOpen, setIsSiteDialogOpen] = useState(false);
   const [currentSite, setCurrentSite] = useState<Site | null>(null);
   const [newSiteName, setNewSiteName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [isSaving, setIsSaving] = useState(false); // Para sa loading state ng Save button
-  const [isLoading, setIsLoading] = useState(true); // Para sa loading state ng table
-
-  // 📌 INAYOS: handleLogout (Kasama ang pagtanggal ng userId)
-  const handleLogout = () => {
-    localStorage.removeItem("userId"); // Tiyakin na tinatanggal ang userId
-    alert("Logged out! Redirect logic not implemented.");
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setProfilePic(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // 🧩 FETCH Sites from API (Dynamic Data Loading)
+  // 🧩 FETCH Functions
   const fetchSites = async () => { 
     setIsLoading(true);
     try {
-      // I-assume na ang iyong API route ay `/api/site` (o `/api/sites`)
       const res = await fetch("/api/site"); 
       const data = await res.json();
       if (res.ok && data.success) {
         setSites(data.data); 
-      } else {
-        console.error("Failed to fetch sites:", data.message);
       }
     } catch (error) {
       console.error("Error fetching sites:", error);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // 📌 INAYOS: FETCH Profile from API function
   const fetchProfile = async () => {
-    setIsProfileLoading(true);
     try {
-        const userId = localStorage.getItem("userId");
-        if (!userId) {
-            // Gumamit ng dummy data kung walang userId, para hindi mag-crash
-            setCurrentUser({
-                _id: "dummy-admin-id",
-                Username: "super.admin",
-                Email: "admin@example.com",
-                Role: "Administrator",
-                Firstname: "Super",
-                Lastname: "Admin",
-                ReferenceID: "REF-0000",
-                createdAt: new Date().toISOString()
-            });
-            setIsProfileLoading(false);
-            return;
-        }
-
-        // Ito ang magco-call sa actual API: /api/profile/[id].ts
-        const res = await fetch(`/api/profile/${userId}`);
-        const data = await res.json();
-
-        if (res.ok && data.success) setCurrentUser(data.data);
-        else console.error("Failed to fetch profile:", data.message);
-
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
+      const res = await fetch(`/api/profile/${userId}`);
+      const data = await res.json();
+      if (res.ok && data.success) setCurrentUser(data.data);
     } catch (error) {
       console.error("Error fetching profile:", error);
-    } finally {
-      setIsProfileLoading(false);
     }
   };
-
 
   useEffect(() => {
     fetchSites(); 
-    // 📌 INAYOS: Pagtawag sa fetchProfile
     fetchProfile();
   }, []); 
 
-  // 🧠 SAVE Site (CREATE or UPDATE)
+  // 🧠 Handlers
   const handleSaveSite = async () => {
     const trimmedName = newSiteName.trim();
-
-    if (!trimmedName) {
-      alert("Please enter the site name.");
-      return;
-    }
+    if (!trimmedName) return alert("Please enter the site name.");
 
     setIsSaving(true);
-
     try {
       const method = currentSite ? "PUT" : "POST";
-      const url = currentSite
-        ? `/api/site/${currentSite._id}` 
-        : "/api/site";
+      const url = currentSite ? `/api/site/${currentSite._id}` : "/api/site";
 
       const res = await fetch(url, {
         method,
@@ -179,39 +113,33 @@ export default function SitePage() {
       const data = await res.json();
 
       if (data.success) {
-        alert(data.message || `Site ${currentSite ? "updated" : "created"} successfully!`);
-        fetchSites(); // I-refresh ang data matapos ang successful operation
+        alert(`Site ${currentSite ? "updated" : "created"} successfully!`);
+        fetchSites();
       } else {
-        alert(data.message || `Failed to ${currentSite ? "update" : "create"} Site.`);
+        alert(data.message || "Failed to save site.");
       }
     } catch (error) {
       console.error("Error saving site:", error);
-      alert("Something went wrong with the network/server.");
     } finally {
       setIsSaving(false);
-      // Reset and Close
       setIsSiteDialogOpen(false);
       setCurrentSite(null);
       setNewSiteName("");
     }
   };
 
-  // 🧠 DELETE Site
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete Site "${name}"? This action cannot be undone.`)) return; 
+    if (!confirm(`Are you sure you want to delete Site "${name}"?`)) return; 
 
     try {
       const res = await fetch(`/api/site/${id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
         alert("Site deleted successfully!");
-        fetchSites(); // I-refresh ang data
-      } else {
-        alert(data.message || "Failed to delete Site.");
+        fetchSites();
       }
     } catch (error) {
       console.error("Error deleting site:", error);
-      alert("Something went wrong while deleting the site.");
     }
   };
 
@@ -227,82 +155,85 @@ export default function SitePage() {
     setIsSiteDialogOpen(true);
   };
 
+  // 🔥 Hydration Guard
+  if (!mounted) return null;
+
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="dark:bg-zinc-950 transition-colors">
         {/* HEADER */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white dark:bg-zinc-950 dark:border-zinc-800 px-6 shadow-sm">
           <div className="flex items-center gap-4">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
+            <SidebarTrigger className="dark:text-zinc-400" />
+            <Separator orientation="vertical" className="h-6 dark:bg-zinc-800" />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/dashboard" className="text-gray-700">Dashboard</BreadcrumbLink>
+                  <BreadcrumbLink href="/dashboard" className="text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200">Dashboard</BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator />
+                <BreadcrumbSeparator className="dark:text-zinc-600" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Sites</BreadcrumbPage>
+                  <BreadcrumbPage className="dark:text-zinc-100">Sites</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-
         </header>
 
         {/* MAIN CONTENT */}
-        <main className="p-6 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
-  <h1 className="text-3xl font-extrabold text-gray-700 mb-4 md:mb-0">
-    Site List
-  </h1>
-
-  <Button 
-    onClick={handleOpenAdd}
-    className="bg-gray-700 hover:bg-gray-800 text-white"
-  >
-    <Plus className="h-5 w-5 mr-2" /> Site
-  </Button>
-</div>
-
+        <main className="p-6 bg-[#f7f8fa] dark:bg-zinc-950 min-h-[calc(100vh-4rem)]">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-zinc-800">
+            <h1 className="text-3xl font-extrabold text-gray-700 dark:text-zinc-100 mb-4 md:mb-0">
+              Site List
+            </h1>
+            <Button 
+              onClick={handleOpenAdd}
+              className="bg-gray-700 hover:bg-gray-800 text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-300"
+            >
+              <Plus className="h-5 w-5 mr-2" /> Site
+            </Button>
+          </div>
 
           {/* SITE TABLE */}
-          <div className="bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-zinc-900 shadow-xl rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-xs">
-                <thead className="bg-gray-700 text-white font-semibold sticky top-0">
+                <thead className="bg-gray-700 dark:bg-zinc-800 text-white font-semibold sticky top-0">
                   <tr>
                     <th className="p-4">Site Name</th>
                     <th className="p-4 text-center w-[100px]">Action</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y dark:divide-zinc-800">
                   {isLoading ? (
-                    <tr><td colSpan={2} className="p-6 text-center text-gray-500"><Loader2 className="h-5 w-5 animate-spin inline-block mr-2" /> Loading sites...</td></tr>
+                    <tr>
+                      <td colSpan={2} className="p-6 text-center text-gray-500 dark:text-zinc-400">
+                        <Loader2 className="h-5 w-5 animate-spin inline-block mr-2" /> Loading...
+                      </td>
+                    </tr>
                   ) : sites.length > 0 ? (
                     sites.map((site) => (
-                      <tr key={site._id} className="border-b hover:bg-gray-50 transition-colors">
-                        <td className="p-4 font-medium text-gray-800">{site.name}</td>
+                      <tr key={site._id} className="border-b dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
+                        <td className="p-4 font-medium text-gray-800 dark:text-zinc-200">{site.name}</td>
                         <td className="p-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-2 w-8 p-0">
-                                <span className="sr-only">Open menu</span>
+                              <Button variant="ghost" className="h-8 w-8 p-0 dark:text-zinc-400">
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
+                            <DropdownMenuContent align="end" className="dark:bg-zinc-900 dark:border-zinc-800">
+                              <DropdownMenuLabel className="dark:text-zinc-400">Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator className="dark:bg-zinc-800" />
                               <DropdownMenuItem 
-                                className="cursor-pointer text-gray-700 hover:bg-gray-100"
+                                className="cursor-pointer dark:text-zinc-300 dark:hover:bg-zinc-800"
                                 onClick={() => handleEdit(site)}
                               >
                                 <Edit className="mr-2 h-4 w-4" /> Edit
                               </DropdownMenuItem>
                               <DropdownMenuItem 
-                                className="cursor-pointer text-red-600 hover:bg-red-50"
+                                className="cursor-pointer text-red-600 dark:text-red-400 dark:hover:bg-red-950/30"
                                 onClick={() => handleDelete(site._id, site.name)}
                               >
                                 <Trash2 className="mr-2 h-4 w-4" /> Delete
@@ -314,7 +245,7 @@ export default function SitePage() {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={2} className="p-6 text-center text-gray-500 italic">
+                      <td colSpan={2} className="p-6 text-center text-gray-500 dark:text-zinc-500 italic">
                         No sites found. Click "+ Site" to add one.
                       </td>
                     </tr>
@@ -325,7 +256,7 @@ export default function SitePage() {
           </div>
         </main> 
         
-        {/* ADD/EDIT DIALOG */}
+        {/* DIALOG */}
         <Dialog 
             open={isSiteDialogOpen} 
             onOpenChange={(open) => {
@@ -336,21 +267,21 @@ export default function SitePage() {
               }
             }}
         >
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] dark:bg-zinc-950 dark:border-zinc-800">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900">
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-zinc-100">
                 {currentSite ? "Edit Site" : "Add New Site"}
               </DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="siteName" className="text-right text-lg ml-3">Name :</Label>
+                <Label htmlFor="siteName" className="text-right text-sm font-medium dark:text-zinc-300">Name :</Label>
                 <Input
                   id="siteName"
                   value={newSiteName}
                   onChange={(e) => setNewSiteName(e.target.value)}
-                  className="col-span-3"
-                  placeholder="e.g., Disruptive Solutions Inc - Primex"
+                  className="col-span-3 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
+                  placeholder="e.g., Disruptive Solutions Inc"
                   disabled={isSaving}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !isSaving) handleSaveSite();
@@ -359,10 +290,12 @@ export default function SitePage() {
               </div>
             </div>
             <DialogFooter>
-              <DialogClose asChild><Button variant="outline" disabled={isSaving}>Cancel</Button></DialogClose>
-              <Button onClick={handleSaveSite} className="bg-gray-700 hover:bg-gray-800" disabled={isSaving}>
+              <DialogClose asChild>
+                <Button variant="outline" className="dark:border-zinc-800 dark:text-zinc-300" disabled={isSaving}>Cancel</Button>
+              </DialogClose>
+              <Button onClick={handleSaveSite} className="bg-gray-700 hover:bg-gray-800 dark:bg-zinc-100 dark:text-zinc-950" disabled={isSaving}>
                 {isSaving ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {currentSite ? "Saving Changes..." : "Creating Site..."}</>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
                     currentSite ? "Save Changes" : "Create Site"
                 )}
@@ -370,7 +303,6 @@ export default function SitePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
       </SidebarInset>
     </SidebarProvider>
   );

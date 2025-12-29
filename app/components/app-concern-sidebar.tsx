@@ -601,740 +601,766 @@ export function ConcernSidebar({ ...props }: React.ComponentProps<typeof Sidebar
   `}
             >
 
-                {/* --- Desktop Header --- */}
-                <div className="hidden md:block">
-                    <SidebarHeader className="border-b p-3 bg-gray-50">
-                        <div className="flex w-full items-center justify-between">
-                            <div className="text-foreground text-base font-semibold">
-                                {activeItem?.title}
-                            </div>
-                            <div className="flex items-center">
-                                <Button
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1"
-                                    onClick={() => {
-                                        setValidationErrors({});
-                                        setIsManualAddDialogOpen(true);
-                                    }}
-                                >
-                                    + Ticket
-                                </Button>
-                            </div>
+{/* --- Desktop Header --- */}
+<div className="hidden md:block">
+    <SidebarHeader className="border-b p-3 bg-white dark:bg-black border-slate-200 dark:border-zinc-800">
+        <div className="flex w-full items-center justify-between mb-2">
+            <div className="text-foreground dark:text-zinc-100 text-base font-semibold">
+                {activeItem?.title}
+            </div>
+            <div className="flex items-center">
+                <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500 text-white font-medium px-3 py-1 transition-colors"
+                    onClick={() => {
+                        setValidationErrors({});
+                        setIsManualAddDialogOpen(true);
+                    }}
+                >
+                    + Ticket
+                </Button>
+            </div>
+        </div>
+
+        <SidebarInput
+            placeholder="Search Employee name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 focus-visible:ring-zinc-700"
+        />
+    </SidebarHeader>
+</div>
+
+{/* --- Mobile Dialog --- */}
+<div className="md:hidden">
+    <Dialog open={isMobileDialogOpen} onOpenChange={setIsMobileDialogOpen}>
+        <DialogContent className="max-w-md w-full max-h-[90vh] p-0 rounded-lg overflow-hidden bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+            {/* Header */}
+            <DialogHeader className="bg-gray-50 dark:bg-slate-800/50 p-4 flex flex-row items-center justify-between border-b dark:border-slate-800">
+                {/* Left-aligned Title */}
+                <DialogTitle
+                    className="text-base font-semibold text-gray-900 dark:text-slate-100 text-xl truncate max-w-[70%]"
+                >
+                    {activeItem?.title}
+                </DialogTitle>
+
+                {/* Right-aligned Button */}
+                <Button
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500 text-white font-medium px-3 py-1 flex-shrink-0"
+                    onClick={() => {
+                        setValidationErrors({});
+                        setIsManualAddDialogOpen(true);
+                    }}
+                >
+                    + Ticket
+                </Button>
+            </DialogHeader>
+
+            {/* Search Input Area */}
+            <div className="p-4 border-b bg-white dark:bg-slate-900 dark:border-slate-800">
+                <SidebarInput className="text-xs dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500"
+                    placeholder="Search Employee name..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+
+{/* --- Mobile Dialog Example --- */}
+<Dialog open={isMobileDialogOpen} onOpenChange={setIsMobileDialogOpen}>
+    {/* Idinagdag ang [&>button]:hidden para mawala ang X button */}
+<DialogContent className="max-w-md w-full max-h-[90vh] p-0 rounded-lg overflow-hidden bg-white dark:bg-black border-slate-200 dark:border-zinc-800 [&>button]:hidden">
+    
+    <DialogHeader className="bg-gray-50 dark:bg-zinc-900/50 p-4 flex flex-row items-center justify-between border-b dark:border-zinc-800">
+        <DialogTitle className="text-base font-semibold text-gray-900 dark:text-zinc-100 truncate max-w-[70%]">
+            {activeItem?.title}
+        </DialogTitle>
+        <Button
+            size="sm"
+            className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1 flex-shrink-0"
+            onClick={() => setIsManualAddDialogOpen(true)}
+        >
+            + Ticket
+        </Button>
+    </DialogHeader>
+
+    {/* Scrollable Mail List */}
+    <div className="overflow-y-auto max-h-[calc(90vh-160px)] bg-slate-50 dark:bg-black">
+        <SidebarContent className="bg-transparent">
+            <SidebarGroup className="px-0">
+                <SidebarGroupContent>
+                    {filteredMails.length === 0 ? (
+                        <div className="p-6 text-center text-sm text-gray-500 dark:text-zinc-500">
+                            No concerns found.
+                        </div>
+                    ) : (
+                        filteredMails.map((mail) => (
+                            <button
+                                key={mail.ConcernNumber || mail.subject + mail.date}
+                                onClick={() => openDialog(mail)}
+                                className="flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 border-slate-200 dark:border-zinc-800 bg-white dark:bg-black hover:bg-gray-50 dark:hover:bg-zinc-900/50 transition-colors"
+                            >
+                                {/* Header */}
+                                <div className="flex w-full items-center justify-between gap-2">
+                                    <span className="font-semibold text-gray-900 dark:text-zinc-100">{mail.name}</span>
+                                    <span className="text-[10px] text-gray-500 dark:text-zinc-500">
+                                        {new Date(mail.createdAt).toLocaleString("en-US", {
+                                            month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: true,
+                                        })}
+                                    </span>
+                                </div>
+
+                                {/* Subject + Priority */}
+                                <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-800 dark:text-zinc-300">{mail.subject}</span>
+                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}>
+                                        {mail.priority}
+                                    </span>
+                                </div>
+
+                                {/* Teaser */}
+                                <span className="line-clamp-2 text-xs text-gray-700 dark:text-zinc-400">
+                                    {mail.teaser}
+                                </span>
+                            </button>
+                        ))
+                    )}
+                </SidebarGroupContent>
+            </SidebarGroup>
+        </SidebarContent>
+    </div>
+</DialogContent>
+</Dialog>
+        </DialogContent>
+    </Dialog>
+</div>
+
+<SidebarContent className="bg-white dark:bg-black border-r dark:border-zinc-800 transition-colors">
+    <SidebarGroup className="px-0">
+        <SidebarGroupContent>
+            {filteredMails.length === 0 ? (
+                /* 🟡 EMPTY STATE */
+                <div className="p-6 text-center text-sm text-gray-500 dark:text-slate-400">
+                    No concerns found.
+                </div>
+            ) : (
+                filteredMails.map((mail) => (
+                   <button
+    key={mail.ConcernNumber || mail.subject + mail.date}
+    onClick={() => openDialog(mail)}
+    className="transition-all flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50"
+>
+                        {/* Header */}
+                        <div className="flex w-full items-center justify-between gap-2">
+                            <span className="font-semibold text-gray-900 dark:text-slate-100">
+                                {mail.name}
+                            </span>
+                            <span className="text-[10px] text-gray-500 dark:text-slate-400">
+                                {new Date(mail.createdAt).toLocaleString("en-US", {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                })}
+                            </span>
                         </div>
 
-                        <SidebarInput
-                            placeholder="Search Employee name..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </SidebarHeader>
-                </div>
+                        {/* Subject + Priority */}
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-800 dark:text-slate-200">
+                                {mail.subject}
+                            </span>
+                            <span
+                                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}
+                            >
+                                {mail.priority}
+                            </span>
+                        </div>
 
-                {/* --- Mobile Dialog --- */}
-                <div className="md:hidden">
-                    <Dialog open={isMobileDialogOpen} onOpenChange={setIsMobileDialogOpen}>
-                        <DialogContent className="max-w-md w-full max-h-[90vh] p-0 rounded-lg overflow-hidden">
-                            {/* Header */}
-
-<DialogHeader className="bg-gray-50 p-4 flex items-center justify-between border-b">
-                                {/* Left-aligned Title */}
-                                <DialogTitle
-                                    className="text-base font-semibold text-gray-900 text-xl truncate max-w-[70%]"
-                                >
-                                    {activeItem?.title}
-                                </DialogTitle>
-
-                                {/* Right-aligned Button */}
-                                <Button
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-1 flex-shrink-0"
-                                    onClick={() => {
-                                        setValidationErrors({});
-                                        setIsManualAddDialogOpen(true);
-                                    }}
-                                >
-                                    + Ticket
-                                </Button>
-                            </DialogHeader>
-
-
-                            {/* Search Input */}
-                            <div className="p-4 border-b bg-white ">
-                                <SidebarInput className="text-xs"
-                                    placeholder="Search Employee name..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
-                            </div>
-
-                            {/* Scrollable Mail List */}
-                            <div className="overflow-y-auto max-h-[calc(90vh-160px)] bg-gray-50">
-                                <SidebarContent>
-                                    <SidebarGroup className="px-0">
-                                        <SidebarGroupContent>
-                                            {filteredMails.length === 0 ? (
-                                                /* 🟡 EMPTY STATE */
-                                                <div className="p-6 text-center text-sm text-gray-500">
-                                                    No concerns found.
-                                                </div>
-                                            ) : (
-                                                filteredMails.map((mail) => (
-                                                    <button
-                                                        key={mail.ConcernNumber || mail.subject + mail.date}
-                                                        onClick={() => openDialog(mail)}
-                                                        className={`transition-all flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 ${getBgColor(mail.priority)}`}
-                                                    >
-                                                        {/* Header */}
-                                                        <div className="flex w-full items-center gap-2">
-                                                            <span className="font-semibold text-gray-900">{mail.name}</span>
-                                                            <span className="px-4 py-2">
-                                                                {new Date(mail.createdAt).toLocaleString("en-US", {
-                                                                    year: "numeric",
-                                                                    month: "long",
-                                                                    day: "numeric",
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit",
-                                                                    hour12: true,
-                                                                })}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Subject + Priority */}
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-medium text-gray-800">{mail.subject}</span>
-                                                            <span
-                                                                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}
-                                                            >
-                                                                {mail.priority}
-                                                            </span>
-                                                        </div>
-
-                                                        {/* Teaser */}
-                                                        <span className="line-clamp-2 text-xs text-gray-700">
-                                                            {mail.teaser}
-                                                        </span>
-                                                    </button>
-                                                ))
-                                            )}
-                                        </SidebarGroupContent>
-                                    </SidebarGroup>
-                                </SidebarContent>
-
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                </div>
-
-                <SidebarContent>
-                    <SidebarGroup className="px-0">
-                        <SidebarGroupContent>
-                            {filteredMails.length === 0 ? (
-                                /* 🟡 EMPTY STATE */
-                                <div className="p-6 text-center text-sm text-gray-500">
-                                    No concerns found.
-                                </div>
-                            ) : (
-                                filteredMails.map((mail) => (
-                                    <button
-                                        key={mail.ConcernNumber || mail.subject + mail.date}
-                                        onClick={() => openDialog(mail)}
-                                        className={`transition-all flex flex-col gap-2 border-b p-4 text-xs text-left w-full last:border-b-0 ${getBgColor(mail.priority)}`}
-                                    >
-                                        {/* Header */}
-                                        <div className="flex w-full items-center gap-2">
-                                            <span className="font-semibold text-gray-900">{mail.name}</span>
-                                            <span className="px-4 py-2">
-                                                {new Date(mail.createdAt).toLocaleString("en-US", {
-                                                    year: "numeric",
-                                                    month: "long",
-                                                    day: "numeric",
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
-                                                    hour12: true,
-                                                })}
-                                            </span>
-                                        </div>
-
-                                        {/* Subject + Priority */}
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-medium text-gray-800">{mail.subject}</span>
-                                            <span
-                                                className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getPriorityColor(mail.priority)}`}
-                                            >
-                                                {mail.priority}
-                                            </span>
-                                        </div>
-
-                                        {/* Teaser */}
-                                        <span className="line-clamp-2 text-xs text-gray-700">
-                                            {mail.teaser}
-                                        </span>
-                                    </button>
-                                ))
-                            )}
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                </SidebarContent>
+                        {/* Teaser */}
+                        <span className="line-clamp-2 text-xs text-gray-700 dark:text-slate-400">
+                            {mail.teaser}
+                        </span>
+                    </button>
+                ))
+            )}
+        </SidebarGroupContent>
+    </SidebarGroup>
+</SidebarContent>
 
             </Sidebar>
 
 
-            {/* 🪟 Concern Details Dialog */}
-            <Dialog open={isDialogOpen}>
-                <DialogContent
-                    className="sm:max-w-md [&>button]:hidden"
+{/* 🪟 Concern Details Dialog */}
+<Dialog open={isDialogOpen}>
+    <DialogContent
+        className="sm:max-w-md [&>button]:hidden bg-white dark:bg-black border-slate-200 dark:border-zinc-800"
+        // ❌ bawal magsara pag click sa labas
+        onInteractOutside={(e) => e.preventDefault()}
+        // ❌ bawal magsara pag ESC
+        onEscapeKeyDown={(e) => e.preventDefault()}
+    >
+        {selectedMail && (
+            <>
+                <DialogHeader>
+                    <DialogTitle className="text-slate-900 dark:text-zinc-100">
+                        {selectedMail.subject}
+                    </DialogTitle>
+                    <DialogDescription className="text-slate-500 dark:text-zinc-400">
+                        Concern details from <strong className="text-slate-700 dark:text-zinc-200">{selectedMail.name}</strong>
+                    </DialogDescription>
+                </DialogHeader>
 
-                    // ❌ bawal magsara pag click sa labas
-                    onInteractOutside={(e) => e.preventDefault()}
-
-                    // ❌ bawal magsara pag ESC
-                    onEscapeKeyDown={(e) => e.preventDefault()}
-                >
-                    {selectedMail && (
-                        <>
-                            <DialogHeader>
-                                <DialogTitle>{selectedMail.subject}</DialogTitle>
-                                <DialogDescription>
-                                    Concern details from <strong>{selectedMail.name}</strong>
-                                </DialogDescription>
-                            </DialogHeader>
-
-                            <div className="mt-4 space-y-3 text-xs">
-                                <div>
-                                    <strong>Name:</strong> {selectedMail.name}
-                                </div>
-
-                                <div>
-                                    <strong>Email:</strong> {selectedMail.Email}
-                                </div>
-
-                                <div>
-                                    <strong>Request Type:</strong> {selectedMail.requesttype1}
-                                </div>
-
-                                <div>
-                                    <strong>Concern Number:</strong> {selectedMail.ConcernNumber}
-                                </div>
-
-                                <div>
-                                    <strong>Date Created:</strong>{" "}
-                                    {new Date(selectedMail.createdAt).toLocaleString("en-US", {
-                                        month: "short",
-                                        day: "numeric",
-                                        year: "numeric",
-                                        hour: "numeric",
-                                        minute: "2-digit",
-                                        hour12: true,
-                                    })}
-                                </div>
-
-                                <div>
-                                    <strong>Site:</strong> {selectedMail.site}
-                                </div>
-
-                                {/* hidden readstatus (for update) */}
-                                <div className="hidden">
-                                    <label className="font-semibold">Read Status:</label>
-                                    <input
-                                        type="text"
-                                        value={selectedMail.readstatus || ""}
-                                        onChange={(e) =>
-                                            setSelectedMail({
-                                                ...selectedMail,
-                                                readstatus: e.target.value,
-                                            })
-                                        }
-                                        className="w-full border px-2 py-1 rounded"
-                                    />
-                                </div>
-
-                                <div>
-                                    <strong>Priority:</strong>{" "}
-                                    <Badge className={getPriorityColor(selectedMail.priority)}>
-                                        {selectedMail.priority}
-                                    </Badge>
-                                </div>
-
-                                <div className="pt-2 border-t mt-2">
-                                    <strong>Remarks:</strong>
-                                    <p className="mt-1 text-gray-700">{selectedMail.teaser}</p>
-                                </div>
-                            </div>
-
-                            <div className="mt-6 flex justify-end gap-2">
-                                {/* ✅ Close button LANG ang pwedeng magsara */}
-                                <Button
-                                    variant="outline"
-                                    onClick={() => {
-                                        handleUpdate();          // ❗ HINDI TINANGGAL
-                                        setIsDialogOpen(false);
-                                    }}
-
-                                >
-                                    Close
-                                </Button>
-
-                                <Button onClick={openAddDialog}>
-                                    Create Ticket
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogContent className="sm:max-w-3xl max-h-[95vh] flex flex-col p-0">
-                    {/* p-0 para ma-control natin ang padding sa loob ng scroll area */}
-
-                    <DialogHeader className="p-6 pb-2">
-                        <DialogTitle>Create New Ticket</DialogTitle>
-                        <DialogDescription>
-                            Review and finalize the ticket details based on the end user concern.
-                            Required fields are marked with a <span className="text-red-500 font-bold underline">RED BORDER</span> if left empty.
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    {/* --- Scrollable Area Start --- */}
-                    <div className="flex-1 overflow-y-auto px-6 py-2">
-                        <form id="ticket-form" onSubmit={handleSubmit} className="space-y-4 text-xs">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
-                                {/* Ticket Number (Hidden) */}
-                                <div className="hidden">
-                                    <Label>Ticket Number</Label>
-                                    <Input value={ticketForm.ticketNumber} readOnly />
-                                </div>
-
-                                {/* Full Name */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("Fullname")}>Full Name</Label>
-                                    <Input value={ticketForm.Fullname} readOnly className={getErrorClass("Fullname")} />
-                                </div>
-
-                                {/* Email */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("Email")}>Email</Label>
-                                    <Input value={ticketForm.Email} readOnly className={getErrorClass("Email")} />
-                                </div>
-
-                                {/* Department */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("department")}>Department</Label>
-                                    <Input value={ticketForm.department} readOnly className={getErrorClass("department")} />
-                                </div>
-
-                                {/* Request Type */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("requesttype")}>Request Type</Label>
-                                    <Input
-                                        value={selectedMail?.requesttype1 ?? ""}
-                                        readOnly
-                                        className={getErrorClass("requesttype")}
-                                    />
-                                </div>
-
-                                {/* Type Of Concern */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("type")}>Type Of Concern</Label>
-                                    <Input
-                                        value={selectedMail?.subject ?? ""}
-                                        readOnly
-                                        className={getErrorClass("type")}
-                                    />
-                                </div>
-
-                                {/* Mode */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label>Mode</Label>
-                                    <input
-                                        type="text"
-                                        value="Web Form"
-                                        readOnly
-                                        className="w-full rounded-md border border-input bg-white px-3 py-2 text-xs text-foreground cursor-default"
-                                    />
-                                </div>
-
-                                {/* Group */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("group")}>Group</Label>
-                                    <Select
-                                        value={ticketForm.group}
-                                        onValueChange={(value) => setTicketForm({ ...ticketForm, group: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("group")}`}>
-                                            <SelectValue placeholder="Select Group" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {groups.map((group) => (
-                                                <SelectItem key={group.name} value={group.name}>{group.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Technician Name */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("technicianname")}>Technician Name</Label>
-                                    <Select
-                                        value={ticketForm.technicianname}
-                                        onValueChange={(value) => setTicketForm({ ...ticketForm, technicianname: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("technicianname")}`}>
-                                            <SelectValue placeholder="Select name" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {technicians.map((technician) => (
-                                                <SelectItem key={technician.name} value={technician.name}>{technician.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Site */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("site")}>Site</Label>
-                                    <Select
-                                        value={ticketForm.site}
-                                        onValueChange={(value) => setTicketForm({ ...ticketForm, site: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("site")}`}>
-                                            <SelectValue placeholder="Select site" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {sites.map(site => <SelectItem key={site.name} value={site.name}>{site.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Date Scheduled */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label>Date Scheduled (Required)</Label>
-                                    <Input
-                                        type="date"
-                                        value={ticketForm.dateSched}
-                                        min={new Date().toISOString().split("T")[0]}
-                                        onChange={(e) => setTicketForm({ ...ticketForm, dateSched: e.target.value })}
-                                    />
-                                </div>
-
-                                {/* Priority */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("priority")}>Priority</Label>
-                                    <Select
-                                        value={ticketForm.priority}
-                                        onValueChange={(value) => setTicketForm({ ...ticketForm, priority: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
-                                            <SelectValue placeholder="Select priority" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {priorities.map(prio => <SelectItem key={prio.name} value={prio.name}>{prio.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Status */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("status")}>Status</Label>
-                                    <Select
-                                        value={ticketForm.status}
-                                        onValueChange={(value) => setTicketForm({ ...ticketForm, status: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("status")}`}>
-                                            <SelectValue placeholder="Select status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {status.map(Stat => <SelectItem key={Stat.name} value={Stat.name}>{Stat.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            {/* Remarks (Full Width) */}
-                            <div className="flex flex-col space-y-1.5 mt-2">
-                                <Label className={getErrorClass("remarks")}>Remarks</Label>
-                                <Textarea
-                                    placeholder="Enter remarks or description..."
-                                    value={ticketForm.remarks}
-                                    className={`min-h-[100px] ${getErrorClass("remarks")}`}
-                                    onChange={(e) => setTicketForm({ ...ticketForm, remarks: e.target.value })}
-                                />
-                            </div>
-
-                            {/* Processed By (Full Width) */}
-                            <div className="flex flex-col space-y-1.5 pb-4">
-                                <Label className={getErrorClass("processedBy")}>Processed By</Label>
-                                <Input
-                                    placeholder="Name of processor"
-                                    value={ticketForm.processedBy}
-                                    className={getErrorClass("processedBy")}
-                                    onChange={(e) => setTicketForm({ ...ticketForm, processedBy: e.target.value })}
-                                />
-                            </div>
-                        </form>
+                <div className="mt-4 space-y-3 text-xs text-slate-700 dark:text-zinc-300">
+                    <div>
+                        <strong className="text-slate-900 dark:text-zinc-100 font-semibold">Name:</strong> {selectedMail.name}
                     </div>
-                    {/* --- Scrollable Area End --- */}
 
-                    <DialogFooter className="p-6 pt-4 border-t bg-gray-50/50">
-                        <DialogClose asChild>
-                            <Button type="button" variant="outline">
-                                Cancel
-                            </Button>
-                        </DialogClose>
-                        {/* Ikabit ang submit sa form id kung nasa labas ang button, 
-                pero dito dahil nasa loob ng <DialogContent> pwedeng simple type="submit" form="ticket-form" */}
-                        <Button type="submit" form="ticket-form">Submit Ticket</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    <div>
+                        <strong className="text-slate-900 dark:text-zinc-100 font-semibold">Email:</strong> {selectedMail.Email}
+                    </div>
+
+                    <div>
+                        <strong className="text-slate-900 dark:text-zinc-100 font-semibold">Request Type:</strong> {selectedMail.requesttype1}
+                    </div>
+
+                    <div>
+                        <strong className="text-slate-900 dark:text-zinc-100 font-semibold">Concern Number:</strong> {selectedMail.ConcernNumber}
+                    </div>
+
+                    <div>
+                        <strong className="text-slate-900 dark:text-zinc-100 font-semibold">Date Created:</strong>{" "}
+                        {new Date(selectedMail.createdAt).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            hour12: true,
+                        })}
+                    </div>
+
+                    <div>
+                        <strong className="text-slate-900 dark:text-zinc-100 font-semibold">Site:</strong> {selectedMail.site}
+                    </div>
+
+                    {/* hidden readstatus */}
+                    <div className="hidden">
+                        <input
+                            type="text"
+                            value={selectedMail.readstatus || ""}
+                            onChange={(e) =>
+                                setSelectedMail({
+                                    ...selectedMail,
+                                    readstatus: e.target.value,
+                                })
+                            }
+                        />
+                    </div>
+
+                    <div>
+                        <strong className="text-slate-900 dark:text-zinc-100 font-semibold">Priority:</strong>{" "}
+                        <Badge className={getPriorityColor(selectedMail.priority)}>
+                            {selectedMail.priority}
+                        </Badge>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 dark:border-zinc-800 mt-2">
+                        <strong className="text-slate-900 dark:text-zinc-100 font-semibold">Remarks:</strong>
+                        <p className="mt-1 text-slate-600 dark:text-zinc-400 leading-relaxed">{selectedMail.teaser}</p>
+                    </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-2">
+                    <Button
+                        variant="outline"
+                        className="dark:border-zinc-800 dark:hover:bg-zinc-900 dark:text-zinc-300"
+                        onClick={() => {
+                            handleUpdate(); 
+                            setIsDialogOpen(false);
+                        }}
+                    >
+                        Close
+                    </Button>
+
+                    <Button 
+                        onClick={openAddDialog}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
+                    >
+                        Create Ticket
+                    </Button>
+                </div>
+            </>
+        )}
+    </DialogContent>
+</Dialog>
+<Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+    {/* Idinagdag ang [&>button]:hidden para sa X button at dark mode colors */}
+    <DialogContent className="sm:max-w-3xl max-h-[95vh] flex flex-col p-0 bg-white dark:bg-black border-slate-200 dark:border-zinc-800 [&>button]:hidden transition-colors">
+        
+        <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="text-slate-900 dark:text-zinc-100">Create New Ticket</DialogTitle>
+            <DialogDescription className="text-slate-500 dark:text-zinc-400">
+                Review and finalize the ticket details based on the end user concern.
+                Required fields are marked with a <span className="text-red-500 font-bold underline">RED BORDER</span> if left empty.
+            </DialogDescription>
+        </DialogHeader>
+
+        {/* --- Scrollable Area Start --- */}
+        <div className="flex-1 overflow-y-auto px-6 py-2 dark:bg-black">
+            <form id="ticket-form" onSubmit={handleSubmit} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-slate-900 dark:text-zinc-100">
+
+                    {/* Ticket Number (Hidden) */}
+                    <div className="hidden">
+                        <Label>Ticket Number</Label>
+                        <Input value={ticketForm.ticketNumber} readOnly />
+                    </div>
+
+                    {/* Full Name */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("Fullname")} dark:text-zinc-400`}>Full Name</Label>
+                        <Input 
+                            value={ticketForm.Fullname} 
+                            readOnly 
+                            className={`${getErrorClass("Fullname")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`} 
+                        />
+                    </div>
+
+                    {/* Email */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("Email")} dark:text-zinc-400`}>Email</Label>
+                        <Input 
+                            value={ticketForm.Email} 
+                            readOnly 
+                            className={`${getErrorClass("Email")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`} 
+                        />
+                    </div>
+
+                    {/* Department */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("department")} dark:text-zinc-400`}>Department</Label>
+                        <Input 
+                            value={ticketForm.department} 
+                            readOnly 
+                            className={`${getErrorClass("department")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`} 
+                        />
+                    </div>
+
+                    {/* Request Type */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("requesttype")} dark:text-zinc-400`}>Request Type</Label>
+                        <Input
+                            value={selectedMail?.requesttype1 ?? ""}
+                            readOnly
+                            className={`${getErrorClass("requesttype")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}
+                        />
+                    </div>
+
+                    {/* Type Of Concern */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("type")} dark:text-zinc-400`}>Type Of Concern</Label>
+                        <Input
+                            value={selectedMail?.subject ?? ""}
+                            readOnly
+                            className={`${getErrorClass("type")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}
+                        />
+                    </div>
+
+                    {/* Mode */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className="dark:text-zinc-400">Mode</Label>
+                        <div className="w-full rounded-md border border-input bg-white dark:bg-zinc-900 px-3 py-2 text-xs text-foreground dark:text-zinc-100 cursor-default dark:border-zinc-800">
+                            Web Form
+                        </div>
+                    </div>
+
+                    {/* Group */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("group")} dark:text-zinc-400`}>Group</Label>
+                        <Select
+                            value={ticketForm.group}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, group: value })}
+                        >
+                            <SelectTrigger className={`w-full dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 ${getErrorClass("group")}`}>
+                                <SelectValue placeholder="Select Group" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {groups.map((group) => (
+                                    <SelectItem key={group.name} value={group.name} className="dark:focus:bg-zinc-900">{group.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Technician Name */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("technicianname")} dark:text-zinc-400`}>Technician Name</Label>
+                        <Select
+                            value={ticketForm.technicianname}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, technicianname: value })}
+                        >
+                            <SelectTrigger className={`w-full dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 ${getErrorClass("technicianname")}`}>
+                                <SelectValue placeholder="Select name" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {technicians.map((technician) => (
+                                    <SelectItem key={technician.name} value={technician.name} className="dark:focus:bg-zinc-900">{technician.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Site */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("site")} dark:text-zinc-400`}>Site</Label>
+                        <Select
+                            value={ticketForm.site}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, site: value })}
+                        >
+                            <SelectTrigger className={`w-full dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 ${getErrorClass("site")}`}>
+                                <SelectValue placeholder="Select site" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {sites.map(site => <SelectItem key={site.name} value={site.name} className="dark:focus:bg-zinc-900">{site.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Date Scheduled */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className="dark:text-zinc-400">Date Scheduled (Required)</Label>
+                        <Input
+                            type="date"
+                            value={ticketForm.dateSched}
+                            min={new Date().toISOString().split("T")[0]}
+                            onChange={(e) => setTicketForm({ ...ticketForm, dateSched: e.target.value })}
+                            className="dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 [color-scheme:dark]"
+                        />
+                    </div>
+
+                    {/* Priority */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("priority")} dark:text-zinc-400`}>Priority</Label>
+                        <Select
+                            value={ticketForm.priority}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, priority: value })}
+                        >
+                            <SelectTrigger className={`w-full dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 ${getErrorClass("priority")}`}>
+                                <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {priorities.map(prio => <SelectItem key={prio.name} value={prio.name} className="dark:focus:bg-zinc-900">{prio.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Status */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("status")} dark:text-zinc-400`}>Status</Label>
+                        <Select
+                            value={ticketForm.status}
+                            onValueChange={(value) => setTicketForm({ ...ticketForm, status: value })}
+                        >
+                            <SelectTrigger className={`w-full dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 ${getErrorClass("status")}`}>
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {status.map(Stat => <SelectItem key={Stat.name} value={Stat.name} className="dark:focus:bg-zinc-900">{Stat.name}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                {/* Remarks */}
+                <div className="flex flex-col space-y-1.5 mt-2">
+                    <Label className={`${getErrorClass("remarks")} dark:text-zinc-400`}>Remarks</Label>
+                    <Textarea
+                        placeholder="Enter remarks..."
+                        value={ticketForm.remarks}
+                        className={`min-h-[100px] dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 ${getErrorClass("remarks")}`}
+                        onChange={(e) => setTicketForm({ ...ticketForm, remarks: e.target.value })}
+                    />
+                </div>
+
+                {/* Processed By */}
+                <div className="flex flex-col space-y-1.5 pb-4">
+                    <Label className={`${getErrorClass("processedBy")} dark:text-zinc-400`}>Processed By</Label>
+                    <Input
+                        placeholder="Name of processor"
+                        value={ticketForm.processedBy}
+                        className={`${getErrorClass("processedBy")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}
+                        onChange={(e) => setTicketForm({ ...ticketForm, processedBy: e.target.value })}
+                    />
+                </div>
+            </form>
+        </div>
+        {/* --- Scrollable Area End --- */}
+
+        <DialogFooter className="p-6 pt-4 border-t bg-gray-50/50 dark:bg-zinc-900/30 dark:border-zinc-800">
+            <DialogClose asChild>
+                <Button type="button" variant="outline" className="dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900">
+                    Cancel
+                </Button>
+            </DialogClose>
+            <Button type="submit" form="ticket-form" className="bg-blue-600 hover:bg-blue-700 text-white font-medium">
+                Submit Ticket
+            </Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
             {/* ➕ Add New Ticket Dialog (Manual Entry) */}
-            <Dialog open={isManualAddDialogOpen} onOpenChange={setIsManualAddDialogOpen}>
-                <DialogContent className="sm:max-w-3xl max-h-[95vh] flex flex-col p-0">
-                    {/* Header - Fixed at the top */}
-                    <DialogHeader className="p-6 pb-2">
-                        <DialogTitle>Add New Ticket Manually</DialogTitle>
-                        <DialogDescription>
-                            Enter the details for a new support ticket. Required fields are marked with a <span className="text-red-500 font-bold underline">RED BORDER</span> if left empty.
-                        </DialogDescription>
-                    </DialogHeader>
+<Dialog open={isManualAddDialogOpen} onOpenChange={setIsManualAddDialogOpen}>
+    <DialogContent className="sm:max-w-3xl max-h-[95vh] flex flex-col p-0 bg-white dark:bg-black border-slate-200 dark:border-zinc-800 transition-colors">
+        {/* Header - Fixed at the top */}
+        <DialogHeader className="p-6 pb-2">
+            <DialogTitle className="text-slate-900 dark:text-zinc-100">Add New Ticket Manually</DialogTitle>
+            <DialogDescription className="text-slate-500 dark:text-zinc-400">
+                Enter the details for a new support ticket. Required fields are marked with a <span className="text-red-500 font-bold underline">RED BORDER</span> if left empty.
+            </DialogDescription>
+        </DialogHeader>
 
-                    {/* --- Scrollable Area Start --- */}
-                    <div className="flex-1 overflow-y-auto px-6 py-2">
-                        <form id="manual-ticket-form" onSubmit={handleManualSubmit} className="space-y-4 text-xs">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* --- Scrollable Area Start --- */}
+        <div className="flex-1 overflow-y-auto px-6 py-2">
+            <form id="manual-ticket-form" onSubmit={handleManualSubmit} className="space-y-4 text-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-                                {/* Manual Ticket Number Input (Hidden) */}
-                                <div className="hidden">
-                                    <Label>Ticket Number</Label>
-                                    <Input
-                                        placeholder="e.g. 1"
-                                        value={newTicket.ticketNumber}
-                                        onChange={(e) => setNewTicket({ ...newTicket, ticketNumber: e.target.value })}
-                                    />
-                                </div>
-
-                                {/* Full Name Input */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("Fullname")}>Full Name</Label>
-                                    <Input
-                                        placeholder="Requester's Full Name"
-                                        value={newTicket.Fullname}
-                                        className={getErrorClass("Fullname")}
-                                        onChange={(e) => setNewTicket({ ...newTicket, Fullname: e.target.value })}
-                                    />
-                                </div>
-
-                                {/* Department Select */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("department")}>Department</Label>
-                                    <Select
-                                        value={newTicket.department}
-                                        onValueChange={(value) => setNewTicket({ ...newTicket, department: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("department")}`}>
-                                            <SelectValue placeholder="Select department" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {departments.map((dept) => (
-                                                <SelectItem key={dept.name} value={dept.name}>{dept.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Request Type Select */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("requesttype")}>Request Type</Label>
-                                    <Select
-                                        value={newTicket.requesttype}
-                                        onValueChange={(value) => setNewTicket({ ...newTicket, requesttype: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("requesttype")}`}>
-                                            <SelectValue placeholder="Select request type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {requestTypes.map(type => (
-                                                <SelectItem key={type.name} value={type.name}>{type.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Type of Concern Select */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("type")}>Type of Concern</Label>
-                                    <Select
-                                        value={newTicket.type}
-                                        onValueChange={(value) => setNewTicket({ ...newTicket, type: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("type")}`}>
-                                            <SelectValue placeholder="Select concern type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {concernTypes.map(concern => (
-                                                <SelectItem key={concern.name} value={concern.name}>{concern.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Mode Select */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("mode")}>Mode</Label>
-                                    <Select
-                                        value={newTicket.mode}
-                                        onValueChange={(value) => setNewTicket({ ...newTicket, mode: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("mode")}`}>
-                                            <SelectValue placeholder="Select Mode" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {modes.map((mode) => (
-                                                <SelectItem key={mode.name} value={mode.name}>{mode.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Group Select */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("group")}>Group</Label>
-                                    <Select
-                                        value={newTicket.group}
-                                        onValueChange={(value) => setNewTicket({ ...newTicket, group: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("group")}`}>
-                                            <SelectValue placeholder="Select Group" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {groups.map((group) => (
-                                                <SelectItem key={group.name} value={group.name}>{group.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Technician Name */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("technicianname")}>Technician Name</Label>
-                                    <Select
-                                        value={newTicket.technicianname}
-                                        onValueChange={(value) => setNewTicket({ ...newTicket, technicianname: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("technicianname")}`}>
-                                            <SelectValue placeholder="Select name" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {technicians.map((technician) => (
-                                                <SelectItem key={technician.name} value={technician.name}>{technician.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Site Select */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("site")}>Site</Label>
-                                    <Select
-                                        value={newTicket.site}
-                                        onValueChange={(value) => setNewTicket({ ...newTicket, site: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("site")}`}>
-                                            <SelectValue placeholder="Select site" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {sites.map(site => (
-                                                <SelectItem key={site.name} value={site.name}>{site.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Date Sched Input */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label>Date Scheduled (Required)</Label>
-                                    <Input
-                                        type="date"
-                                        value={newTicket.dateSched}
-                                        onChange={(e) => setNewTicket({ ...newTicket, dateSched: e.target.value })}
-                                        min={new Date().toISOString().split("T")[0]}
-                                    />
-                                </div>
-
-                                {/* Priority Select */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("priority")}>Priority</Label>
-                                    <Select
-                                        value={newTicket.priority}
-                                        onValueChange={(value) => setNewTicket({ ...newTicket, priority: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("priority")}`}>
-                                            <SelectValue placeholder="Select priority" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {priorities.map(prio => (
-                                                <SelectItem key={prio.name} value={prio.name}>{prio.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* Status Select */}
-                                <div className="flex flex-col space-y-1.5">
-                                    <Label className={getErrorClass("status")}>Status</Label>
-                                    <Select
-                                        value={newTicket.status}
-                                        onValueChange={(value) => setNewTicket({ ...newTicket, status: value })}
-                                    >
-                                        <SelectTrigger className={`w-full ${getErrorClass("status")}`}>
-                                            <SelectValue placeholder="Select status" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {status.map(Stat => (
-                                                <SelectItem key={Stat.name} value={Stat.name}>{Stat.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-
-                            {/* Remarks (Full Width) */}
-                            <div className="flex flex-col space-y-1.5 mt-2">
-                                <Label className={getErrorClass("remarks")}>Remarks</Label>
-                                <Textarea
-                                    placeholder="Enter remarks or description..."
-                                    value={newTicket.remarks}
-                                    className={`min-h-[100px] ${getErrorClass("remarks")}`}
-                                    onChange={(e) => setNewTicket({ ...newTicket, remarks: e.target.value })}
-                                />
-                            </div>
-
-                            {/* Processed By (Full Width) */}
-                            <div className="flex flex-col space-y-1.5 pb-4">
-                                <Label className={getErrorClass("processedBy")}>Processed By</Label>
-                                <Input
-                                    placeholder="Name of processor"
-                                    value={newTicket.processedBy}
-                                    className={getErrorClass("processedBy")}
-                                    onChange={(e) => setNewTicket({ ...newTicket, processedBy: e.target.value })}
-                                />
-                            </div>
-                        </form>
+                    {/* Manual Ticket Number Input (Hidden) */}
+                    <div className="hidden">
+                        <Label>Ticket Number</Label>
+                        <Input
+                            placeholder="e.g. 1"
+                            value={newTicket.ticketNumber}
+                            onChange={(e) => setNewTicket({ ...newTicket, ticketNumber: e.target.value })}
+                        />
                     </div>
-                    {/* --- Scrollable Area End --- */}
 
-                    {/* Footer - Fixed at the bottom */}
-                    <DialogFooter className="p-6 pt-4 border-t bg-gray-50/50">
-                        <DialogClose asChild>
-                            <Button type="button" variant="outline">
-                                Cancel
-                            </Button>
-                        </DialogClose>
-                        <Button type="submit" form="manual-ticket-form">Submit Ticket</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                    {/* Full Name Input */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("Fullname")} dark:text-zinc-400 font-medium`}>Full Name</Label>
+                        <Input
+                            placeholder="Requester's Full Name"
+                            value={newTicket.Fullname}
+                            className={`${getErrorClass("Fullname")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500`}
+                            onChange={(e) => setNewTicket({ ...newTicket, Fullname: e.target.value })}
+                        />
+                    </div>
+
+                    {/* Department Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("department")} dark:text-zinc-400 font-medium`}>Department</Label>
+                        <Select
+                            value={newTicket.department}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, department: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("department")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}>
+                                <SelectValue placeholder="Select department" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {departments.map((dept) => (
+                                    <SelectItem key={dept.name} value={dept.name} className="dark:focus:bg-zinc-900">{dept.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Request Type Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("requesttype")} dark:text-zinc-400 font-medium`}>Request Type</Label>
+                        <Select
+                            value={newTicket.requesttype}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, requesttype: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("requesttype")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}>
+                                <SelectValue placeholder="Select request type" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {requestTypes.map(type => (
+                                    <SelectItem key={type.name} value={type.name} className="dark:focus:bg-zinc-900">{type.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Type of Concern Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("type")} dark:text-zinc-400 font-medium`}>Type of Concern</Label>
+                        <Select
+                            value={newTicket.type}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, type: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("type")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}>
+                                <SelectValue placeholder="Select concern type" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {concernTypes.map(concern => (
+                                    <SelectItem key={concern.name} value={concern.name} className="dark:focus:bg-zinc-900">{concern.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Mode Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("mode")} dark:text-zinc-400 font-medium`}>Mode</Label>
+                        <Select
+                            value={newTicket.mode}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, mode: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("mode")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}>
+                                <SelectValue placeholder="Select Mode" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {modes.map((mode) => (
+                                    <SelectItem key={mode.name} value={mode.name} className="dark:focus:bg-zinc-900">{mode.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Group Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("group")} dark:text-zinc-400 font-medium`}>Group</Label>
+                        <Select
+                            value={newTicket.group}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, group: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("group")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}>
+                                <SelectValue placeholder="Select Group" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {groups.map((group) => (
+                                    <SelectItem key={group.name} value={group.name} className="dark:focus:bg-zinc-900">{group.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Technician Name */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("technicianname")} dark:text-zinc-400 font-medium`}>Technician Name</Label>
+                        <Select
+                            value={newTicket.technicianname}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, technicianname: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("technicianname")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}>
+                                <SelectValue placeholder="Select name" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {technicians.map((technician) => (
+                                    <SelectItem key={technician.name} value={technician.name} className="dark:focus:bg-zinc-900">{technician.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Site Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("site")} dark:text-zinc-400 font-medium`}>Site</Label>
+                        <Select
+                            value={newTicket.site}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, site: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("site")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}>
+                                <SelectValue placeholder="Select site" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {sites.map(site => (
+                                    <SelectItem key={site.name} value={site.name} className="dark:focus:bg-zinc-900">{site.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Date Sched Input */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className="dark:text-zinc-400 font-medium">Date Scheduled (Required)</Label>
+                        <Input
+                            type="date"
+                            value={newTicket.dateSched}
+                            className="dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 [color-scheme:dark]"
+                            onChange={(e) => setNewTicket({ ...newTicket, dateSched: e.target.value })}
+                            min={new Date().toISOString().split("T")[0]}
+                        />
+                    </div>
+
+                    {/* Priority Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("priority")} dark:text-zinc-400 font-medium`}>Priority</Label>
+                        <Select
+                            value={newTicket.priority}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, priority: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("priority")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}>
+                                <SelectValue placeholder="Select priority" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {priorities.map(prio => (
+                                    <SelectItem key={prio.name} value={prio.name} className="dark:focus:bg-zinc-900">{prio.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Status Select */}
+                    <div className="flex flex-col space-y-1.5">
+                        <Label className={`${getErrorClass("status")} dark:text-zinc-400 font-medium`}>Status</Label>
+                        <Select
+                            value={newTicket.status}
+                            onValueChange={(value) => setNewTicket({ ...newTicket, status: value })}
+                        >
+                            <SelectTrigger className={`w-full ${getErrorClass("status")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100`}>
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent className="dark:bg-zinc-950 dark:border-zinc-800">
+                                {status.map(Stat => (
+                                    <SelectItem key={Stat.name} value={Stat.name} className="dark:focus:bg-zinc-900">{Stat.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+
+                {/* Remarks (Full Width) */}
+                <div className="flex flex-col space-y-1.5 mt-2">
+                    <Label className={`${getErrorClass("remarks")} dark:text-zinc-400 font-medium`}>Remarks</Label>
+                    <Textarea
+                        placeholder="Enter remarks or description..."
+                        value={newTicket.remarks}
+                        className={`min-h-[100px] ${getErrorClass("remarks")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500`}
+                        onChange={(e) => setNewTicket({ ...newTicket, remarks: e.target.value })}
+                    />
+                </div>
+
+                {/* Processed By (Full Width) */}
+                <div className="flex flex-col space-y-1.5 pb-4">
+                    <Label className={`${getErrorClass("processedBy")} dark:text-zinc-400 font-medium`}>Processed By</Label>
+                    <Input
+                        placeholder="Name of processor"
+                        value={newTicket.processedBy}
+                        className={`${getErrorClass("processedBy")} dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500`}
+                        onChange={(e) => setNewTicket({ ...newTicket, processedBy: e.target.value })}
+                    />
+                </div>
+            </form>
+        </div>
+        {/* --- Scrollable Area End --- */}
+
+        {/* Footer - Fixed at the bottom */}
+        <DialogFooter className="p-6 pt-4 border-t bg-gray-50/50 dark:bg-zinc-900/30 dark:border-zinc-800">
+            <DialogClose asChild>
+                <Button type="button" variant="outline" className="dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900">
+                    Cancel
+                </Button>
+            </DialogClose>
+            <Button type="submit" form="manual-ticket-form" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-500 text-white shadow-sm font-medium">
+                Submit Ticket
+            </Button>
+        </DialogFooter>
+    </DialogContent>
+</Dialog>
         </>
     )
 }

@@ -194,46 +194,52 @@ function ConcernCard({
 }) {
   return (
     <Card
-      className={`w-full h-full cursor-pointer transition-colors ${getPriorityBg(
+      // Binawasan ang padding (p-3) at ginawang subtle ang hover (hover:opacity-85)
+      className={`w-full cursor-pointer transition-all duration-200 p-0 hover:opacity-85 hover:scale-[0.98] border-none shadow-md text-black dark:text-black ${getPriorityBg(
         concern.priority
       )}`}
       onClick={() => onClick(concern)}
     >
-      <CardHeader>
-        <CardTitle className="flex justify-between">
-          <span className="text-lg font-bold">{concern.type}</span>
-          <span className="text-xs font-semibold uppercase px-2 py-1 rounded-full border border-current">
+      <CardHeader className="p-3 pb-1"> {/* Pinaliit ang padding ng Header */}
+        <CardTitle className="flex justify-between items-center">
+          <span className="text-base font-bold text-black dark:text-black leading-none">
+            {concern.type}
+          </span>
+          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border border-black/30 text-black dark:text-black">
             {concern.priority}
           </span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <p className="text-sm">
-          <strong>Employee:</strong> {concern.Fullname}
+
+      <CardContent className="p-3 pt-1 space-y-1.5"> {/* Pinaliit ang spacing at padding */}
+        <p className="text-[12px] leading-tight text-black dark:text-black">
+          <strong className="font-semibold text-black dark:text-black">Emp:</strong> {concern.Fullname}
         </p>
-        <p className="text-sm">
-          <strong>Department:</strong> {concern.department}
+        <p className="text-[12px] leading-tight text-black dark:text-black">
+          <strong className="font-semibold text-black dark:text-black">Dept:</strong> {concern.department}
         </p>
-        <p className="italic line-clamp-2 text-xs text-gray-600 h-8">
+
+        {/* Mas maikling remarks area */}
+        <p className="italic line-clamp-1 text-[11px] text-black/70 dark:text-black/80">
           {concern.remarks}
         </p>
 
-        <div className="flex justify-between items-center pt-2 border-t"> {/* Added border-t for separation */}
-          {/* Ipinakita ang Petsa (Month, Day, Year) at Oras */}
-          <span className="text-xs text-gray-500">
+        <div className="flex justify-between items-center pt-2 mt-1 border-t border-black/10">
+          {/* Mas maliit na date text */}
+          <span className="text-[10px] font-medium text-black/60 dark:text-black">
             {new Date(concern.createdAt).toLocaleString("en-US", {
-              month: "short", // Halimbawa: Dec
-              day: "2-digit",   // Halimbawa: 09
-              year: "numeric",  // Halimbawa: 2025
-              hour: "2-digit",  // Halimbawa: 09
-              minute: "2-digit",// Halimbawa: 13
-              hour12: true,     // Halimbawa: AM
+              month: "short",
+              day: "2-digit",
+              year: "2-digit", // Pinaikli ang taon para tipid sa space
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
             })}
           </span>
 
-          {/* Status Badge */}
+          {/* Mas maliit na Status Badge */}
           <span
-            className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${getStatusBadgeColors(
+            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase shadow-sm ${getStatusBadgeColors(
               concern.status
             )}`}
           >
@@ -251,7 +257,7 @@ function ConcernCard({
 export default function ITConcernsPage() {
   const router = useRouter();
 
-    useEffect(() => {
+  useEffect(() => {
     const user = localStorage.getItem("currentUser");
     if (!user) {
       router.push("/login"); // Redirect kung walang login
@@ -455,41 +461,41 @@ export default function ITConcernsPage() {
     setStatus(concern.status);
     setIsDeleteConfirmOpen(false);
   };
-  
-const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
-  e.stopPropagation() // ⚡ Important: hindi matatamaan ng parent row/card click
 
-  if (!concernsForPage || concernsForPage.length === 0) return
+  const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.stopPropagation() // ⚡ Important: hindi matatamaan ng parent row/card click
 
-  // Optional: format columns for Excel
-  const formattedData = concernsForPage.map((c) => ({
-    Employee: c.Fullname,
-    Department: c.department,
-    "Date Scheduled": c.dateSched,
-    Site: c.site,
-    Remarks: c.remarks,
-    Priority: c.priority,
-    Status: c.status,
-  }))
+    if (!concernsForPage || concernsForPage.length === 0) return
 
-  // Create worksheet and workbook
-  const worksheet = XLSX.utils.json_to_sheet(formattedData)
-  const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets")
+    // Optional: format columns for Excel
+    const formattedData = concernsForPage.map((c) => ({
+      Employee: c.Fullname,
+      Department: c.department,
+      "Date Scheduled": c.dateSched,
+      Site: c.site,
+      Remarks: c.remarks,
+      Priority: c.priority,
+      Status: c.status,
+    }))
 
-  // Convert to Blob
-  const excelBuffer = XLSX.write(workbook, {
-    bookType: "xlsx",
-    type: "array",
-  })
-  const file = new Blob([excelBuffer], {
-    type:
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  })
+    // Create worksheet and workbook
+    const worksheet = XLSX.utils.json_to_sheet(formattedData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Tickets")
 
-  // Trigger download
-  saveAs(file, `tickets_${Date.now()}.xlsx`)
-}
+    // Convert to Blob
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    })
+    const file = new Blob([excelBuffer], {
+      type:
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    })
+
+    // Trigger download
+    saveAs(file, `tickets_${Date.now()}.xlsx`)
+  }
 
 
 
@@ -577,18 +583,31 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
       <AppSidebar />
       <SidebarInset>
         {/* --------------- HEADER ---------------- (Unchanged) */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm transition-colors dark:bg-black dark:border-zinc-800 dark:shadow-none">
           <div className="flex items-center gap-4">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
+            {/* Sidebar Trigger */}
+            <SidebarTrigger className="text-slate-600 dark:text-zinc-400 dark:hover:text-zinc-100" />
+
+            {/* Vertical Separator */}
+            <Separator orientation="vertical" className="h-6 bg-slate-200 dark:bg-zinc-800" />
+
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                  <BreadcrumbLink
+                    href="/dashboard"
+                    className="text-slate-500 hover:text-slate-900 dark:text-zinc-500 dark:hover:text-zinc-200"
+                  >
+                    Dashboard
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
+
+                <BreadcrumbSeparator className="hidden md:block text-slate-400 dark:text-zinc-700" />
+
                 <BreadcrumbItem>
-                  <BreadcrumbPage>IT Support Tickets</BreadcrumbPage>
+                  <BreadcrumbPage className="text-slate-900 font-medium dark:text-zinc-100">
+                    IT Support Tickets
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -596,179 +615,182 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
         </header>
 
         {/* MAIN CONTENT */}
-        <main className="p-6 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
-            {/* TITLE AND VIEW TOGGLE (Unchanged) */}
+        <main className="p-6 bg-[#f7f8fa] dark:bg-zinc-950 min-h-[calc(100vh-4rem)] transition-colors">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-zinc-800">
+            {/* TITLE AND VIEW TOGGLE (Unchanged Logic) */}
             <div className="flex items-center gap-4 mb-3 md:mb-0">
-              <h1 className="text-3xl font-extrabold text-gray-700">
+              <h1 className="text-3xl font-extrabold text-gray-700 dark:text-zinc-100">
                 IT Support Tickets
               </h1>
               <Button
                 variant="outline"
                 size="icon"
                 onClick={() => setIsRowView(!isRowView)}
-                className="bg-white hover:bg-gray-100"
+                className="bg-white hover:bg-gray-100 dark:bg-zinc-900 dark:border-zinc-800 dark:hover:bg-zinc-800"
                 title={
                   isRowView ? "Switch to Grid View" : "Switch to List View"
                 }
               >
                 {isRowView ? (
-                  <List className="h-5 w-5 text-gray-700" />
+                  <List className="h-5 w-5 text-gray-700 dark:text-zinc-300" />
                 ) : (
-                  <LayoutGrid className="h-5 w-5 text-gray-700" />
+                  <LayoutGrid className="h-5 w-5 text-gray-700 dark:text-zinc-300" />
                 )}
               </Button>
             </div>
 
-<div className="flex flex-wrap items-center gap-2 md:gap-3 text-[11px] md:text-xs">
-  {/* Download Button */}
-  <Button className="h-8 md:h-10 px-3 md:px-4 text-[11px] md:text-xs" onClick={handleDownloadExcel}>
-    Download
-  </Button>
+            <div className="flex flex-wrap items-center gap-2 md:gap-3 text-[11px] md:text-xs">
+              {/* Download Button */}
+              <Button className="h-8 md:h-10 px-3 md:px-4 text-[11px] md:text-xs dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-300" onClick={handleDownloadExcel}>
+                Download
+              </Button>
 
-  {/* Search */}
-  <div className="relative w-[160px] md:w-50">
-    <Input
-      type="search"
-      placeholder="Search Employee"
-      className="h-8 md:h-10 pr-8 md:pr-10 text-[11px] md:text-xs rounded-lg bg-white border-gray-300
-                 focus-visible:ring-2 focus-visible:ring-gray-500"
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-    />
-    <Search className="h-3 w-3 md:h-4 md:w-4 absolute right-2 md:right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-  </div>
+              {/* Search */}
+              <div className="relative w-[160px] md:w-50">
+                <Input
+                  type="search"
+                  placeholder="Search Employee"
+                  className="h-8 md:h-10 pr-8 md:pr-10 text-[11px] md:text-xs rounded-lg bg-white border-gray-300 focus-visible:ring-2 focus-visible:ring-gray-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Search className="h-3 w-3 md:h-4 md:w-4 absolute right-2 md:right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-zinc-500" />
+              </div>
 
-  {/* Department Filter */}
-  <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
-    <SelectTrigger className="w-[120px] md:w-[140px] h-8 md:h-10 text-[11px] md:text-xs bg-white border-gray-300">
-      <SelectValue placeholder="Department" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="all">All Departments</SelectItem>
-      <Separator />
-      <SelectItem value="Sales Department">Sales</SelectItem>
-      <SelectItem value="IT Department">IT</SelectItem>
-      <SelectItem value="HR Department">HR</SelectItem>
-      <SelectItem value="Accounting Department">Accounting</SelectItem>
-      <SelectItem value="Procurement Department">Procurement</SelectItem>
-      <SelectItem value="Marketing Department">Marketing</SelectItem>
-      <SelectItem value="Ecommerce Department">Ecommerce</SelectItem>
-      <SelectItem value="CSR Department">CSR</SelectItem>
-      <SelectItem value="Admin Department">Admin</SelectItem>
-      <SelectItem value="Warehouse Department">Warehouse</SelectItem>
-      <SelectItem value="Logistic Department">Logistic</SelectItem>
-      <SelectItem value="Engineering Department">Engineering</SelectItem>
-    </SelectContent>
-  </Select>
+              {/* Department Filter */}
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger className="w-[120px] md:w-[140px] h-8 md:h-10 text-[11px] md:text-xs bg-white border-gray-300 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
+                  <SelectValue placeholder="Department" />
+                </SelectTrigger>
+                <SelectContent className="dark:bg-zinc-900 dark:border-zinc-800">
+                  <SelectItem value="all">All Departments</SelectItem>
+                  <Separator className="dark:bg-zinc-800" />
+                  <SelectItem value="Sales Department">Sales</SelectItem>
+                  <SelectItem value="IT Department">IT</SelectItem>
+                  <SelectItem value="HR Department">HR</SelectItem>
+                  <SelectItem value="Accounting Department">Accounting</SelectItem>
+                  <SelectItem value="Procurement Department">Procurement</SelectItem>
+                  <SelectItem value="Marketing Department">Marketing</SelectItem>
+                  <SelectItem value="Ecommerce Department">Ecommerce</SelectItem>
+                  <SelectItem value="CSR Department">CSR</SelectItem>
+                  <SelectItem value="Admin Department">Admin</SelectItem>
+                  <SelectItem value="Warehouse Department">Warehouse</SelectItem>
+                  <SelectItem value="Logistic Department">Logistic</SelectItem>
+                  <SelectItem value="Engineering Department">Engineering</SelectItem>
+                </SelectContent>
+              </Select>
 
-  {/* Status / Priority */}
-  <Select value={filterBy} onValueChange={setFilterBy}>
-    <SelectTrigger className="w-[70px] md:w-[80px] h-8 md:h-10 text-[11px] md:text-xs bg-white border-gray-300">
-      <SelectValue placeholder="Filter" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="all">All</SelectItem>
-      <Separator />
-      <SelectItem value="status-pending">Pending</SelectItem>
-      <SelectItem value="status-ongoing">Ongoing</SelectItem>
-      <SelectItem value="status-finished">Finished</SelectItem>
-      <Separator />
-      <SelectItem value="priority-critical">Critical</SelectItem>
-      <SelectItem value="priority-high">High</SelectItem>
-      <SelectItem value="priority-medium">Medium</SelectItem>
-      <SelectItem value="priority-low">Low</SelectItem>
-    </SelectContent>
-  </Select>
+              {/* Status / Priority Filter */}
+              <Select value={filterBy} onValueChange={setFilterBy}>
+                <SelectTrigger className="w-[70px] md:w-[80px] h-8 md:h-10 text-[11px] md:text-xs bg-white border-gray-300 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
+                  <SelectValue placeholder="Filter" />
+                </SelectTrigger>
+                <SelectContent className="dark:bg-zinc-900 dark:border-zinc-800">
+                  <SelectItem value="all">All</SelectItem>
+                  <Separator className="dark:bg-zinc-800" />
+                  <SelectItem value="status-pending">Pending</SelectItem>
+                  <SelectItem value="status-ongoing">Ongoing</SelectItem>
+                  <SelectItem value="status-finished">Finished</SelectItem>
+                  <Separator className="dark:bg-zinc-800" />
+                  <SelectItem value="priority-critical">Critical</SelectItem>
+                  <SelectItem value="priority-high">High</SelectItem>
+                  <SelectItem value="priority-medium">Medium</SelectItem>
+                  <SelectItem value="priority-low">Low</SelectItem>
+                </SelectContent>
+              </Select>
 
-  {/* Items Per Page */}
-  <Select
-    value={String(itemsPerPage)}
-    onValueChange={(value) => setItemsPerPage(Number(value))}
-  >
-    <SelectTrigger className="w-[55px] md:w-[60px] h-8 md:h-10 text-[11px] md:text-xs">
-      <SelectValue placeholder="Items" />
-    </SelectTrigger>
-    <SelectContent>
-      <SelectItem value="8">8</SelectItem>
-      <SelectItem value="25">25</SelectItem>
-      <SelectItem value="50">50</SelectItem>
-      <Separator />
-      <SelectItem value="100">100</SelectItem>
-      <SelectItem value="500">500</SelectItem>
-      <SelectItem value="1000">1000</SelectItem>
-    </SelectContent>
-  </Select>
-</div>
-
+              {/* Items Per Page */}
+              <Select
+                value={String(itemsPerPage)}
+                onValueChange={(value) => setItemsPerPage(Number(value))}
+              >
+                <SelectTrigger className="w-[55px] md:w-[60px] h-8 md:h-10 text-[11px] md:text-xs dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
+                  <SelectValue placeholder="Items" />
+                </SelectTrigger>
+                <SelectContent className="dark:bg-zinc-900 dark:border-zinc-800">
+                  <SelectItem value="8">8</SelectItem>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <Separator className="dark:bg-zinc-800" />
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="500">500</SelectItem>
+                  <SelectItem value="1000">1000</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* LIST OR GRID (Unchanged) */}
+          {/* LIST OR GRID */}
           {concernsForPage.length === 0 ? (
-            <div className="text-center p-12 bg-white rounded-lg border border-dashed text-gray-500">
+            <div className="text-center p-12 bg-white rounded-lg border border-dashed text-gray-500 dark:bg-zinc-900/50 dark:border-zinc-800 dark:text-zinc-400">
               No tickets found matching your criteria.
             </div>
           ) : isRowView ? (
             /* ------------ LIST VIEW ------------- */
-            <div className="bg-white border rounded-lg overflow-x-auto">
-  <table className="min-w-full text-[11px] md:text-xs">
-    <thead className="bg-gray-700 text-white sticky top-0">
-      <tr>
-        <th className="p-2 md:p-3 text-left whitespace-nowrap">Employee</th>
-        <th className="p-2 md:p-3 text-left whitespace-nowrap">Department</th>
-        <th className="p-2 md:p-3 text-left whitespace-nowrap">Date</th>
-        <th className="p-2 md:p-3 text-left whitespace-nowrap">Site</th>
-        <th className="p-2 md:p-3 text-left whitespace-nowrap">Remarks</th>
-        <th className="p-2 md:p-3 text-left whitespace-nowrap">Priority</th>
-        <th className="p-2 md:p-3 text-left whitespace-nowrap">Status</th>
-      </tr>
-    </thead>
-
-    <tbody>
-      {concernsForPage.map((c) => (
-        <tr
-          key={c.id}
-          onClick={() => openDialog(c)}
-          className={`${getPriorityBg(
-            c.priority
-          )} cursor-pointer transition-colors border-b last:border-b-0`}
-        >
-          <td className="p-2 md:p-3 whitespace-nowrap">{c.Fullname}</td>
-          <td className="p-2 md:p-3 whitespace-nowrap">{c.department}</td>
-          <td className="p-2 md:p-3 whitespace-nowrap">{c.dateSched}</td>
-          <td className="p-2 md:p-3 whitespace-nowrap">{c.site}</td>
-          <td className="p-2 md:p-3 truncate max-w-[120px] md:max-w-xs">
-            {c.remarks}
-          </td>
-          <td className="p-2 md:p-3 text-center whitespace-nowrap">
-            {c.priority}
-          </td>
-          <td className="p-2 md:p-3 text-center whitespace-nowrap">
-            <span
-              className={`px-2 md:px-3 py-0.5 md:py-1 rounded text-[10px] md:text-xs font-bold ${getStatusBadgeColors(
-                c.status
-              )}`}
-            >
-              {c.status}
-            </span>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-
+            /* ------------ LIST VIEW ------------- */
+            <div className="bg-white border rounded-lg overflow-x-auto dark:bg-zinc-900 dark:border-zinc-800">
+              <table className="min-w-full text-[11px] md:text-xs">
+                <thead className="bg-gray-700 text-white sticky top-0 dark:bg-zinc-800 dark:text-zinc-200">
+                  <tr>
+                    <th className="p-2 md:p-3 text-left whitespace-nowrap">Employee</th>
+                    <th className="p-2 md:p-3 text-left whitespace-nowrap">Department</th>
+                    <th className="p-2 md:p-3 text-left whitespace-nowrap">Date</th>
+                    <th className="p-2 md:p-3 text-left whitespace-nowrap">Site</th>
+                    <th className="p-2 md:p-3 text-left whitespace-nowrap">Remarks</th>
+                    <th className="p-2 md:p-3 text-left whitespace-nowrap">Priority</th>
+                    <th className="p-2 md:p-3 text-left whitespace-nowrap">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y dark:divide-zinc-800">
+                  {concernsForPage.map((c) => (
+                    <tr
+                      key={c.id}
+                      onClick={() => openDialog(c)}
+                      className={`
+    ${getPriorityBg(c.priority)} 
+  `}
+                    >
+                      {/* Pinalitan ang dark:text-zinc-XXX ng dark:text-black para sa value */}
+                      <td className="p-2 md:p-3 whitespace-nowrap dark:text-black font-medium">{c.Fullname}</td>
+                      <td className="p-2 md:p-3 whitespace-nowrap dark:text-black">{c.department}</td>
+                      <td className="p-2 md:p-3 whitespace-nowrap dark:text-black">{c.dateSched}</td>
+                      <td className="p-2 md:p-3 whitespace-nowrap dark:text-black">{c.site}</td>
+                      <td className="p-2 md:p-3 truncate max-w-[120px] md:max-w-xs dark:text-black">
+                        {c.remarks}
+                      </td>
+                      <td className="p-2 md:p-3 text-center whitespace-nowrap dark:text-black">
+                        {c.priority}
+                      </td>
+                      <td className="p-2 md:p-3 text-center whitespace-nowrap">
+                        <span
+                          className={`px-2 md:px-3 py-0.5 md:py-1 rounded text-[10px] md:text-xs font-bold ${getStatusBadgeColors(
+                            c.status
+                          )}`}
+                        >
+                          {c.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : (
             /* ------------ GRID VIEW ------------- */
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
-  {concernsForPage.map((concern) => (
-    <ConcernCard
-      key={concern.id}
-      concern={concern}
-      onClick={openDialog}
-    />
-  ))}
-</div>
+              {concernsForPage.map((concern) => (
+                <div
+                  key={concern.id}
+                  className="rounded-lg border bg-white dark:bg-zinc-900 dark:border-zinc-800 text-black dark:text-black"
+                >
+                  <ConcernCard
+                    concern={concern}
+                    onClick={openDialog}
+                  />
+                </div>
+              ))}
+            </div>
           )}
 
           {/* PAGINATION */}
@@ -776,30 +798,28 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
             <div className="mt-8">
               <Pagination>
                 <PaginationContent>
-
-                  {/* PREVIOUS */}
                   <PaginationItem>
                     <PaginationPrevious
                       onClick={() => goToPage(currentPage - 1)}
                       className={
                         currentPage === 1
                           ? "pointer-events-none opacity-50"
-                          : undefined
+                          : "cursor-pointer dark:text-zinc-400 dark:hover:bg-zinc-800"
                       }
                     />
                   </PaginationItem>
 
-                  {/* PAGE NUMBERS */}
                   {pageNumbers.map((page, index) =>
                     page === "..." ? (
                       <PaginationItem key={`ellipsis-${index}`}>
-                        <PaginationEllipsis className="pointer-events-none" />
+                        <PaginationEllipsis className="pointer-events-none dark:text-zinc-600" />
                       </PaginationItem>
                     ) : (
                       <PaginationItem key={page}>
                         <PaginationLink
                           onClick={() => goToPage(page)}
                           isActive={page === currentPage}
+                          className="cursor-pointer dark:text-zinc-400 dark:data-[active=true]:bg-zinc-800 dark:data-[active=true]:text-zinc-100"
                         >
                           {page}
                         </PaginationLink>
@@ -807,23 +827,20 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
                     )
                   )}
 
-                  {/* NEXT */}
                   <PaginationItem>
                     <PaginationNext
                       onClick={() => goToPage(currentPage + 1)}
                       className={
                         currentPage === totalPages
                           ? "pointer-events-none opacity-50"
-                          : undefined
+                          : "cursor-pointer dark:text-zinc-400 dark:hover:bg-zinc-800"
                       }
                     />
                   </PaginationItem>
-
                 </PaginationContent>
               </Pagination>
 
-              {/* FOOTER INFO */}
-              <div className="text-center text-sm mt-3 text-gray-500">
+              <div className="text-center text-sm mt-3 text-gray-500 dark:text-zinc-500">
                 Showing {startIndex + 1} to{" "}
                 {Math.min(endIndex, filteredConcerns.length)} of{" "}
                 {filteredConcerns.length} tickets.
@@ -831,137 +848,109 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
             </div>
           )}
 
-        <Dialog
-  open={!!selectedConcern}
-  onOpenChange={(open) => {
-    if (!open) {
-      setSelectedConcern(null);
-      setIsDeleteConfirmOpen(false);
-    }
-  }}
->
-  <DialogContent className="w-full sm:max-w-[400px] md:max-w-[500px] max-h-[90vh] overflow-y-auto">
-    <DialogHeader>
-      <DialogTitle>Ticket #{selectedConcern?.id}</DialogTitle>
-    </DialogHeader>
+          {/* DIALOG DETAILS */}
+          <Dialog
+            open={!!selectedConcern}
+            onOpenChange={(open) => {
+              if (!open) {
+                setSelectedConcern(null);
+                setIsDeleteConfirmOpen(false);
+              }
+            }}
+          >
+            <DialogContent className="w-full sm:max-w-[400px] md:max-w-[500px] max-h-[90vh] overflow-y-auto dark:bg-zinc-950 dark:border-zinc-800 dark:text-zinc-100">
+              <DialogHeader>
+                <DialogTitle className="dark:text-zinc-100">Ticket #{selectedConcern?.id}</DialogTitle>
+              </DialogHeader>
 
-    {selectedConcern && (
-      <div className="space-y-3 py-2 text-[11px] sm:text-sm md:text-sm">
-        <p>
-          <strong>Employee:</strong> {selectedConcern.Fullname}
-        </p>
-        <p>
-          <strong>Department:</strong> {selectedConcern.department}
-        </p>
-        <p>
-          <strong>Date Scheduled:</strong>{" "}
-          {selectedConcern.dateSched
-            ? new Date(selectedConcern.dateSched).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "2-digit",
-              })
-            : "N/A"}
-        </p>
-        <p>
-          <strong>Type:</strong> {selectedConcern.type}
-        </p>
-        <p>
-          <strong>Request Type:</strong> {selectedConcern.requesttype}
-        </p>
-        <p>
-          <strong>Mode:</strong> {selectedConcern.mode}
-        </p>
-        <p>
-          <strong>Site:</strong> {selectedConcern.site}
-        </p>
-        <p>
-          <strong>Group:</strong> {selectedConcern.group}
-        </p>
-        <p>
-          <strong>Technician:</strong> {selectedConcern.technicianname}
-        </p>
-        <p>
-          <strong>Processed By:</strong> {selectedConcern.processedBy}
-        </p>
-        <p>
-          <strong>Priority:</strong> {selectedConcern.priority}
-        </p>
-        <p>
-          <strong>Date Created:</strong>{" "}
-          {selectedConcern.createdAt
-            ? new Date(selectedConcern.createdAt).toLocaleString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "2-digit",
-                hour: "numeric",
-                minute: "2-digit",
-                hour12: true,
-              })
-            : "N/A"}
-        </p>
+              {selectedConcern && (
+                <div className="space-y-3 py-2 text-[11px] sm:text-sm md:text-sm">
+                  <p><strong className="dark:text-zinc-200">Employee:</strong> {selectedConcern.Fullname}</p>
+                  <p><strong className="dark:text-zinc-200">Department:</strong> {selectedConcern.department}</p>
+                  <p>
+                    <strong className="dark:text-zinc-200">Date Scheduled:</strong>{" "}
+                    {selectedConcern.dateSched
+                      ? new Date(selectedConcern.dateSched).toLocaleDateString("en-US", {
+                        year: "numeric", month: "long", day: "2-digit",
+                      })
+                      : "N/A"}
+                  </p>
+                  <p><strong className="dark:text-zinc-200">Type:</strong> {selectedConcern.type}</p>
+                  <p><strong className="dark:text-zinc-200">Request Type:</strong> {selectedConcern.requesttype}</p>
+                  <p><strong className="dark:text-zinc-200">Mode:</strong> {selectedConcern.mode}</p>
+                  <p><strong className="dark:text-zinc-200">Site:</strong> {selectedConcern.site}</p>
+                  <p><strong className="dark:text-zinc-200">Group:</strong> {selectedConcern.group}</p>
+                  <p><strong className="dark:text-zinc-200">Technician:</strong> {selectedConcern.technicianname}</p>
+                  <p><strong className="dark:text-zinc-200">Processed By:</strong> {selectedConcern.processedBy}</p>
+                  <p><strong className="dark:text-zinc-200">Priority:</strong> {selectedConcern.priority}</p>
+                  <p>
+                    <strong className="dark:text-zinc-200">Date Created:</strong>{" "}
+                    {selectedConcern.createdAt
+                      ? new Date(selectedConcern.createdAt).toLocaleString("en-US", {
+                        year: "numeric", month: "long", day: "2-digit", hour: "numeric", minute: "2-digit", hour12: true,
+                      })
+                      : "N/A"}
+                  </p>
 
-        <div>
-          <strong className="block mb-1">Remarks:</strong>
-          <div className="p-2 sm:p-3 bg-gray-50 border rounded-md italic whitespace-pre-wrap text-[11px] sm:text-sm">
-            {selectedConcern.remarks}
-          </div>
-        </div>
+                  <div>
+                    <strong className="block mb-1 dark:text-zinc-200">Remarks:</strong>
+                    <div className="p-2 sm:p-3 bg-gray-50 dark:bg-zinc-900 border dark:border-zinc-800 rounded-md italic whitespace-pre-wrap text-[11px] sm:text-sm dark:text-zinc-400">
+                      {selectedConcern.remarks}
+                    </div>
+                  </div>
 
-        <Label htmlFor="ticket-status" className="block pt-2 text-[11px] sm:text-sm">
-          Update Status
-        </Label>
-        <Select
-          value={status}
-          onValueChange={(v: ITConcern["status"]) => setStatus(v)}
-        >
-          <SelectTrigger id="ticket-status" className="text-[11px] sm:text-sm">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent className="text-[11px] sm:text-sm">
-            <SelectItem value="Pending">Pending</SelectItem>
-            <SelectItem value="Ongoing">Ongoing</SelectItem>
-            <SelectItem value="Finished">Finished</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    )}
+                  <Label htmlFor="ticket-status" className="block pt-2 text-[11px] sm:text-sm dark:text-zinc-200">
+                    Update Status
+                  </Label>
+                  <Select
+                    value={status}
+                    onValueChange={(v: ITConcern["status"]) => setStatus(v)}
+                  >
+                    <SelectTrigger id="ticket-status" className="text-[11px] sm:text-sm dark:bg-zinc-900 dark:border-zinc-800">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="dark:bg-zinc-900 dark:border-zinc-800">
+                      <SelectItem value="Pending">Pending</SelectItem>
+                      <SelectItem value="Ongoing">Ongoing</SelectItem>
+                      <SelectItem value="Finished">Finished</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-    <DialogFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mt-4">
+              <DialogFooter className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 mt-4">
+                <div className="flex gap-2 w-full text-sx sm:w-auto">
+                  <Button
+                    variant="destructive"
+                    onClick={() => setIsDeleteConfirmOpen(true)}
+                    className="flex items-center gap-2 sm:w-auto"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={handleUpdate} disabled={selectedConcern?.status === status} className="dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-300">
+                    Update Status
+                  </Button>
+                  <DialogClose asChild>
+                    <Button variant="outline" className="dark:border-zinc-800 dark:hover:bg-zinc-900">Close</Button>
+                  </DialogClose>
+                </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
-
-      <div className="flex gap-2 w-full text-sx sm:w-auto">
-              <Button
-        variant="destructive"
-        onClick={() => setIsDeleteConfirmOpen(true)}
-        className="flex items-center gap-2  sm:w-auto"
-      >
-        <Trash2 className="h-4 w-4" />
-      </Button>
-        <Button onClick={handleUpdate} disabled={selectedConcern?.status === status}>
-          Update Status
-        </Button>
-        <DialogClose asChild>
-          <Button variant="outline">Close</Button>
-        </DialogClose>
-      </div>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
-
-          {/* 🗑️ DELETE CONFIRMATION DIALOG (Unchanged) */}
+          {/* DELETE CONFIRMATION DIALOG */}
           <Dialog
             open={isDeleteConfirmOpen}
             onOpenChange={setIsDeleteConfirmOpen}
           >
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] dark:bg-zinc-950 dark:border-zinc-800">
               <DialogHeader>
-                <DialogTitle className="text-red-600">
+                <DialogTitle className="text-red-600 dark:text-red-500">
                   Confirm Deletion
                 </DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="dark:text-zinc-400">
                   Are you sure you want to permanently delete{" "}
-                  **Ticket #{selectedConcern?.id}**? This action cannot be
+                  <strong>Ticket #{selectedConcern?.id}</strong>? This action cannot be
                   undone.
                 </DialogDescription>
               </DialogHeader>
@@ -969,6 +958,7 @@ const handleDownloadExcel = (e: React.MouseEvent<HTMLButtonElement>) => {
                 <Button
                   variant="outline"
                   onClick={() => setIsDeleteConfirmOpen(false)}
+                  className="dark:border-zinc-800 dark:hover:bg-zinc-900"
                 >
                   Cancel
                 </Button>

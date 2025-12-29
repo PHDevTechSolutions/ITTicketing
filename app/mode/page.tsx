@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// I-assume na ito ang tamang path para sa iyong sidebar
-import { AppSidebar } from "../components/sidebar";
 import { useRouter } from "next/navigation";
+import { AppSidebar } from "../components/sidebar";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -20,22 +19,13 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  User,
-  LogOut,
-  Plus,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-  Loader2, // Idinagdag para sa Loading UI
-} from "lucide-react";
+import { Plus, Edit, Trash2, MoreHorizontal, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -48,13 +38,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// --- Interface para sa Mode ---
+// Interfaces
 interface Mode {
-  _id: string; // Gamitin ang _id para sa MongoDB
-  name: string; // Ang pangalan ng Mode (e.g., Online, Walk-in)
+  _id: string;
+  name: string;
 }
 
-// 📌 KULANG #1: Interface para sa CurrentUser
 interface CurrentUser {
   _id: string;
   Username: string;
@@ -66,50 +55,35 @@ interface CurrentUser {
   createdAt: string;
 }
 
-// 📌 KULANG #2: formatDate function
-const formatDate = (date: Date) =>
-  new Date(date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-
-
-// --- Main Component ---
 export default function ModePage() {
-   const router = useRouter();
+  const router = useRouter();
+  const [mounted, setMounted] = useState(false); // 🔥 Fix for Hydration Error
 
   useEffect(() => {
+    setMounted(true);
     const user = localStorage.getItem("currentUser");
     if (!user) {
-      router.push("/login"); // Redirect kung walang login
+      router.push("/login");
     }
-  }, []);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [profilePic, setProfilePic] = useState<string | null>(null);
+  }, [router]);
 
-  // 📌 KULANG #3: States para sa User Profile
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [isProfileLoading, setIsProfileLoading] = useState(true);
-
-  // State para sa Modes
+  // States
   const [modes, setModes] = useState<Mode[]>([]);
-
-  // State para sa Add/Edit Dialog
   const [isModeDialogOpen, setIsModeDialogOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<Mode | null>(null);
   const [newModeName, setNewModeName] = useState("");
-
-  // State para sa API operations
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
-  // 🧩 FETCH Modes from API
+  // 🧩 FETCH Functions
   const fetchModes = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch("/api/mode"); // Gagamit ng /api/mode/index.ts (GET)
+      const res = await fetch("/api/mode");
       const data = await res.json();
       if (res.ok && data.success) {
         setModes(data.data);
-      } else {
-        console.error("Failed to fetch modes:", data.message);
       }
     } catch (error) {
       console.error("Error fetching modes:", error);
@@ -118,45 +92,28 @@ export default function ModePage() {
     }
   };
 
-  // 📌 KULANG #4: FETCH Profile from API function
   const fetchProfile = async () => {
     try {
-      // NOTE: Ensure 'userId' is saved in localStorage after login.
       const userId = localStorage.getItem("userId");
-      if (!userId) {
-        setIsProfileLoading(false);
-        return;
-      }
-
-      // This calls the API route defined in the next section: /api/profile/[id].ts
+      if (!userId) return;
       const res = await fetch(`/api/profile/${userId}`);
       const data = await res.json();
-
       if (res.ok && data.success) setCurrentUser(data.data);
-      else console.error("Failed to fetch profile:", data.message);
     } catch (error) {
       console.error("Error fetching profile:", error);
-    } finally {
-      setIsProfileLoading(false);
     }
   };
 
   useEffect(() => {
     fetchModes();
-    // 📌 KULANG #5: Pagtawag sa fetchProfile
-    fetchProfile(); 
+    fetchProfile();
   }, []);
 
-  // 🧠 SAVE Mode (CREATE or UPDATE)
+  // 🧠 Handlers
   const handleSaveMode = async () => {
-    if (!newModeName.trim()) {
-      alert("Please enter the mode name.");
-      return;
-    }
+    if (!newModeName.trim()) return alert("Please enter the mode name.");
 
     setIsSaving(true);
-    const trimmedName = newModeName.trim();
-
     try {
       const method = currentMode ? "PUT" : "POST";
       const url = currentMode ? `/api/mode/${currentMode._id}` : "/api/mode";
@@ -164,57 +121,37 @@ export default function ModePage() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmedName }),
+        body: JSON.stringify({ name: newModeName.trim() }),
       });
       const data = await res.json();
 
       if (data.success) {
-        alert(
-          `Mode ${currentMode ? "updated" : "created"} successfully!`
-        );
-        fetchModes(); // I-refresh ang listahan
+        alert(`Mode ${currentMode ? "updated" : "created"} successfully!`);
+        fetchModes();
       } else {
-        alert(
-          data.message ||
-            `Failed to ${currentMode ? "update" : "create"} Mode.`
-        );
+        alert(data.message || "Failed to save mode.");
       }
     } catch (error) {
       console.error("Error saving mode:", error);
-      alert("Something went wrong while communicating with the server.");
     } finally {
       setIsSaving(false);
+      setIsModeDialogOpen(false);
+      setCurrentMode(null);
+      setNewModeName("");
     }
-
-    // Reset and Close
-    setIsModeDialogOpen(false);
-    setCurrentMode(null);
-    setNewModeName("");
   };
 
-  // 🧠 DELETE Mode
   const handleDelete = async (id: string, name: string) => {
-    if (
-      !confirm(
-        `Are you sure you want to delete Mode "${name}"? This action cannot be undone.`
-      )
-    ) {
-      return;
-    }
-
+    if (!confirm(`Are you sure you want to delete Mode "${name}"?`)) return;
     try {
-      const res = await fetch(`/api/mode/${id}`, { method: "DELETE" }); 
+      const res = await fetch(`/api/mode/${id}`, { method: "DELETE" });
       const data = await res.json();
-
       if (data.success) {
         alert("Mode deleted successfully!");
-        fetchModes(); // I-refresh ang listahan
-      } else {
-        alert(data.message || "Failed to delete Mode.");
+        fetchModes();
       }
     } catch (error) {
       console.error("Error deleting mode:", error);
-      alert("Something went wrong while communicating with the server.");
     }
   };
 
@@ -230,110 +167,110 @@ export default function ModePage() {
     setIsModeDialogOpen(true);
   };
 
-  // --- Other handlers ---
-  const handleLogout = () => {
-    localStorage.removeItem("userId"); // Idinagdag ang pagtanggal ng userId
-    alert("Logged out! Redirect logic not implemented.");
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setProfilePic(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  };
-  // --- End Other handlers ---
+  // 🔥 Hydration Guard
+  if (!mounted) return null;
 
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="dark:bg-zinc-950 transition-colors">
         {/* HEADER */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6 shadow-sm">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white dark:bg-zinc-950 dark:border-zinc-800 px-6 shadow-sm">
           <div className="flex items-center gap-4">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
+            <SidebarTrigger className="dark:text-zinc-400" />
+            <Separator orientation="vertical" className="h-6 dark:bg-zinc-800" />
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/dashboard" className="text-gray-700">Dashboard</BreadcrumbLink>
+                  <BreadcrumbLink href="/dashboard" className="text-gray-700 dark:text-zinc-400 dark:hover:text-zinc-200">
+                    Dashboard
+                  </BreadcrumbLink>
                 </BreadcrumbItem>
-                <BreadcrumbSeparator />
+                <BreadcrumbSeparator className="dark:text-zinc-600" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Mode</BreadcrumbPage>
+                  <BreadcrumbPage className="dark:text-zinc-100">Mode</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
-
-          
         </header>
 
         {/* MAIN CONTENT */}
-        <main className="p-6 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
-<div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
-  <h1 className="text-3xl font-extrabold text-gray-700 mb-4 md:mb-0">
-    Mode List
-  </h1>
-
-  {/* ADD MODE BUTTON */}
-  <Button
-    onClick={handleOpenAdd}
-    className="bg-gray-700 hover:bg-gray-800 text-white"
-  >
-    <Plus className="h-5 w-5 mr-2" /> Mode
-  </Button>
-</div>
-
+        <main className="p-6 bg-[#f7f8fa] dark:bg-zinc-950 min-h-[calc(100vh-4rem)]">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200 dark:border-zinc-800">
+            <h1 className="text-3xl font-extrabold text-gray-700 dark:text-zinc-100 mb-4 md:mb-0">
+              Mode List
+            </h1>
+            <Button
+              onClick={handleOpenAdd}
+              className="bg-gray-700 hover:bg-gray-800 text-white dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-300"
+            >
+              <Plus className="h-5 w-5 mr-2" /> Mode
+            </Button>
+          </div>
 
           {/* MODE TABLE */}
-          <div className="bg-white shadow-xl rounded-lg border border-gray-200 overflow-hidden">
+          <div className="bg-white dark:bg-zinc-900 shadow-xl rounded-lg border border-gray-200 dark:border-zinc-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-xs">
-                <thead className="bg-gray-700 text-white font-semibold sticky top-0">
-                  <tr><th className="p-4">Mode Name</th><th className="p-4 text-center w-[100px]">Action</th></tr>
+                <thead className="bg-gray-700 dark:bg-zinc-800 text-white font-semibold sticky top-0">
+                  <tr>
+                    <th className="p-4">Mode Name</th>
+                    <th className="p-4 text-center w-[100px]">Action</th>
+                  </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y dark:divide-zinc-800">
                   {isLoading ? (
-                    <tr><td colSpan={2} className="p-6 text-center text-gray-500"><Loader2 className="h-5 w-5 animate-spin inline-block mr-2" /> Loading modes...</td></tr>
+                    <tr>
+                      <td colSpan={2} className="p-6 text-center text-gray-500 dark:text-zinc-400">
+                        <Loader2 className="h-5 w-5 animate-spin inline-block mr-2" /> Loading...
+                      </td>
+                    </tr>
                   ) : modes.length > 0 ? (
                     modes.map((mode) => (
-                      <tr key={mode._id} className="border-b hover:bg-gray-50 transition-colors">
-                        <td className="p-4 font-medium text-gray-800">{mode.name}</td>
+                      <tr key={mode._id} className="border-b dark:border-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-800/50 transition-colors">
+                        <td className="p-4 font-medium text-gray-800 dark:text-zinc-200">{mode.name}</td>
                         <td className="p-4 text-center">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" className="h-2 w-8 p-0"><span className="sr-only">Open menu</span><MoreHorizontal className="h-4 w-4" /></Button>
+                              <Button variant="ghost" className="h-8 w-8 p-0 dark:text-zinc-400">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
+                            <DropdownMenuContent align="end" className="dark:bg-zinc-900 dark:border-zinc-800">
+                              <DropdownMenuLabel className="dark:text-zinc-400">Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator className="dark:bg-zinc-800" />
                               <DropdownMenuItem
-                                className="cursor-pointer text-gray-700 hover:bg-gray-100"
                                 onClick={() => handleEdit(mode)}
-                              ><Edit className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                                className="cursor-pointer dark:text-zinc-300 dark:hover:bg-zinc-800"
+                              >
+                                <Edit className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
                               <DropdownMenuItem
-                                className="cursor-pointer text-red-600 hover:bg-red-50"
                                 onClick={() => handleDelete(mode._id, mode.name)}
-                              ><Trash2 className="mr-2 h-4 w-4" /> Delete</DropdownMenuItem>
+                                className="text-red-600 dark:text-red-400 cursor-pointer dark:hover:bg-red-950/30"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </td>
                       </tr>
                     ))
                   ) : (
-                    <tr><td colSpan={2} className="p-6 text-center text-gray-500 italic">No modes found. Click "+ Mode" to add one.</td></tr>
+                    <tr>
+                      <td colSpan={2} className="p-6 text-center text-gray-500 dark:text-zinc-500 italic">
+                        No modes found. Click "+ Mode" to add one.
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
             </div>
           </div>
-
         </main>
 
-        {/* ADD/EDIT DIALOG */}
+        {/* DIALOG */}
         <Dialog
           open={isModeDialogOpen}
           onOpenChange={(open) => {
@@ -344,30 +281,32 @@ export default function ModePage() {
             }
           }}
         >
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[425px] dark:bg-zinc-950 dark:border-zinc-800">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-gray-900">
+              <DialogTitle className="text-xl font-bold text-gray-900 dark:text-zinc-100">
                 {currentMode ? "Edit Mode" : "Add New Mode"}
               </DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="modeName" className="text-right text-lg ml-3">Name:</Label>
+                <Label htmlFor="modeName" className="text-right text-sm font-medium dark:text-zinc-300">Name :</Label>
                 <Input
                   id="modeName"
                   value={newModeName}
                   onChange={(e) => setNewModeName(e.target.value)}
-                  className="col-span-3"
-                  placeholder="e.g., Walk in, Phone Call"
-                  disabled={isSaving} // I-disable habang nagse-save
+                  className="col-span-3 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
+                  placeholder="e.g., Walk in"
+                  disabled={isSaving}
                 />
               </div>
             </div>
             <DialogFooter>
-              <DialogClose asChild><Button variant="outline" disabled={isSaving}>Cancel</Button></DialogClose>
-              <Button onClick={handleSaveMode} className="bg-gray-700 hover:bg-gray-800" disabled={isSaving}>
+              <DialogClose asChild>
+                <Button variant="outline" className="dark:border-zinc-800 dark:text-zinc-300" disabled={isSaving}>Cancel</Button>
+              </DialogClose>
+              <Button onClick={handleSaveMode} className="bg-gray-700 hover:bg-gray-800 dark:bg-zinc-100 dark:text-zinc-950" disabled={isSaving}>
                 {isSaving ? (
-                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {currentMode ? "Saving Changes..." : "Creating Mode..."}</>
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
                 ) : (
                   currentMode ? "Save Changes" : "Create Mode"
                 )}
@@ -375,7 +314,6 @@ export default function ModePage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
       </SidebarInset>
     </SidebarProvider>
   );

@@ -9,7 +9,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { SidebarInset, SidebarProvider, SidebarTrigger, } from "@/components/ui/sidebar"
 import {
-  Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTrigger, DialogTitle,
+  Dialog, DialogClose, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -25,21 +25,21 @@ import {
   Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious,
 } from "@/components/ui/pagination"
 
-// --- INTERFACES (Kinuha sa original code) ---
+// --- INTERFACES ---
 interface ITConcern {
   id: string
   employeeName: string
   department: string
   type: string
   remarks: string
-  dateCreated: string // Keep as string for simple fetching/sorting
+  dateCreated: string
   priority: string
   status: "Pending" | "Ongoing" | "Finished"
   createdAt: string;
   Fullname: string
   requesttype: string
   technicianname: string
-   dateSched: string;
+  dateSched: string;
 }
 
 interface CurrentUser {
@@ -54,16 +54,11 @@ interface CurrentUser {
   Fullname: string
 }
 
-// Removed NewTicket interface and related dummy states/handlers as they are not needed for ticket display.
-
 export default function Page() {
-    const router = useRouter()
-  useEffect(() => {
-    const user = localStorage.getItem("currentUser");
-    if (!user) {
-      router.push("/login"); // Redirect kung walang login
-    }
-  }, []);
+  const router = useRouter()
+  
+  // 🟢 HYDRATION FIX: State to check if component is mounted
+  const [mounted, setMounted] = useState(false)
 
   const [isRowView, setIsRowView] = useState(false)
   const [selectedConcern, setSelectedConcern] = useState<ITConcern | null>(null)
@@ -71,39 +66,42 @@ export default function Page() {
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [profilePic, setProfilePic] = useState<string | null>(null)
 
-  // --- TICKET STATE ---
-  const [allConcerns, setAllConcerns] = useState<ITConcern[]>([]) // Para sa lahat ng tickets
-  const [isLoading, setIsLoading] = useState(true) // Loading state para sa tickets
-  const [fetchError, setFetchError] = useState<string | null>(null) // Error state
-  // --------------------
+  const [allConcerns, setAllConcerns] = useState<ITConcern[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
 
-  const [filterBy, setFilterBy] = useState("all") // Added "all" default filter
+  const [filterBy, setFilterBy] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
 
-  // --- STATE FOR PROFILE (Kinuha sa original code) ---
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [profileError, setProfileError] = useState<string | null>(null);
 
-  // 🧩 API FETCHING LOGIC (Profile and Tickets)
+  // 🧩 INITIAL LOAD & AUTH CHECK
+  useEffect(() => {
+    setMounted(true) // Set to true once the browser loads the component
+    const user = localStorage.getItem("currentUser");
+    if (!user) {
+      router.push("/login");
+    } else {
+      fetchProfile();
+      fetchConcerns();
+    }
+  }, [router]);
 
-  // Fetch Profile (Same logic as before)
+  // 🧩 API FETCHING LOGIC
   const fetchProfile = async () => {
     setIsProfileLoading(true);
     setProfileError(null);
     try {
       const username = localStorage.getItem("userId");
-
       if (!username) {
         setProfileError("No login session found. Please log in.");
         return;
       }
-
-      // Assuming API endpoint is /api/profile/[username]
       const res = await fetch(`/api/profile/${username}`);
       const data = await res.json();
-
       if (res.ok && data.success) {
         setCurrentUser(data.data);
       } else {
@@ -117,26 +115,16 @@ export default function Page() {
     }
   };
 
-  // 🚀 FETCH TICKETS FROM API
   const fetchConcerns = async () => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      // Assume the API endpoint for all tickets is /api/tickets
-      // Note: You might need to add token/auth headers here in a real app.
       const res = await fetch(`/api/tickets`);
-
-      if (!res.ok) {
-        throw new Error(`Failed to fetch tickets: ${res.statusText}`);
-      }
-
+      if (!res.ok) throw new Error(`Failed to fetch tickets: ${res.statusText}`);
       const data = await res.json();
-
-      // Assuming the data.data is an array of ITConcern
       if (Array.isArray(data.data)) {
         setAllConcerns(data.data);
       } else {
-        // Fallback for unexpected data structure
         setAllConcerns([]);
         setFetchError("Received unexpected data format for tickets.");
       }
@@ -149,70 +137,28 @@ export default function Page() {
     }
   };
 
-
-  // Fetch data on initial load
-  useEffect(() => {
-    fetchProfile();
-    fetchConcerns();
-    // Call the new ticket fetching function
-  }, []);
-
-  // Helper function to format date
-  // Line 202 (Modified): Helper function to format date
-  // Tinatanggap na ngayon ang 'string' o 'Date'
   const formatDate = (date: string | Date | undefined): string => {
     if (!date) return 'N/A';
-
-    let dateToFormat: Date;
-
-    // Type check: If it's a string, convert it to a Date object
-    if (typeof date === 'string') {
-      dateToFormat = new Date(date);
-    } else {
-      dateToFormat = date; // It's already a Date object
-    }
-
-    // Check if the date conversion was successful
-    if (isNaN(dateToFormat.getTime())) {
-      return 'Invalid Date';
-    }
-
+    let dateToFormat = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(dateToFormat.getTime())) return 'Invalid Date';
     return dateToFormat.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   };
-  // END OF PROFILE LOGIC
 
-  // 🔍 FILTERING AND SEARCHING LOGIC (Using useMemo to optimize)
+  // 🔍 FILTERING AND SEARCHING LOGIC
   const filteredConcerns = useMemo(() => {
     let filtered = allConcerns;
     const lowerCaseSearchTerm = searchTerm.toLowerCase().trim();
 
-    // 1. Apply Filtering
     if (filterBy !== "all" && filterBy !== "") {
-      filtered = filtered.filter(c => {
-        switch (filterBy) {
-          case "department": return c.department;
-          default: return true;
-        }
-      });
+      filtered = filtered.filter(c => filterBy === "department" ? c.department : true);
     }
 
-    // 2. Apply Searching
     if (lowerCaseSearchTerm) {
-      filtered = filtered.filter(c => {
-        // Search across relevant fields (adjust as needed)
-        return (
-          c.department.toLowerCase().includes(lowerCaseSearchTerm)
-        );
-      });
-    }
-
-    // Reset page to 1 if the filter/search changes
-    if (currentPage !== 1) {
-      setCurrentPage(1);
+      filtered = filtered.filter(c => c.department.toLowerCase().includes(lowerCaseSearchTerm));
     }
 
     return filtered;
-  }, [allConcerns, filterBy, searchTerm]); // Dependencies
+  }, [allConcerns, filterBy, searchTerm]);
 
   // 📝 PAGINATION LOGIC
   const totalConcerns = filteredConcerns.length
@@ -221,462 +167,252 @@ export default function Page() {
   const startIndex = (currentPage - 1) * itemsPerPage
   const currentItems = filteredConcerns.slice(startIndex, startIndex + itemsPerPage)
 
-
-  // --- STYLING FUNCTIONS (Kinuha sa original code) ---
+  // --- STYLING FUNCTIONS ---
   const getRowBg = (priority: string, isRowView: boolean) => {
-    if (isRowView) {
-      switch (priority) {
-        case "Critical": return "bg-red-200 hover:bg-red-300";
-        case "High": return "bg-orange-200 hover:bg-orange-300";
-        case "Medium": return "bg-yellow-200 hover:bg-yellow-300";
-        case "Low": return "bg-green-200 hover:bg-green-300";
-        case "Normal": return "bg-green-200 hover:bg-green-300";
-        default: return "bg-gray-200 hover:bg-gray-300";
-      }
-    } else {
-      switch (priority) {
-        case "Critical": return "bg-red-200 hover:bg-red-300";
-        case "High": return "bg-orange-300 hover:bg-orange-400";
-        case "Medium": return "bg-yellow-300 hover:bg-yellow-400";
-        case "Low": return "bg-green-300 hover:bg-green-400";
-        case "Normal": return "bg-green-300 hover:bg-green-400";
-        default: return "bg-gray-300 hover:bg-gray-400";
-      }
+    const shades = isRowView 
+      ? { crit: "bg-red-200 hover:bg-red-300", high: "bg-orange-200 hover:bg-orange-300", med: "bg-yellow-200 hover:bg-yellow-300", low: "bg-green-200 hover:bg-green-300" }
+      : { crit: "bg-red-200 hover:bg-red-300", high: "bg-orange-300 hover:bg-orange-400", med: "bg-yellow-300 hover:bg-yellow-400", low: "bg-green-300 hover:bg-green-400" };
+    
+    switch (priority) {
+      case "Critical": return shades.crit;
+      case "High": return shades.high;
+      case "Medium": return shades.med;
+      case "Low": case "Normal": return shades.low;
+      default: return "bg-gray-200 hover:bg-gray-300";
     }
   }
 
   const getStatusBadgeColors = (status: string) => {
     switch (status) {
-      case "Pending": return "bg-yellow-100 text-yellow-700"
-      case "Ongoing": return "bg-blue-100 text-blue-700"
-      case "Finished": return "bg-green-100 text-green-700"
-      default: return "bg-gray-100 text-gray-700"
+      case "Pending": return "bg-yellow-100 text-yellow-700";
+      case "Ongoing": return "bg-blue-100 text-blue-700";
+      case "Finished": return "bg-green-100 text-green-700";
+      default: return "bg-gray-100 text-gray-700";
     }
   }
 
-  const getCardTextColors = (priority: string) => {
-    // Keep the original color logic
-    switch (priority) {
-
-      case "Critical":
-      case "High":
-      case "Medium":
-      case "Low":
-      case "Normal":
-        return "text-gray-800"; // Use dark text for colored backgrounds
-      default:
-        return "text-gray-700";
-    }
-  }
-  // ------------------------------------------------------------------
+  const getCardTextColors = (priority: string) => "text-gray-800";
 
   const openDialog = (concern: ITConcern) => {
-    setSelectedConcern(concern)
-    setStatus(concern.status)
+    setSelectedConcern(concern);
+    setStatus(concern.status);
   }
 
   const handleUpdate = () => {
-    // TODO: Implement API call to update ticket status here
-    alert(`✅ Ticket ${selectedConcern?.id} updated to "${status}". \n(Note: This is a dummy update alert.)`)
-    // Optionally refetch tickets after successful update: fetchConcerns();
-    toast.success("Login successful!")
-    setSelectedConcern(null)
+    alert(`✅ Ticket ${selectedConcern?.id} updated to "${status}".`);
+    toast.success("Update successful!");
+    setSelectedConcern(null);
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("userId")
-    router.push("/login")
+    localStorage.removeItem("userId");
+    router.push("/login");
   }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => setProfilePic(reader.result as string)
-      reader.readAsDataURL(file)
+      const reader = new FileReader();
+      reader.onloadend = () => setProfilePic(reader.result as string);
+      reader.readAsDataURL(file);
     }
   }
 
-  // --- RENDER FUNCTIONS ---
-
+  // --- RENDER CONTENT FUNCTION ---
   const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="flex flex-col items-center justify-center p-20 bg-white rounded-lg shadow-xl">
-          <Loader2 className="h-10 w-10 animate-spin text-gray-700" />
-          <p className="mt-4 text-lg font-semibold text-gray-700">Loading IT Support Tickets...</p>
-        </div>
-      )
-    }
+    if (isLoading) return (
+      <div className="flex flex-col items-center justify-center p-20 bg-white dark:bg-slate-900 rounded-lg shadow-xl">
+        <Loader2 className="h-10 w-10 animate-spin text-gray-700 dark:text-slate-400" />
+        <p className="mt-4 text-lg font-semibold text-gray-700 dark:text-slate-300">Loading IT Support Tickets...</p>
+      </div>
+    );
 
-    if (fetchError) {
-      return (
-        <div className="flex flex-col items-center justify-center p-20 bg-red-50 rounded-lg border border-red-300 shadow-xl text-red-700">
-          <Frown className="h-10 w-10" />
-          <p className="mt-4 text-lg font-bold">Error Loading Tickets</p>
-          <p className="text-sm mt-1">{fetchError}</p>
-          <Button onClick={fetchConcerns} className="mt-4" variant="outline">
-            Try Again
-          </Button>
-        </div>
-      )
-    }
+    if (fetchError) return (
+      <div className="flex flex-col items-center justify-center p-20 bg-red-50 dark:bg-red-900/10 rounded-lg border border-red-300 dark:border-red-800 shadow-xl text-red-700 dark:text-red-400">
+        <Frown className="h-10 w-10" />
+        <p className="mt-4 text-lg font-bold">Error Loading Tickets</p>
+        <Button onClick={fetchConcerns} className="mt-4" variant="outline">Try Again</Button>
+      </div>
+    );
 
-    if (currentItems.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center p-20 bg-white rounded-lg shadow-xl text-gray-500">
-          <Search className="h-10 w-10" />
-          <p className="mt-4 text-lg font-semibold">No Tickets Found</p>
-          <p className="text-sm mt-1">Adjust your search term or filter settings.</p>
-        </div>
-      )
-    }
+    if (currentItems.length === 0) return (
+      <div className="flex flex-col items-center justify-center p-20 bg-white dark:bg-slate-900 rounded-lg shadow-xl text-gray-500">
+        <Search className="h-10 w-10" />
+        <p className="mt-4 text-lg font-semibold">No Tickets Found</p>
+      </div>
+    );
 
-
-    // --- LIST (ROW) VIEW ---
     if (isRowView) {
       return (
-        <div className="w-full bg-white shadow-xl rounded-lg border border-gray-200 
-                overflow-hidden transition-all duration-500">
-  <div className="overflow-x-auto">
-    <table className="min-w-full text-left text-[11px] md:text-xs">
-      <thead className="bg-gray-700 text-white font-semibold">
-        <tr>
-          <th className="p-2 md:p-3 whitespace-nowrap">Employee</th>
-          <th className="p-2 md:p-3 whitespace-nowrap">Department</th>
-          <th className="p-2 md:p-3 whitespace-nowrap">Type</th>
-          <th className="p-2 md:p-3 whitespace-nowrap">Remarks</th>
-          <th className="p-2 md:p-3 whitespace-nowrap">Date</th>
-          <th className="p-2 md:p-3 whitespace-nowrap">Priority</th>
-          <th className="p-2 md:p-3 text-center whitespace-nowrap">Status</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {currentItems.map((c) => (
-          <tr
-            key={c.id}
-            className={`border-b cursor-pointer ${getRowBg(
-              c.priority,
-              true
-            )}`}
-            onClick={() => openDialog(c)}
-          >
-            <td className="p-2 md:p-3 font-medium whitespace-nowrap">
-              {c.Fullname}
-            </td>
-            <td className="p-2 md:p-3 text-gray-600 whitespace-nowrap">
-              {c.department}
-            </td>
-            <td className="p-2 md:p-3 whitespace-nowrap">{c.type}</td>
-
-            <td className="p-2 md:p-3 italic text-gray-500 
-                           truncate max-w-[140px] md:max-w-[250px]">
-              {c.remarks}
-            </td>
-
-            <td className="p-2 md:p-3 whitespace-nowrap">
-              {new Date(c.createdAt).toLocaleString("en-US", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              })}
-            </td>
-
-            <td className="p-2 md:p-3 font-semibold whitespace-nowrap">
-              {c.priority}
-            </td>
-
-            <td className="p-2 md:p-3 text-center whitespace-nowrap">
-              <span
-                className={`px-2 md:px-3 py-0.5 md:py-1 rounded-full 
-                            text-[10px] md:text-xs font-bold uppercase 
-                            ${getStatusBadgeColors(c.status)}`}
-              >
-                {c.status}
-              </span>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-      )
+        <div className="w-full bg-white dark:bg-slate-900 shadow-xl rounded-lg border border-gray-200 dark:border-slate-800 overflow-hidden transition-all duration-500">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-[11px] md:text-xs">
+              <thead className="bg-gray-700 dark:bg-slate-800 text-white font-semibold">
+                <tr>
+                  <th className="p-2 md:p-3">Employee</th>
+                  <th className="p-2 md:p-3">Department</th>
+                  <th className="p-2 md:p-3">Type</th>
+                  <th className="p-2 md:p-3">Remarks</th>
+                  <th className="p-2 md:p-3">Date</th>
+                  <th className="p-2 md:p-3">Priority</th>
+                  <th className="p-2 md:p-3 text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentItems.map((c) => (
+                  <tr key={c.id} className={`border-b dark:border-slate-800 cursor-pointer ${getRowBg(c.priority, true)}`} onClick={() => openDialog(c)}>
+                    <td className="p-2 md:p-3 font-medium">{c.Fullname}</td>
+                    <td className="p-2 md:p-3">{c.department}</td>
+                    <td className="p-2 md:p-3">{c.type}</td>
+                    <td className="p-2 md:p-3 italic truncate max-w-[150px]">{c.remarks}</td>
+                    <td className="p-2 md:p-3">{new Date(c.createdAt).toLocaleDateString()}</td>
+                    <td className="p-2 md:p-3 font-semibold">{c.priority}</td>
+                    <td className="p-2 md:p-3 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${getStatusBadgeColors(c.status)}`}>
+                        {c.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
     }
 
-    // --- GRID (CARD) VIEW ---
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-7 transition-all duration-500">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7 transition-all duration-500">
         {currentItems.map((c) => (
-          <div
-            key={c.id}
-            onClick={() => openDialog(c)}
-            className={`rounded-lg border p-5 shadow hover:shadow-xl transition duration-300 cursor-pointer 
-              ${getRowBg(c.priority, false)} 
-              ${getCardTextColors(c.priority)}`}
-          >
+          <div key={c.id} onClick={() => openDialog(c)} className={`rounded-lg border p-5 shadow hover:shadow-xl transition duration-300 cursor-pointer ${getRowBg(c.priority, false)} ${getCardTextColors(c.priority)}`}>
             <div className="flex justify-between items-start mb-2">
-              <h2 className="text-xl font-extrabold">
-                {c.type}
-              </h2>
-              {/* Priority Badge */}
-              <span className={`text-xs font-bold uppercase px-3 py-1 rounded-full border border-current 
-                    ${c.priority === "Critical" ? 'text-red-800 border-red-800' :
-                  c.priority === "High" ? 'text-orange-800 border-orange-800' :
-                    c.priority === "Medium" ? 'text-yellow-800 border-yellow-800' :
-                      c.priority === "Normal" ? 'text-green-800 border-green-800' :
-                        'text-green-800 border-green-800'}`}
-              >
-                {c.priority}
-              </span>
+              <h2 className="text-xl font-extrabold">{c.type}</h2>
+              <span className="text-xs font-bold uppercase px-3 py-1 rounded-full border border-current">{c.priority}</span>
             </div>
-
-            <h3 className="text-lg font-semibold mb-1">
-              {c.Fullname}
-            </h3>
+            <h3 className="text-lg font-semibold mb-1">{c.Fullname}</h3>
             <p className="text-sm opacity-80 mb-2">{c.department}</p>
-            <p className="text-sm italic line-clamp-2 mb-3 opacity-90">
-              {c.remarks}
-            </p>
-            <div className="flex justify-between items-center text-xs pt-3 border-t">
-              <span className="p-3">
-                {new Date(c.createdAt).toLocaleString("en-US", {
-                  year: "numeric",
-                  month: "long", // Ginawang 'long' para sa buong pangalan ng buwan
-                  day: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
-              </span>
-              <span
-                className={`px-2 py-1 rounded-full font-bold uppercase ${getStatusBadgeColors(
-                  c.status
-                )}`}
-              >
-                {c.status}
-              </span>
+            <p className="text-sm italic line-clamp-2 mb-3 opacity-90">{c.remarks}</p>
+            <div className="flex justify-between items-center text-xs pt-3 border-t border-black/10">
+              <span>{new Date(c.createdAt).toLocaleDateString("en-US", { month: 'long', day: '2-digit', year: 'numeric' })}</span>
+              <span className={`px-2 py-1 rounded-full font-bold uppercase ${getStatusBadgeColors(c.status)}`}>{c.status}</span>
             </div>
           </div>
         ))}
       </div>
-    )
-  }
-  // ------------------------------------------------------------------
+    );
+  };
 
+  // 🛑 STOP: IF NOT MOUNTED (Avoids Hydration Error)
+  if (!mounted) return null;
 
   return (
     <SidebarProvider>
       <ConcernSidebar />
       <SidebarInset>
-        {/* HEADER (No changes needed) */}
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white px-6">
-          <div className="flex items-center gap-4">
-            <SidebarTrigger />
-            <Separator orientation="vertical" className="h-6" />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Concern</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-        </header>
+        {/* HEADER */}
+<header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-white dark:bg-black border-slate-200 dark:border-zinc-800 px-6 transition-colors shadow-sm dark:shadow-none">
+  <div className="flex items-center gap-4">
+    {/* Sidebar Trigger */}
+    <SidebarTrigger className="text-slate-600 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100" />
+    
+    {/* Vertical Separator */}
+    <Separator orientation="vertical" className="h-6 bg-slate-200 dark:bg-zinc-800" />
+    
+    <Breadcrumb>
+      <BreadcrumbList>
+        <BreadcrumbItem className="hidden md:block">
+          <BreadcrumbLink 
+            href="/dashboard" 
+            className="text-slate-500 hover:text-slate-900 dark:text-zinc-500 dark:hover:text-zinc-200"
+          >
+            Dashboard
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        
+        <BreadcrumbSeparator className="hidden md:block text-slate-400 dark:text-zinc-700" />
+        
+        <BreadcrumbItem>
+          <BreadcrumbPage className="font-medium text-slate-900 dark:text-zinc-100">
+            Concern
+          </BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  </div>
+</header>
 
         {/* MAIN CONTENT */}
-        <main className="p-7 bg-[#f7f8fa] min-h-[calc(100vh-4rem)]">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-gray-200">
+        <main className="p-7 bg-slate-50 dark:bg-slate-950 min-h-[calc(100vh-4rem)] transition-colors">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 pb-4 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-4 mb-3 md:mb-0">
-              <h1 className="text-3xl font-extrabold text-gray-700">
-                IT Support Tickets
-              </h1>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsRowView(!isRowView)}
-                className="bg-white hover:bg-gray-100"
-              >
-                {isRowView ? (
-                  <LayoutGrid className="h-5 w-5 text-gray-700" />
-                ) : (
-                  <List className="h-5 w-5 text-gray-700" />
-                )}
+              <h1 className="text-3xl font-extrabold text-slate-700 dark:text-slate-100">IT Support Tickets</h1>
+              <Button variant="outline" size="icon" onClick={() => setIsRowView(!isRowView)} className="bg-white dark:bg-slate-900 dark:border-slate-700">
+                {isRowView ? <LayoutGrid className="h-5 w-5 text-slate-700 dark:text-slate-300" /> : <List className="h-5 w-5 text-slate-700 dark:text-slate-300" />}
               </Button>
-
             </div>
-
-<div className="flex flex-wrap items-center gap-2 md:gap-3">
-  {/* Search */}
-  <div className="relative w-[160px] md:w-55">
-    <Input
-      type="search"
-      placeholder="Search Department"
-      className="pl-3 md:pl-4 h-8 md:h-9 pr-8 md:pr-10 rounded-lg bg-white 
-                 text-[11px] md:text-xs border-gray-300"
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-    />
-    <Search className="h-3 w-3 md:h-4 md:w-4 absolute right-2 md:right-3 
-                       top-1/2 -translate-y-1/2 text-gray-400" />
-  </div>
-
-  {/* Filter */}
-  <Select value={filterBy} onValueChange={setFilterBy}>
-    <SelectTrigger className="w-[100px] md:w-[120px] h-8 md:h-10 
-                              text-[11px] md:text-xs bg-white border-gray-300">
-      <SelectValue placeholder="Filter by" />
-    </SelectTrigger>
-    <SelectContent className="text-[11px] md:text-xs">
-      <SelectItem value="all">All Fields</SelectItem>
-      <SelectItem value="department">Department</SelectItem>
-    </SelectContent>
-  </Select>
-</div>
-
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+              <div className="relative w-[160px] md:w-55">
+                <Input type="search" placeholder="Search Department" className="pl-3 md:pl-4 h-8 md:h-9 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                <Search className="h-3 w-3 md:h-4 md:w-4 absolute right-2 md:right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+              <Select value={filterBy} onValueChange={setFilterBy}>
+                <SelectTrigger className="w-[100px] md:w-[120px] h-8 md:h-10 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700">
+                  <SelectValue placeholder="Filter by" />
+                </SelectTrigger>
+                <SelectContent className="dark:bg-slate-900">
+                  <SelectItem value="all">All Fields</SelectItem>
+                  <SelectItem value="department">Department</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* LIST or GRID (Calling the renderContent function) */}
           {renderContent()}
 
-          {/* DIALOG (No changes needed) */}
-          <Dialog
-            open={!!selectedConcern}
-            onOpenChange={() => setSelectedConcern(null)}
-          >
-            <DialogContent className="sm:max-w-[450px]">
+          {/* TICKET DETAILS DIALOG */}
+          <Dialog open={!!selectedConcern} onOpenChange={() => setSelectedConcern(null)}>
+            <DialogContent className="sm:max-w-[450px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 [&>button]:hidden">
               <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-gray-900">
-                  Ticket #{selectedConcern?.id} Details
-                </DialogTitle>
+                <DialogTitle className="text-xl font-bold text-slate-900 dark:text-slate-100">Ticket #{selectedConcern?.id} Details</DialogTitle>
               </DialogHeader>
-
               {selectedConcern && (
-                <div className="space-y-4 text-sm p-2 border rounded-lg bg-gray-50">
-                  <div className="grid grid-cols-2 gap-y-2 gap-x-4">
-                    <div>
-                      <Label className="font-semibold text-gray-600">
-                        Employee:
-                      </Label>
-                      <p className="font-medium text-gray-900">
-                        {selectedConcern.Fullname}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="font-semibold text-gray-600">
-                        Department:
-                      </Label>
-                      <p className="font-medium text-gray-900">
-                        {selectedConcern.department}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="font-semibold text-gray-600">Concern Type:</Label>
-                      <p className="font-medium text-gray-900">
-                        {selectedConcern.type}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="font-semibold text-gray-600">Type of Request:</Label>
-                      <p className="font-medium text-gray-900">
-                        {selectedConcern.requesttype}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="font-semibold text-gray-600">Technician:</Label>
-                      <p className="font-medium text-gray-900">
-                        {selectedConcern.technicianname}
-                      </p>
-                    </div>
-                                        <div>
-                      <Label className="font-semibold text-gray-600">Date Scheduled:</Label>
-                      <p className="font-medium text-gray-900">
-                        {selectedConcern.dateSched}
-                      </p>
-                    </div>
-                    <div>
-                      <Label className="font-semibold text-gray-600">
-                        Priority:
-                      </Label>
-                      <p
-                        className={`font-bold ${selectedConcern.priority === "Critical"
-                            ? "text-red-600"
-                            : selectedConcern.priority === "High"
-                              ? "text-orange-600"
-                              : "text-green-600"
-                          }`}
-                      >
-                        {selectedConcern.priority}
-                      </p>
-                    </div>
+                <div className="space-y-4 text-sm p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 dark:border-slate-700">
+                  <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                    <div><Label className="text-[10px] uppercase text-slate-500">Employee</Label><p className="font-medium dark:text-slate-100">{selectedConcern.Fullname}</p></div>
+                    <div><Label className="text-[10px] uppercase text-slate-500">Department</Label><p className="font-medium dark:text-slate-100">{selectedConcern.department}</p></div>
+                    <div><Label className="text-[10px] uppercase text-slate-500">Concern Type</Label><p className="font-medium dark:text-slate-100">{selectedConcern.type}</p></div>
+                    <div><Label className="text-[10px] uppercase text-slate-500">Priority</Label><p className={`font-bold ${selectedConcern.priority === "Critical" ? "text-red-500" : "text-green-500"}`}>{selectedConcern.priority}</p></div>
                   </div>
-
-                  <div className="pt-2 border-t">
-                    <Label className="font-semibold text-gray-600">
-                      Remarks:
-                    </Label>
-                    <p className="italic text-gray-700">
-                      {selectedConcern.remarks}
-                    </p>
+                  <div className="pt-3 border-t dark:border-slate-700">
+                    <Label className="text-[10px] uppercase text-slate-500">Remarks</Label>
+                    <p className="italic dark:text-slate-300">{selectedConcern.remarks}</p>
                   </div>
-
-                
                 </div>
               )}
-
               <DialogFooter className="mt-4">
-                <DialogClose asChild>
-                  <Button variant="outline">Close</Button>
-                </DialogClose>
+                <DialogClose asChild><Button variant="outline" className="dark:border-slate-700">Close</Button></DialogClose>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
           {/* PAGINATION */}
-          <div className="mt-8 flex justify-center">
-            {totalConcerns > 0 && ( // Only show pagination if there are items
+          <div className="mt-8 flex justify-center pb-10">
+            {totalConcerns > 0 && (
               <Pagination>
-                <PaginationContent>
+                <PaginationContent className="dark:text-slate-300">
                   <PaginationItem>
-                    <PaginationPrevious
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (currentPage > 1) setCurrentPage(currentPage - 1)
-                      }}
-                    />
+                    <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); if (currentPage > 1) setCurrentPage(currentPage - 1); }} className="dark:hover:bg-slate-800" />
                   </PaginationItem>
                   {Array.from({ length: totalPages }, (_, i) => (
                     <PaginationItem key={i}>
-                      <PaginationLink
-                        href="#"
-                        isActive={i + 1 === currentPage}
-                        onClick={(e) => {
-                          e.preventDefault()
-                          setCurrentPage(i + 1)
-                        }}
-                      >
+                      <PaginationLink href="#" isActive={i + 1 === currentPage} onClick={(e) => { e.preventDefault(); setCurrentPage(i + 1); }} 
+                        className={i + 1 === currentPage ? "" : "dark:hover:bg-slate-800"}>
                         {i + 1}
                       </PaginationLink>
                     </PaginationItem>
                   ))}
                   <PaginationItem>
-                    <PaginationNext
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (currentPage < totalPages) setCurrentPage(currentPage + 1)
-                      }}
-                    />
+                    <PaginationNext href="#" onClick={(e) => { e.preventDefault(); if (currentPage < totalPages) setCurrentPage(currentPage + 1); }} className="dark:hover:bg-slate-800" />
                   </PaginationItem>
                 </PaginationContent>
               </Pagination>

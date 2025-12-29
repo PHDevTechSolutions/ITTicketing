@@ -81,7 +81,6 @@ const data = {
   ],
 };
 
-// ----------------- COMPONENT -----------------
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname();
 
@@ -101,7 +100,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   // Profile states
   const [newPassword, setNewPassword] = useState("");
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [profilePic, setProfilePic] = useState<string | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<UserType>({
@@ -122,12 +120,12 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
   const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
 
   // ----------------- HELPERS -----------------
- const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  });
+  const formatDate = (dateStr: string) =>
+    new Date(dateStr).toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    });
 
   const fetchProfile = () => {
     setIsProfileLoading(true);
@@ -140,7 +138,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       }
       const userData = JSON.parse(storedUser);
       setCurrentUser(userData);
-      setProfilePic(userData.ProfilePic || null);
     } catch (err) {
       console.error(err);
       setProfileError("Failed to load profile.");
@@ -151,35 +148,32 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
   const handleNotificationClick = (notif: Notification, index: number) => {
     console.log("Notification clicked:", notif);
-    // router.push(`/tickets/${notif.ticketNumber}`); // optional
-    // setUnreadNotifications(prev => Math.max(prev - 1, 0)); // optional mark as read
   };
 
   // ----------------- FETCH NOTIFICATIONS -----------------
   React.useEffect(() => {
-  async function loadNotifications() {
-    const res = await fetch("/api/tickets");
-    const data = await res.json();
+    async function loadNotifications() {
+      try {
+        const res = await fetch("/api/tickets");
+        const data = await res.json();
+        const formatted: Notification[] = data.notifications.map((n: any) => ({
+          ticketNumber: n.ticketNumber,
+          action: n.action,
+          actor: n.actor,
+          message: n.message,
+          date: n.createdAt,
+        }));
+        setNotifications(formatted);
+        setUnreadNotifications(formatted.length);
+      } catch (e) {
+        console.error("Failed to load notifications", e);
+      }
+    }
+    loadNotifications();
+  }, []);
 
-    const formatted: Notification[] = data.notifications.map((n: any) => ({
-      ticketNumber: n.ticketNumber,
-      action: n.action,
-      actor: n.actor,
-      message: n.message,
-      date: n.createdAt,
-    }));
-
-    setNotifications(formatted);
-    setUnreadNotifications(formatted.length);
-  }
-
-  loadNotifications();
-}, []);
-
-
-    const handlePasswordUpdate = async () => {
+  const handlePasswordUpdate = async () => {
     if (!currentUser.ReferenceID || !newPassword) return alert("Missing info");
-
     try {
       const res = await fetch(`/api/user/${currentUser.ReferenceID}`, {
         method: "PATCH",
@@ -192,7 +186,6 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       alert("Password updated successfully!");
       setNewPassword("");
     } catch (err: any) {
-      console.error(err);
       alert("Failed: " + err.message);
     }
   };
@@ -202,14 +195,16 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
     window.location.href = "/login";
   };
 
-  // ----------------- JSX -----------------
   return (
-    <Sidebar {...props} className="bg-white text-gray-900 border-r border-gray-200">
+    <Sidebar 
+      {...props} 
+      className="bg-white dark:bg-zinc-950 text-gray-900 dark:text-zinc-100 border-r border-gray-200 dark:border-zinc-800"
+    >
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <div className="flex items-center gap-2 text-xl font-extrabold text-indigo-600">
+              <div className="flex items-center gap-2 text-xl font-extrabold text-indigo-600 dark:text-indigo-400">
                 <GalleryVerticalEnd className="w-6 h-6" />
                 <span>Admin Panel</span>
               </div>
@@ -225,13 +220,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
               <SidebarMenuItem key={item.title}>
                 <SidebarMenuButton
                   onClick={() => handleToggle(index)}
-                  className="w-full justify-start text-gray-900 hover:bg-gray-100"
+                  className="w-full justify-start text-gray-900 dark:text-zinc-200 hover:bg-gray-100 dark:hover:bg-zinc-900"
                   data-open={openStates[index]}
                 >
                   <div className="flex items-center justify-between w-full">
                     <ChevronRight
                       className={`h-4 w-4 mr-2 transition-transform ${
-                        openStates[index] ? "rotate-90 text-indigo-600" : "rotate-0 text-gray-500"
+                        openStates[index] ? "rotate-90 text-indigo-600 dark:text-indigo-400" : "rotate-0 text-gray-500"
                       }`}
                     />
                     <span className="font-semibold text-base flex-grow text-left">{item.title}</span>
@@ -249,8 +244,8 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
                             isActive={isActive}
                             className={
                               isActive
-                                ? "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
-                                : "hover:bg-gray-100 text-gray-700"
+                                ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900/60"
+                                : "hover:bg-gray-100 dark:hover:bg-zinc-900 text-gray-700 dark:text-zinc-400"
                             }
                           >
                             <a href={subItem.url}>{subItem.title}</a>
@@ -267,67 +262,65 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       {/* Footer: Notifications, Profile, Logout */}
-      <div className="mr-auto flex items-center gap-3 px-4 py-2 border-t border-gray-200">
+      <div className="mr-auto flex items-center gap-3 px-4 py-3 border-t border-gray-200 dark:border-zinc-800 bg-white/50 dark:bg-zinc-950/50 backdrop-blur-sm">
         {/* Notification */}
         <div className="relative">
           <Button
             variant="ghost"
             size="icon"
             title="Notifications"
-            className="text-gray-600 hover:bg-gray-100"
+            className="text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-900"
             onClick={() => setIsNotificationOpen(true)}
           >
             <Bell className="h-5 w-5" />
             {unreadNotifications > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white font-bold">
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white font-bold">
                 {unreadNotifications}
               </span>
             )}
           </Button>
 
-          {/* Notifications Dialog */}
           <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-            <DialogContent className="sm:max-w-[400px]">
+            <DialogContent className="sm:max-w-[400px] bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800">
               <DialogHeader>
-                <DialogTitle>Notifications</DialogTitle>
+                <DialogTitle className="dark:text-zinc-100">Notifications</DialogTitle>
               </DialogHeader>
 
               <div className="grid gap-2 py-2 text-sm max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
-                  <p className="text-gray-500 text-center">No new notifications</p>
+                  <p className="text-gray-500 dark:text-zinc-500 text-center py-4">No new notifications</p>
                 ) : (
                   notifications.map((notif, index) => (
                     <div
                       key={index}
-                      className="p-3 border-b last:border-b-0 hover:bg-gray-50 rounded cursor-pointer"
+                      className="p-3 border-b border-gray-100 dark:border-zinc-800 last:border-b-0 hover:bg-gray-50 dark:hover:bg-zinc-900/50 rounded cursor-pointer transition-colors"
                       onClick={() => handleNotificationClick(notif, index)}
                     >
-                      <p className="text-sm">
-                        <span className="font-semibold">{notif.actor}</span>'s  Created {notif.message}
+                      <p className="text-sm dark:text-zinc-300">
+                        <span className="font-semibold text-gray-900 dark:text-zinc-100">{notif.actor}</span>'s Created {notif.message}
                       </p>
-                      <div className="flex justify-between text-xs text-gray-400 mt-1">
+                      <div className="flex justify-between text-xs text-gray-400 dark:text-zinc-500 mt-1">
                         <span>Ticket #{notif.ticketNumber}</span>
                         <span>{notif.date}</span>
                       </div>
                       <span
-                        className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-medium ${
+                        className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-medium uppercase ${
                           notif.action === "created"
-                            ? "bg-green-100 text-green-700"
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
                             : notif.action === "updated"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-purple-100 text-purple-700"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                            : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
                         }`}
                       >
-                        {notif.action.toUpperCase()}
+                        {notif.action}
                       </span>
                     </div>
                   ))
                 )}
               </div>
-
-              <DialogFooter className="flex justify-center">
+              <DialogFooter>
                 <DialogClose asChild>
-                  <Button variant="outline">Close</Button>
+                  <Button variant="outline" className="dark:border-zinc-800 dark:hover:bg-zinc-900">Close</Button>
                 </DialogClose>
               </DialogFooter>
             </DialogContent>
@@ -343,75 +336,63 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
           }}
         >
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" title="Profile" className="text-gray-600 hover:bg-gray-100">
+            <Button variant="ghost" size="icon" title="Profile" className="text-gray-600 dark:text-zinc-400 hover:bg-gray-100 dark:hover:bg-zinc-900">
               <User className="h-5 w-5" />
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-[400px] bg-white rounded-xl">
+          <DialogContent className="sm:max-w-[400px] bg-white dark:bg-zinc-950 border-gray-200 dark:border-zinc-800">
             <DialogHeader>
-              <DialogTitle className="text-lg font-semibold text-center text-gray-900">
+              <DialogTitle className="text-lg font-semibold text-center text-gray-900 dark:text-zinc-100">
                 Profile Information
               </DialogTitle>
             </DialogHeader>
 
-            <div className="grid gap-4 py-4 text-sm w-full">
+            <div className="grid gap-4 py-4 text-sm">
               {isProfileLoading ? (
-                <div className="text-center p-4 text-gray-500">
+                <div className="text-center p-4 text-gray-500 dark:text-zinc-500">
                   <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
-                  <p>Loading profile data...</p>
+                  <p>Loading profile...</p>
                 </div>
               ) : profileError ? (
-                <div className="text-center p-4 text-red-500 border border-red-200 bg-red-50 rounded">
+                <div className="text-center p-4 text-red-500 bg-red-50 dark:bg-red-900/20 rounded border border-red-100 dark:border-red-900/30">
                   <p>{profileError}</p>
-                  <p className="text-xs mt-1">Please check the network or login state.</p>
                 </div>
               ) : (
-                <>
-                  <div>
-                    <Label className="text-gray-500">Full Name:</Label>
-                    <p className="font-medium text-gray-800">{currentUser.Firstname} {currentUser.Lastname}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500">Username:</Label>
-                    <p className="font-medium text-gray-800">{currentUser.Username}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500">Email:</Label>
-                    <p className="font-medium text-gray-800">{currentUser.Email}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500">Role:</Label>
-                    <p className="font-medium text-gray-800">{currentUser.Role}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500">Reference ID:</Label>
-                    <p className="font-medium text-gray-800">{currentUser.ReferenceID}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500">Joined:</Label>
-                    <p className="font-medium text-gray-800">{formatDate(currentUser.createdAt)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500 mb-1">New Password:</Label>
+                <div className="space-y-3">
+                  {[
+                    { label: "Full Name", val: `${currentUser.Firstname} ${currentUser.Lastname}` },
+                    { label: "Username", val: currentUser.Username },
+                    { label: "Email", val: currentUser.Email },
+                    { label: "Role", val: currentUser.Role },
+                    { label: "Reference ID", val: currentUser.ReferenceID },
+                    { label: "Joined", val: formatDate(currentUser.createdAt) },
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <Label className="text-gray-500 dark:text-zinc-500 text-xs">{item.label}</Label>
+                      <p className="font-medium text-gray-800 dark:text-zinc-200">{item.val}</p>
+                    </div>
+                  ))}
+                  <div className="pt-2">
+                    <Label className="text-gray-500 dark:text-zinc-500 text-xs mb-1 block">New Password</Label>
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-zinc-800 bg-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-zinc-100"
                       placeholder="Enter new password"
                     />
                   </div>
-                </>
+                </div>
               )}
             </div>
 
-            <DialogFooter className="flex justify-center gap-2">
+            <DialogFooter className="flex flex-row justify-end gap-2">
               <DialogClose asChild>
-                <Button variant="outline">Close</Button>
+                <Button variant="outline" className="dark:border-zinc-800 dark:hover:bg-zinc-900">Close</Button>
               </DialogClose>
-                            <Button variant="outline" onClick={handlePasswordUpdate}>
-                Update Password
+              <Button onClick={handlePasswordUpdate} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                Update
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -419,32 +400,33 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 
         {/* Logout */}
         <Dialog open={openLogout} onOpenChange={setOpenLogout}>
-          
           <DialogTrigger asChild>
             <Button
               variant="secondary"
               size="icon"
-              className="bg-red-100 hover:bg-red-200 text-red-700"
+              className="bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/30"
               title="Logout"
             >
               <LogOut className="h-5 w-5" />
             </Button>
           </DialogTrigger>
 
-          <DialogContent className="sm:max-w-[400px]">
+          <DialogContent className="sm:max-w-[400px] dark:bg-zinc-950 dark:border-zinc-800">
             <DialogHeader>
-              <DialogTitle>Are you sure you want to logout?</DialogTitle>
+              <DialogTitle className="dark:text-zinc-100 text-center">Are you sure you want to logout?</DialogTitle>
             </DialogHeader>
-
-            <DialogFooter className="flex justify-between">
+            <DialogFooter className="flex flex-row justify-center gap-4 mt-4">
               <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button variant="outline" className="flex-1 dark:border-zinc-800">Cancel</Button>
               </DialogClose>
-              <Button variant="destructive" onClick={handleLogout}>Logout</Button>
+              <Button variant="destructive" className="flex-1" onClick={handleLogout}>Logout</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        
+
+        <div className="ml-auto">
+          <ModeToggle />
+        </div>
       </div>
 
       <SidebarRail />
