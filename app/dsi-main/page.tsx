@@ -699,10 +699,6 @@ setNewConcern((prev) => ({
             </Breadcrumb>
 
           </div>
-
-          <div className="mr-5">
-            <ModeToggle />
-          </div>
         </header>
 
         <div className="flex flex-1 flex-col gap-4 p-4">

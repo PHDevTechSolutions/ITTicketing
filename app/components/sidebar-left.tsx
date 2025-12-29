@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useState, useEffect } from "react"
-
+import { ModeToggle } from "../components/mode-toggle";
 import {
   Sidebar,
   SidebarContent,
@@ -66,13 +66,13 @@ const data: {
   key: PageType
   icon: LucideIcon
 }[] = [
-  { title: "Home", key: "home", icon: Home },
-  { title: "Inbox", key: "inbox", icon: Inbox },
-  { title: "Create Concern", key: "createConcern", icon: PlusCircle },
-  { title: "Open Tickets", key: "openTickets", icon: PlusCircle },
-  { title: "Pending Concerns", key: "pendingConcerns", icon: Clock },
-  { title: "Closed Tickets", key: "closedTickets", icon: CheckCircle },
-]
+    { title: "Home", key: "home", icon: Home },
+    { title: "Inbox", key: "inbox", icon: Inbox },
+    { title: "Create Concern", key: "createConcern", icon: PlusCircle },
+    { title: "Open Tickets", key: "openTickets", icon: PlusCircle },
+    { title: "Pending Concerns", key: "pendingConcerns", icon: Clock },
+    { title: "Closed Tickets", key: "closedTickets", icon: CheckCircle },
+  ]
 
 // --------------------
 // COMPONENT
@@ -137,7 +137,7 @@ export function SidebarLeft({
     window.location.href = "/dsi-login"
   }
 
-      const handlePasswordUpdate = async () => {
+  const handlePasswordUpdate = async () => {
     if (!currentUser.ReferenceID || !newPassword) return alert("Missing info");
 
     try {
@@ -197,7 +197,6 @@ export function SidebarLeft({
       {/* PROFILE + NOTIFICATIONS + LOGOUT */}
       {/* -------------------- */}
       <div className="mr-auto flex items-center gap-3 px-4 py-2 border-t border-gray-200">
-          
 
         {/* PROFILE */}
         <Dialog
@@ -216,8 +215,8 @@ export function SidebarLeft({
             >
               <User className="h-5 w-5" />
             </Button>
-          </DialogTrigger>
 
+          </DialogTrigger>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
               <DialogTitle className="text-center">Profile Information</DialogTitle>
@@ -257,16 +256,16 @@ export function SidebarLeft({
                     <Label className="mb-1">Joined:</Label>
                     <p className="font-medium">{formatDate(currentUser.createdAt)}</p>
                   </div>
-                                    <div>
-                                      <Label className="text-white-500 mb-2">New Password:</Label>
-                                      <input
-                                        type="password"
-                                        value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                        placeholder="Enter new password"
-                                      />
-                                    </div>
+                  <div>
+                    <Label className="text-white-500 mb-2">New Password:</Label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="Enter new password"
+                    />
+                  </div>
                 </>
               )}
             </div>
@@ -275,9 +274,9 @@ export function SidebarLeft({
               <DialogClose asChild>
                 <Button variant="outline">Close</Button>
               </DialogClose>
-                                          <Button variant="outline" onClick={handlePasswordUpdate}>
-                              Update Password
-                            </Button>
+              <Button variant="outline" onClick={handlePasswordUpdate}>
+                Update Password
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
